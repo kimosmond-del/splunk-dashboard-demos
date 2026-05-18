@@ -50,24 +50,16 @@
   </p>
 
   <div class="card">
-    <a href="./fraud-demo/">
-      Fraud Detection Dashboard
+    <a href="./pii-demo/">
+      PII Monitoring Dasboard
     </a>
 
     <p>
-      Sample dashboard showing fraud monitoring and investigation workflows.
+      Sample dashboard showing PII overview and monitoring.
     </p>
   </div>
 
-  <div class="card">
-    <a href="./soc-maturity/">
-      SOC Maturity Dashboard
-    </a>
 
-    <p>
-      Sample dashboard showing SOC operational maturity and resilience metrics.
-    </p>
-  </div>
 
 </body>
 </html>
