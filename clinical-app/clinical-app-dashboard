@@ -1,0 +1,299 @@
+
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#12141a}
+.sp-wrap{background:#12141a;min-height:100vh;font-family:'Helvetica Neue',Arial,sans-serif;font-size:12px;color:#c5c8d4}
+.sp-topbar{background:#0d0f14;border-bottom:1px solid #252830;display:flex;align-items:center;padding:0 14px;height:40px;gap:20px}
+.sp-logo{display:flex;align-items:center;gap:7px}
+.sp-logo-sq{width:24px;height:24px;background:#f7902b;border-radius:3px;display:flex;align-items:center;justify-content:center}
+.sp-logo-sq svg{width:16px;height:16px}
+.sp-brand{color:#f7902b;font-size:16px;font-weight:700;letter-spacing:-0.5px}
+.sp-nav{display:flex;gap:2px}
+.sp-nav a{padding:5px 11px;color:#8b8fa8;border-radius:3px;font-size:11px;cursor:pointer}
+.sp-nav a.on{background:#1e2128;color:#c5c8d4}
+.sp-spacer{flex:1}
+.sp-user{display:flex;align-items:center;gap:7px;color:#8b8fa8;font-size:11px}
+.sp-av{width:24px;height:24px;border-radius:50%;background:#f7902b;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:#fff}
+
+.sp-toolbar{background:#0d0f14;border-bottom:1px solid #252830;padding:8px 14px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.sp-title{font-size:13px;font-weight:600;color:#dde0ea}
+.sp-subtitle{font-size:10px;color:#8b8fa8;margin-left:4px}
+.tpill{background:#1e2128;border:1px solid #2e3140;border-radius:4px;padding:4px 11px;font-size:11px;color:#4fa9e3;cursor:pointer}
+.tpill span{color:#8b8fa8}
+.sp-btn{padding:4px 12px;border-radius:4px;font-size:11px;font-weight:600;cursor:pointer;border:none}
+.sp-btn-p{background:#f7902b;color:#fff}
+.sp-btn-o{background:transparent;border:1px solid #2e3140;color:#8b8fa8}
+
+.sp-filters{background:#0b0d11;border-bottom:1px solid #252830;padding:6px 14px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.fl{color:#555870;font-size:10px;text-transform:uppercase;letter-spacing:.5px}
+.fc{background:#1e2128;border:1px solid #2e3140;border-radius:12px;padding:2px 11px;font-size:10px;color:#c5c8d4;cursor:pointer}
+.fc.on{border-color:#f7902b;color:#f7902b}
+
+.sp-spl{background:#0b0d11;border:1px solid #2e3140;border-radius:4px;padding:7px 13px;margin:12px 14px 0;display:flex;align-items:center;gap:9px}
+.spl-code{font-family:'Courier New',monospace;font-size:10px;color:#65a637;flex:1}
+.spl-cur{display:inline-block;width:6px;height:11px;background:#65a637;vertical-align:middle;margin-left:1px;animation:blink 1s infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:0}}
+.spl-meta{font-size:10px;color:#555870;white-space:nowrap}
+
+.sp-main{padding:10px 14px 20px;display:flex;flex-direction:column;gap:10px}
+
+.kpi-row{display:grid;grid-template-columns:repeat(5,1fr);gap:8px}
+.kpi{background:#1a1d26;border:1px solid #252830;border-radius:4px;padding:11px 13px;position:relative;overflow:hidden}
+.kpi::after{content:'';position:absolute;top:0;left:0;right:0;height:2px}
+.kpi.g::after{background:#65a637}
+.kpi.o::after{background:#f7902b}
+.kpi.b::after{background:#4fa9e3}
+.kpi.r::after{background:#d6563c}
+.kpi.p::after{background:#9a7fd1}
+.kpi-lbl{font-size:9px;color:#8b8fa8;text-transform:uppercase;letter-spacing:.5px;margin-bottom:5px}
+.kpi-val{font-size:22px;font-weight:700;line-height:1}
+.kpi-val.g{color:#65a637}.kpi-val.o{color:#f7902b}.kpi-val.b{color:#4fa9e3}.kpi-val.r{color:#d6563c}.kpi-val.p{color:#9a7fd1}
+.kpi-unit{font-size:11px;font-weight:400}
+.kpi-sub{font-size:9px;color:#555870;margin-top:3px}
+.kpi-delta{font-size:9px;margin-top:2px}
+.kpi-delta.up{color:#65a637}.kpi-delta.dn{color:#d6563c}
+
+.row2{display:grid;grid-template-columns:2fr 1fr;gap:10px}
+.row3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px}
+.row2b{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+
+.panel{background:#1a1d26;border:1px solid #252830;border-radius:4px;overflow:hidden}
+.ph{background:#13151c;border-bottom:1px solid #252830;padding:8px 13px;display:flex;align-items:center;gap:7px}
+.ph-title{font-size:11px;font-weight:600;color:#cdd0dc;flex:1}
+.ph-badge{font-size:9px;background:#1e2128;border:1px solid #2e3140;border-radius:10px;padding:1px 8px;color:#8b8fa8}
+.pb{padding:11px}
+
+.bar-r{display:flex;align-items:center;gap:7px;margin-bottom:7px}
+.bar-lbl{width:110px;font-size:10px;color:#c5c8d4;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex-shrink:0}
+.bar-trk{flex:1;background:#1e2128;border-radius:2px;height:9px}
+.bar-fil{height:100%;border-radius:2px}
+.bar-val{width:42px;text-align:right;font-size:10px;color:#8b8fa8;flex-shrink:0}
+
+.alert-li{display:flex;align-items:flex-start;gap:9px;padding:6px 0;border-bottom:1px solid #171921}
+.alert-li:last-child{border-bottom:none}
+.a-dot{width:7px;height:7px;border-radius:50%;margin-top:3px;flex-shrink:0}
+.a-dot.r{background:#d6563c;box-shadow:0 0 5px #d6563c}
+.a-dot.o{background:#f7902b;box-shadow:0 0 4px #f7902b}
+.a-dot.b{background:#4fa9e3}
+.a-dot.g{background:#65a637}
+.a-tx{font-size:10px;color:#c5c8d4;line-height:1.4}
+.a-tm{font-size:9px;color:#555870;margin-top:1px}
+
+.hm-grid{display:grid;gap:2px;font-size:9px}
+.hm-hd{color:#555870;text-align:center;padding:2px;font-size:9px}
+.hm-lbl{color:#8b8fa8;display:flex;align-items:center;font-size:9px}
+.hm-cell{height:22px;border-radius:2px;display:flex;align-items:center;justify-content:center;font-size:8px;font-weight:600;cursor:pointer}
+
+table{width:100%;border-collapse:collapse;font-size:10px}
+thead th{color:#555870;font-weight:600;text-transform:uppercase;letter-spacing:.3px;padding:6px 8px;border-bottom:1px solid #252830;text-align:left;font-size:9px}
+tbody tr{border-bottom:1px solid #171921}
+tbody tr:hover{background:#1e2128}
+tbody td{padding:6px 8px;color:#c5c8d4}
+.bdg{display:inline-block;border-radius:3px;padding:1px 7px;font-size:9px;font-weight:700}
+.bdg-g{background:rgba(101,166,55,.15);color:#65a637}
+.bdg-r{background:rgba(214,86,60,.15);color:#d6563c}
+.bdg-o{background:rgba(247,144,43,.15);color:#f7902b}
+
+.sp-foot{text-align:center;color:#555870;font-size:9px;padding:6px 0 14px}
+</style>
+
+<div class="sp-wrap">
+  <div class="sp-topbar">
+    <div class="sp-logo">
+      <div class="sp-logo-sq"><svg viewBox="0 0 16 16" fill="none"><path d="M2 12l3.5-6 3 4.5 2-3 3.5 4.5" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+      <span class="sp-brand">splunk&gt;</span>
+    </div>
+    <div class="sp-nav">
+      <a>Search</a><a class="on">Dashboards</a><a>Alerts</a><a>Reports</a>
+    </div>
+    <div class="sp-spacer"></div>
+    <div class="sp-user"><div class="sp-av">JD</div><span>jdoe@health.org</span></div>
+  </div>
+
+  <div class="sp-toolbar">
+    <div><span class="sp-title">Clinical App Performance by Site</span><span class="sp-subtitle">— NetFlow + ASA Firewall</span></div>
+    <div class="sp-spacer"></div>
+    <div class="tpill">&#128336; <span>Range:</span> Last 24 h ▾</div>
+    <button class="sp-btn sp-btn-o">Edit</button>
+    <button class="sp-btn sp-btn-p">&#8635; Refresh</button>
+  </div>
+
+  <div class="sp-filters">
+    <span class="fl">Site:</span>
+    <div class="fc on">All Sites</div><div class="fc">Main Campus</div><div class="fc">North Clinic</div><div class="fc">South Clinic</div><div class="fc">Radiology</div><div class="fc">Pharmacy Hub</div>
+    &nbsp;
+    <span class="fl">App:</span>
+    <div class="fc on">All</div><div class="fc">Epic EHR</div><div class="fc">PACS</div><div class="fc">RxConnect</div>
+  </div>
+
+  <div class="sp-spl">
+    <span style="color:#f7902b;font-size:13px">|</span>
+    <span class="spl-code">index=netflow sourcetype=cisco:asa | eval app=if(dest_port==443,"EHR",if(dest_port==11112,"PACS","Pharmacy")) | stats avg(latency_ms) as avg_lat, sum(bytes) as vol by site, app, _time<span class="spl-cur"></span></span>
+    <span class="spl-meta">14 Apr 2026 · 2.4M events</span>
+  </div>
+
+  <div class="sp-main">
+
+    <div class="kpi-row">
+      <div class="kpi g"><div class="kpi-lbl">Avg EHR Latency</div><div class="kpi-val g">42<span class="kpi-unit"> ms</span></div><div class="kpi-delta up">▲ +3 ms vs yesterday</div><div class="kpi-sub">Epic · All sites</div></div>
+      <div class="kpi o"><div class="kpi-lbl">Avg PACS Latency</div><div class="kpi-val o">187<span class="kpi-unit"> ms</span></div><div class="kpi-delta g">▼ −14 ms vs yesterday</div><div class="kpi-sub">DICOM/HL7 · All sites</div></div>
+      <div class="kpi b"><div class="kpi-lbl">Avg Pharmacy Latency</div><div class="kpi-val b">31<span class="kpi-unit"> ms</span></div><div class="kpi-delta up">▲ +1 ms vs yesterday</div><div class="kpi-sub">RxConnect · All sites</div></div>
+      <div class="kpi r"><div class="kpi-lbl">ASA Deny Events</div><div class="kpi-val r">1,248</div><div class="kpi-delta dn">▲ +317 vs yesterday</div><div class="kpi-sub">All firewalls</div></div>
+      <div class="kpi p"><div class="kpi-lbl">NetFlow Volume</div><div class="kpi-val p">4.7<span class="kpi-unit"> TB</span></div><div class="kpi-delta g">▼ −0.3 TB vs yesterday</div><div class="kpi-sub">24-hr aggregate</div></div>
+    </div>
+
+    <div class="row2">
+      <div class="panel">
+        <div class="ph"><span class="ph-title">App latency over time by site (ms) — last 24 h</span><span class="ph-badge">NetFlow</span></div>
+        <div class="pb"><div style="position:relative;height:200px"><canvas id="latChart" role="img" aria-label="Line chart of app latency by site over 24 hours">EHR 38–55ms, PACS 163–401ms, Pharmacy 27–118ms across sites.</canvas></div></div>
+      </div>
+      <div class="panel">
+        <div class="ph"><span class="ph-title">&#128308; Active alerts &amp; events</span><span class="ph-badge">ASA + NetFlow</span></div>
+        <div class="pb">
+          <div class="alert-li"><div class="a-dot r"></div><div><div class="a-tx">PACS latency spike — Radiology Wing &gt;400 ms for 6 min</div><div class="a-tm">06:14:32 · cisco-asa-rad-01 · PACS_SLA_BREACH</div></div></div>
+          <div class="alert-li"><div class="a-dot r"></div><div><div class="a-tx">ASA denied 87 Epic EHR flows from 10.4.12.0/24 (North Clinic)</div><div class="a-tm">05:58:01 · %ASA-4-106023 · ACL: DENY_UNAUTH_EHR</div></div></div>
+          <div class="alert-li"><div class="a-dot o"></div><div><div class="a-tx">RxConnect response &gt;100 ms threshold — South Clinic (avg 118 ms)</div><div class="a-tm">05:41:17 · netflow-sc-pharm · 5-min window</div></div></div>
+          <div class="alert-li"><div class="a-dot o"></div><div><div class="a-tx">NetFlow export gap — Main Campus router (3 m 20 s)</div><div class="a-tm">04:22:55 · 10.1.0.1 · possible collector restart</div></div></div>
+          <div class="alert-li"><div class="a-dot b"></div><div><div class="a-tx">Unusual DICOM upload — PACS Main Campus +42% above baseline</div><div class="a-tm">03:15:09 · dest=pacs.health.org:11112 · 8.3 GB/hr</div></div></div>
+          <div class="alert-li"><div class="a-dot g"></div><div><div class="a-tx">Epic EHR failover resolved — Pharmacy Hub back to primary</div><div class="a-tm">02:08:44 · latency 198 ms → 36 ms</div></div></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="row3">
+      <div class="panel">
+        <div class="ph"><span class="ph-title">EHR latency by site (ms)</span><span class="ph-badge">Epic · HL7 FHIR</span></div>
+        <div class="pb" id="ehrBars"></div>
+      </div>
+      <div class="panel">
+        <div class="ph"><span class="ph-title">PACS latency by site (ms)</span><span class="ph-badge">DICOM · VNA</span></div>
+        <div class="pb" id="pacsBars"></div>
+      </div>
+      <div class="panel">
+        <div class="ph"><span class="ph-title">Pharmacy latency by site (ms)</span><span class="ph-badge">RxConnect · Meditech</span></div>
+        <div class="pb" id="pharmBars"></div>
+      </div>
+    </div>
+
+    <div class="row2b">
+      <div class="panel">
+        <div class="ph"><span class="ph-title">Latency heatmap — app × site × hour</span><span class="ph-badge">green=fast · red=degraded</span></div>
+        <div class="pb"><div class="hm-grid" id="heatmap" style="grid-template-columns:80px repeat(8,1fr)"></div></div>
+      </div>
+      <div class="panel">
+        <div class="ph"><span class="ph-title">Traffic volume by app — 24 h NetFlow</span><span class="ph-badge">bytes</span></div>
+        <div class="pb"><div style="position:relative;height:185px"><canvas id="donut" role="img" aria-label="Doughnut chart of traffic volume by app">Epic EHR 1820GB, PACS 1420GB, RxConnect 620GB, Meditech 490GB, Other 350GB.</canvas></div></div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="ph"><span class="ph-title">Site-level app performance summary · ASA policy status</span><span class="ph-badge">NetFlow + ASA</span></div>
+      <div class="pb" style="padding:0">
+        <table>
+          <thead><tr><th>Site</th><th>EHR avg</th><th>EHR p95</th><th>PACS avg</th><th>Pharm avg</th><th>ASA denies</th><th>NetFlow vol</th><th>SLA</th><th>Status</th></tr></thead>
+          <tbody>
+            <tr><td>Main Campus</td><td>38 ms</td><td>72 ms</td><td>163 ms</td><td>29 ms</td><td>184</td><td>1.8 TB</td><td>99.97%</td><td><span class="bdg bdg-g">NORMAL</span></td></tr>
+            <tr><td>North Clinic</td><td>55 ms</td><td>104 ms</td><td>212 ms</td><td>34 ms</td><td>384</td><td>720 GB</td><td>99.81%</td><td><span class="bdg bdg-o">WARN</span></td></tr>
+            <tr><td>South Clinic</td><td>47 ms</td><td>89 ms</td><td>178 ms</td><td>118 ms</td><td>92</td><td>510 GB</td><td>99.88%</td><td><span class="bdg bdg-o">WARN</span></td></tr>
+            <tr><td>Radiology Wing</td><td>41 ms</td><td>77 ms</td><td>401 ms</td><td>27 ms</td><td>217</td><td>1.1 TB</td><td>98.64%</td><td><span class="bdg bdg-r">BREACH</span></td></tr>
+            <tr><td>Pharmacy Hub</td><td>36 ms</td><td>65 ms</td><td>144 ms</td><td>31 ms</td><td>371</td><td>380 GB</td><td>99.95%</td><td><span class="bdg bdg-g">NORMAL</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="row2b">
+      <div class="panel">
+        <div class="ph"><span class="ph-title">Top ASA deny rules — hit count</span><span class="ph-badge">%ASA-4-106023</span></div>
+        <div class="pb"><div style="position:relative;height:190px"><canvas id="asaBar" role="img" aria-label="Horizontal bar chart of top ASA deny rules">DENY_UNAUTH_EHR 384, DENY_OFFNET_PACS 217, DENY_PHARM_EXT 205, DENY_UNKNOWN_APP 198, ACL_DROP_MGMT 154, CONN_LIMIT_BREACH 90.</canvas></div></div>
+      </div>
+      <div class="panel">
+        <div class="ph"><span class="ph-title">App throughput by site (Mbps) — stacked</span><span class="ph-badge">NetFlow</span></div>
+        <div class="pb"><div style="position:relative;height:190px"><canvas id="stackBar" role="img" aria-label="Stacked bar chart of app throughput by site">Main Campus leads with EHR 820 Mbps, PACS 640 Mbps, Pharmacy 180 Mbps.</canvas></div></div>
+      </div>
+    </div>
+
+  </div>
+  <div class="sp-foot">Splunk Enterprise · healthcare-prod · index: netflow, cisco_asa · Last refresh: 14 Apr 2026 06:00 UTC · Owner: Network Ops</div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script>
+const gc='rgba(255,255,255,0.07)';
+Chart.defaults.color='#8b8fa8';
+Chart.defaults.font.family='Helvetica Neue,Arial,sans-serif';
+Chart.defaults.font.size=10;
+
+const hrs=Array.from({length:25},(_,i)=>{const h=(6+i)%24;return`${String(h).padStart(2,'0')}:00`});
+function wv(base,amp,phase,len){return Array.from({length:len},(_,i)=>+(base+amp*Math.sin((i+phase)*.45)+(Math.random()-.5)*amp*.35).toFixed(1));}
+
+new Chart(document.getElementById('latChart'),{
+  type:'line',
+  data:{labels:hrs,datasets:[
+    {label:'Main – EHR',data:wv(38,8,0,25),borderColor:'#65a637',backgroundColor:'rgba(101,166,55,.05)',tension:.4,pointRadius:1.5,borderWidth:1.8},
+    {label:'N.Clinic – EHR',data:wv(55,14,1,25),borderColor:'#4fa9e3',backgroundColor:'rgba(79,169,227,.05)',tension:.4,pointRadius:1.5,borderWidth:1.8},
+    {label:'Radiology – PACS',data:[...wv(175,40,2,20),401,395,380,310,210],borderColor:'#d6563c',backgroundColor:'rgba(214,86,60,.05)',tension:.4,pointRadius:1.5,borderWidth:1.8,borderDash:[4,3]},
+    {label:'S.Clinic – Pharmacy',data:wv(31,25,3,25),borderColor:'#9a7fd1',backgroundColor:'rgba(154,127,209,.05)',tension:.4,pointRadius:1.5,borderWidth:1.8},
+    {label:'Main – PACS',data:wv(163,35,1.5,25),borderColor:'#f7902b',backgroundColor:'rgba(247,144,43,.05)',tension:.4,pointRadius:1.5,borderWidth:1.8},
+  ]},
+  options:{responsive:true,maintainAspectRatio:false,interaction:{mode:'index',intersect:false},
+    plugins:{legend:{labels:{boxWidth:9,padding:12,font:{size:10}}}},
+    scales:{x:{grid:{color:gc},ticks:{maxTicksLimit:10}},y:{grid:{color:gc},title:{display:true,text:'Latency (ms)',color:'#8b8fa8'},beginAtZero:true}}}
+});
+
+function renderBars(id,data,fallback){
+  const max=Math.max(...data.map(d=>d.v));
+  document.getElementById(id).innerHTML=data.map(d=>{
+    const pct=(d.v/max*100).toFixed(1);
+    const c=d.v>d.thr?'#d6563c':d.v>d.thr*.7?'#f7902b':fallback;
+    return`<div class="bar-r"><div class="bar-lbl">${d.lbl}</div><div class="bar-trk"><div class="bar-fil" style="width:${pct}%;background:${c}"></div></div><div class="bar-val">${d.v} ms</div></div>`;
+  }).join('');
+}
+renderBars('ehrBars',[{lbl:'Main Campus',v:38,thr:80},{lbl:'North Clinic',v:55,thr:80},{lbl:'South Clinic',v:47,thr:80},{lbl:'Radiology Wing',v:41,thr:80},{lbl:'Pharmacy Hub',v:36,thr:80}],'#65a637');
+renderBars('pacsBars',[{lbl:'Main Campus',v:163,thr:250},{lbl:'North Clinic',v:212,thr:250},{lbl:'South Clinic',v:178,thr:250},{lbl:'Radiology Wing',v:401,thr:250},{lbl:'Pharmacy Hub',v:144,thr:250}],'#4fa9e3');
+renderBars('pharmBars',[{lbl:'Main Campus',v:29,thr:100},{lbl:'North Clinic',v:34,thr:100},{lbl:'South Clinic',v:118,thr:100},{lbl:'Radiology Wing',v:27,thr:100},{lbl:'Pharmacy Hub',v:31,thr:100}],'#9a7fd1');
+
+const hmVals=[[38,163,29],[55,212,34],[47,178,118],[41,401,27],[36,144,31]];
+const sites=['Main','N.Clinic','S.Clinic','Radiology','Pharm'];
+const appN=['EHR','PACS','Rx'];
+const thrs=[80,250,100];
+const tlbls=['00','03','06','09','12','15','18','21'];
+const noise=()=>(Math.random()-.5)*20;
+function hmColor(v,ai){const r=v/thrs[ai];if(r<.5)return'#1a4a1a';if(r<.8)return'#2d6e2d';if(r<1)return'#7a6400';if(r<1.5)return'#8a3000';return'#6e1a1a';}
+const hmEl=document.getElementById('heatmap');
+hmEl.innerHTML='<div></div>'+tlbls.map(t=>`<div class="hm-hd">${t}:00</div>`).join('');
+for(let s=0;s<5;s++){for(let a=0;a<3;a++){
+  hmEl.innerHTML+=`<div class="hm-lbl">${sites[s]} ${appN[a]}</div>`;
+  for(let t=0;t<8;t++){const v=Math.max(5,Math.round(hmVals[s][a]+noise()));hmEl.innerHTML+=`<div class="hm-cell" style="background:${hmColor(v,a)}" title="${sites[s]}·${appN[a]}·${tlbls[t]}:00 → ${v}ms">${v}</div>`;}
+}}
+
+new Chart(document.getElementById('donut'),{
+  type:'doughnut',
+  data:{labels:['Epic EHR','PACS/DICOM','RxConnect','Meditech','Other'],
+    datasets:[{data:[1820,1420,620,490,350],backgroundColor:['#65a637','#f7902b','#4fa9e3','#9a7fd1','#555870'],borderWidth:1,borderColor:'#1a1d26'}]},
+  options:{responsive:true,maintainAspectRatio:false,cutout:'62%',
+    plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>`${c.label}: ${c.parsed} GB`}}}}
+});
+
+new Chart(document.getElementById('asaBar'),{
+  type:'bar',
+  data:{labels:['DENY_UNAUTH_EHR','DENY_OFFNET_PACS','DENY_PHARM_EXT','DENY_UNKNOWN_APP','ACL_DROP_MGMT','CONN_LIMIT_BREACH'],
+    datasets:[{label:'Hit count',data:[384,217,205,198,154,90],backgroundColor:['#d6563c','#f7902b','#d6563c','#f7902b','#4fa9e3','#8b8fa8'],borderRadius:2,borderSkipped:false}]},
+  options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,
+    plugins:{legend:{display:false}},
+    scales:{x:{grid:{color:gc},title:{display:true,text:'Deny count (24 h)'}},y:{grid:{color:'transparent'}}}}
+});
+
+new Chart(document.getElementById('stackBar'),{
+  type:'bar',
+  data:{labels:['Main Campus','North Clinic','South Clinic','Radiology Wing','Pharmacy Hub'],
+    datasets:[
+      {label:'Epic EHR (Mbps)',data:[820,310,240,190,150],backgroundColor:'rgba(101,166,55,.75)',borderRadius:2},
+      {label:'PACS (Mbps)',data:[640,260,210,490,110],backgroundColor:'rgba(247,144,43,.75)',borderRadius:2},
+      {label:'Pharmacy (Mbps)',data:[180,95,130,45,210],backgroundColor:'rgba(79,169,227,.75)',borderRadius:2},
+    ]},
+  options:{responsive:true,maintainAspectRatio:false,
+    plugins:{legend:{labels:{boxWidth:9,padding:10,font:{size:10}}}},
+    scales:{x:{stacked:true,grid:{color:'transparent'}},y:{stacked:true,grid:{color:gc},title:{display:true,text:'Throughput (Mbps)'}}}}
+});
+</script>
