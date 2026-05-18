@@ -1,0 +1,802 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Splunk · PII Protection Dashboard · Grand Meridian Hotels</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400;500;600&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap');
+
+:root {
+  --bg: #070c18;
+  --panel: #0d1525;
+  --panel2: #111d33;
+  --border: #1a2d4e;
+  --accent: #00d4ff;
+  --text: #b8cce0;
+  --text-dim: #4a6580;
+  --text-bright: #ffffff;
+  --red: #ff2244;
+  --green: #00e87a;
+  --blue: #0088ff;
+  --warn: #ffaa00;
+  --purple: #9955ff;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'IBM Plex Sans', sans-serif;
+  font-size: 13px;
+  min-height: 100vh;
+}
+body::before {
+  content: '';
+  position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+  background: repeating-linear-gradient(0deg, transparent, transparent 3px, rgba(0,0,0,0.025) 3px, rgba(0,0,0,0.025) 6px);
+  pointer-events: none; z-index: 9999;
+}
+
+/* HEADER */
+.header {
+  background: linear-gradient(90deg, #040810 0%, #091420 40%, #040810 100%);
+  border-bottom: 1px solid var(--accent);
+  height: 54px;
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0 20px;
+  position: sticky; top: 0; z-index: 500;
+  box-shadow: 0 0 40px rgba(0,212,255,0.12);
+}
+.logo { font-family: 'IBM Plex Mono', monospace; font-size: 17px; font-weight: 600; color: var(--accent); letter-spacing: 2px; text-shadow: 0 0 18px rgba(0,212,255,0.5); }
+.logo span { color: #fff; }
+.header-sub { font-family: 'IBM Plex Mono', monospace; font-size: 10px; color: var(--text-dim); letter-spacing: 1px; text-transform: uppercase; padding-left: 14px; border-left: 1px solid var(--border); margin-left: 14px; }
+.live-badge { display: flex; align-items: center; gap: 6px; background: rgba(0,232,122,0.08); border: 1px solid var(--green); padding: 4px 10px; border-radius: 2px; font-family: 'IBM Plex Mono', monospace; font-size: 10px; color: var(--green); letter-spacing: 1px; }
+.live-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--green); animation: pulse-dot 1.5s infinite; }
+@keyframes pulse-dot { 0%,100% { opacity:1; box-shadow:0 0 6px var(--green); } 50% { opacity:0.3; box-shadow:none; } }
+.clock { font-family: 'IBM Plex Mono', monospace; font-size: 12px; color: var(--text-dim); }
+
+/* TICKER */
+.ticker-bar {
+  background: rgba(255,34,68,0.08);
+  border-bottom: 1px solid rgba(255,34,68,0.35);
+  padding: 7px 20px;
+  display: flex; align-items: center; gap: 12px;
+  overflow: hidden;
+}
+.ticker-tag { background: var(--red); color: #fff; font-family: 'IBM Plex Mono', monospace; font-size: 9px; font-weight: 600; padding: 2px 8px; letter-spacing: 1.5px; flex-shrink: 0; animation: flash 2s infinite; }
+@keyframes flash { 0%,100%{opacity:1} 50%{opacity:0.5} }
+.ticker-text { font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: #ff8899; white-space: nowrap; animation: scroll-x 35s linear infinite; }
+@keyframes scroll-x { 0%{transform:translateX(0)} 100%{transform:translateX(-100%)} }
+
+/* SEARCH */
+.search-wrap { padding: 14px 20px 0; display: flex; gap: 8px; }
+.spl-input { flex: 1; background: var(--panel2); border: 1px solid var(--border); color: var(--accent); font-family: 'IBM Plex Mono', monospace; font-size: 12px; padding: 9px 14px; outline: none; transition: border-color .2s; }
+.spl-input:focus { border-color: var(--accent); box-shadow: 0 0 12px rgba(0,212,255,0.1); }
+.btn { font-family: 'IBM Plex Mono', monospace; font-size: 11px; font-weight: 600; padding: 9px 18px; cursor: pointer; letter-spacing: 1px; border: none; transition: all .2s; }
+.btn-primary { background: var(--accent); color: #000; }
+.btn-primary:hover { box-shadow: 0 0 22px rgba(0,212,255,0.5); }
+.btn-secondary { background: var(--panel2); color: var(--text); border: 1px solid var(--border); }
+.btn-secondary:hover { border-color: var(--accent); color: var(--accent); }
+
+/* LAYOUT */
+.dash { padding: 14px 20px; display: flex; flex-direction: column; gap: 14px; }
+
+/* KPI ROW */
+.kpi-row { display: grid; grid-template-columns: repeat(6,1fr); gap: 10px; }
+.kpi {
+  background: var(--panel); border: 1px solid var(--border);
+  padding: 14px; position: relative; overflow: hidden; cursor: pointer;
+  transition: border-color .2s, transform .15s;
+}
+.kpi:hover { border-color: var(--kc, var(--accent)); transform: translateY(-1px); }
+.kpi::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px; background: var(--kc, var(--accent)); box-shadow: 0 0 8px var(--kc, var(--accent)); }
+.kpi-label { font-size: 9px; text-transform: uppercase; letter-spacing: 1.5px; color: var(--text-dim); font-family: 'IBM Plex Mono', monospace; margin-bottom: 8px; }
+.kpi-val { font-family: 'IBM Plex Mono', monospace; font-size: 24px; font-weight: 600; color: var(--kc, var(--accent)); text-shadow: 0 0 14px var(--kc, var(--accent)); line-height: 1; }
+.kpi-sub { font-size: 10px; color: var(--text-dim); margin-top: 4px; }
+.kpi-delta { font-family: 'IBM Plex Mono', monospace; font-size: 10px; margin-top: 3px; }
+.up { color: var(--red); } .down { color: var(--green); }
+
+/* GRID ROWS */
+.row2 { display: grid; grid-template-columns: 2fr 1fr; gap: 14px; }
+.row3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px; }
+
+/* PANELS */
+.panel { background: var(--panel); border: 1px solid var(--border); overflow: hidden; }
+.ph {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 10px 14px; border-bottom: 1px solid var(--border);
+  background: var(--panel2);
+}
+.pt { font-family: 'IBM Plex Mono', monospace; font-size: 11px; font-weight: 500; color: var(--text-bright); display: flex; align-items: center; gap: 8px; }
+.pd { width: 7px; height: 7px; border-radius: 50%; background: var(--pc, var(--accent)); box-shadow: 0 0 7px var(--pc, var(--accent)); }
+.badge { font-family: 'IBM Plex Mono', monospace; font-size: 9px; padding: 2px 8px; border-radius: 2px; letter-spacing: .5px; }
+.b-red   { background: rgba(255,34,68,.15); color:var(--red); border:1px solid rgba(255,34,68,.35); }
+.b-green { background: rgba(0,232,122,.08); color:var(--green); border:1px solid rgba(0,232,122,.25); }
+.b-blue  { background: rgba(0,136,255,.1); color:var(--blue); border:1px solid rgba(0,136,255,.3); }
+.b-warn  { background: rgba(255,170,0,.1); color:var(--warn); border:1px solid rgba(255,170,0,.3); }
+.b-purp  { background: rgba(153,85,255,.1); color:var(--purple); border:1px solid rgba(153,85,255,.3); }
+
+/* TIMELINE CHART */
+.chart-area { padding: 12px 14px 10px; }
+.legend-row { display: flex; gap: 14px; margin-bottom: 8px; font-size: 10px; }
+.leg { display: flex; align-items: center; gap: 5px; }
+.leg-dot { width: 8px; height: 8px; border-radius: 1px; }
+.bars { display: flex; align-items: flex-end; gap: 2px; height: 90px; }
+.bar-grp { flex: 1; display: flex; gap: 1px; align-items: flex-end; cursor: pointer; }
+.bar-grp:hover .bar { opacity: .65; }
+.bar { flex: 1; border-radius: 1px 1px 0 0; min-height: 2px; transition: height .4s ease; }
+.b-norm { background: linear-gradient(180deg, #0088ff, rgba(0,136,255,.25)); }
+.b-warn2 { background: linear-gradient(180deg, #ffaa00, rgba(255,170,0,.25)); }
+.b-crit { background: linear-gradient(180deg, #ff2244, rgba(255,34,68,.25)); }
+.bar-lbl-row { display: flex; justify-content: space-between; margin-top: 5px; font-family:'IBM Plex Mono',monospace; font-size: 9px; color: var(--text-dim); }
+
+/* PII GRID */
+.pii-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 7px; padding: 12px; }
+.pii-item {
+  background: var(--panel2); border: 1px solid var(--border);
+  padding: 10px; cursor: pointer; transition: border-color .2s;
+  position: relative; overflow: hidden;
+}
+.pii-item:hover { border-color: var(--pi-color, var(--accent)); }
+.pii-item::before { content:''; position:absolute; left:0;top:0;bottom:0; width:3px; background:var(--pi-color, var(--accent)); box-shadow:0 0 8px var(--pi-color, var(--accent)); }
+.pii-name { font-size: 11px; color: var(--text-bright); padding-left: 8px; }
+.pii-cnt { font-family:'IBM Plex Mono',monospace; font-size:17px; font-weight:600; color:var(--pi-color, var(--accent)); padding-left:8px; margin-top:3px; }
+.pii-bar-track { height:2px; background:var(--border); margin:6px 0 0 8px; }
+.pii-bar-fill { height:100%; background:var(--pi-color, var(--accent)); box-shadow:0 0 4px var(--pi-color, var(--accent)); transition:width .6s ease; }
+
+/* EVENTS TABLE */
+.events-tbl { width:100%; border-collapse:collapse; }
+.events-tbl th {
+  font-family:'IBM Plex Mono',monospace; font-size:9px; text-transform:uppercase; letter-spacing:1px;
+  color:var(--text-dim); text-align:left; padding:7px 10px;
+  border-bottom:1px solid var(--border); background:var(--panel2);
+  white-space:nowrap;
+}
+.events-tbl td { padding:7px 10px; font-family:'IBM Plex Mono',monospace; font-size:11px; border-bottom:1px solid rgba(26,45,78,.5); vertical-align:middle; white-space:nowrap; }
+.events-tbl tr { cursor:pointer; }
+.events-tbl tr:hover td { background:rgba(255,255,255,.018); }
+.sev-dot { display:inline-block; width:7px; height:7px; border-radius:50%; margin-right:5px; vertical-align:middle; }
+.s-crit { background:var(--red); box-shadow:0 0 6px var(--red); }
+.s-high { background:var(--warn); box-shadow:0 0 6px var(--warn); }
+.s-med  { background:var(--blue); box-shadow:0 0 5px var(--blue); }
+.s-low  { background:var(--green); box-shadow:0 0 4px var(--green); }
+.etype { padding:2px 7px; border-radius:2px; font-size:9px; letter-spacing:.5px; font-weight:500; }
+.t-ext { background:rgba(255,34,68,.12); color:var(--red); }
+.t-int { background:rgba(255,170,0,.12); color:var(--warn); }
+.t-sys { background:rgba(0,136,255,.1); color:var(--blue); }
+.t-pol { background:rgba(153,85,255,.1); color:var(--purple); }
+.st-chip { font-size:9px; padding:2px 7px; border-radius:2px; letter-spacing:.5px; }
+.st-open { background:rgba(255,34,68,.12); color:var(--red); }
+.st-inv  { background:rgba(255,170,0,.1); color:var(--warn); }
+.st-cls  { background:rgba(0,232,122,.08); color:var(--green); }
+.mini-btn { background:none; border:1px solid var(--border); color:var(--accent); font-family:'IBM Plex Mono',monospace; font-size:9px; padding:3px 8px; cursor:pointer; letter-spacing:.5px; }
+.mini-btn:hover { border-color:var(--accent); background:rgba(0,212,255,.06); }
+
+/* RULES LIST */
+.rule-list-wrap { display:flex; flex-direction:column; gap:5px; padding:10px 12px; }
+.rule-item {
+  background:var(--panel2); border:1px solid var(--border);
+  padding:9px 11px; display:flex; align-items:center; gap:10px;
+  cursor:pointer; transition:border-color .2s;
+}
+.rule-item:hover { border-color:var(--accent); }
+.toggle { width:28px; height:15px; border-radius:8px; position:relative; cursor:pointer; transition:background .2s; flex-shrink:0; }
+.toggle.on  { background:var(--green); box-shadow:0 0 7px rgba(0,232,122,.4); }
+.toggle.off { background:var(--border); }
+.toggle::after { content:''; position:absolute; top:2px; width:11px; height:11px; border-radius:50%; background:#fff; transition:left .2s; }
+.toggle.on::after  { left:auto; right:2px; }
+.toggle.off::after { left:2px; }
+.rule-name { flex:1; font-size:11px; color:var(--text-bright); }
+.rule-thresh { font-size:9px; color:var(--text-dim); font-family:'IBM Plex Mono',monospace; margin-top:2px; }
+.rule-status { font-family:'IBM Plex Mono',monospace; font-size:9px; text-align:right; }
+
+/* USER LIST */
+.user-wrap { display:flex; flex-direction:column; }
+.user-row { display:flex; align-items:center; gap:9px; padding:8px 14px; border-bottom:1px solid rgba(26,45,78,.5); cursor:pointer; transition:background .15s; }
+.user-row:hover { background:rgba(255,255,255,.018); }
+.u-rank { font-family:'IBM Plex Mono',monospace; font-size:10px; color:var(--text-dim); width:20px; }
+.u-avatar { width:28px; height:28px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:10px; font-weight:600; flex-shrink:0; }
+.u-name { font-size:12px; color:var(--text-bright); }
+.u-dept { font-size:9px; color:var(--text-dim); font-family:'IBM Plex Mono',monospace; }
+.u-cnt { font-family:'IBM Plex Mono',monospace; font-size:13px; color:var(--warn); font-weight:500; }
+.risk-chip { font-size:9px; padding:2px 6px; border-radius:2px; }
+.r-h { background:rgba(255,34,68,.12); color:var(--red); }
+.r-m { background:rgba(255,170,0,.1); color:var(--warn); }
+.r-l { background:rgba(0,232,122,.08); color:var(--green); }
+
+/* DONUT */
+.donut-area { display:flex; align-items:center; gap:18px; padding:12px 14px; }
+.donut-legend { display:flex; flex-direction:column; gap:8px; }
+.dleg { display:flex; align-items:center; gap:8px; font-size:11px; }
+.dleg-dot { width:8px; height:8px; border-radius:2px; flex-shrink:0; }
+.dleg-val { font-family:'IBM Plex Mono',monospace; font-size:11px; margin-left:auto; min-width:35px; text-align:right; color:var(--text-bright); }
+.detect-methods { padding:0 14px 12px; }
+.dm-label { font-size:9px; color:var(--text-dim); font-family:'IBM Plex Mono',monospace; margin-bottom:8px; text-transform:uppercase; letter-spacing:1px; }
+.dm-row { margin-bottom:8px; }
+.dm-row-top { display:flex; justify-content:space-between; font-size:10px; margin-bottom:3px; }
+.dm-bar-track { height:3px; background:var(--border); border-radius:1px; }
+.dm-bar-fill { height:100%; border-radius:1px; background:linear-gradient(90deg,#0088ff,#9955ff); transition:width .8s ease; }
+
+/* MODAL */
+.modal-overlay { position:fixed; top:0;left:0;right:0;bottom:0; background:rgba(0,0,0,.75); z-index:5000; display:none; align-items:center; justify-content:center; }
+.modal-overlay.show { display:flex; }
+.modal { background:var(--panel); border:1px solid var(--accent); width:580px; max-height:82vh; overflow-y:auto; box-shadow:0 0 50px rgba(0,212,255,.2); }
+.modal-hdr { background:var(--panel2); border-bottom:1px solid var(--border); padding:14px 18px; display:flex; justify-content:space-between; align-items:center; position:sticky; top:0; }
+.modal-title { font-family:'IBM Plex Mono',monospace; font-size:13px; font-weight:600; color:var(--text-bright); }
+.modal-close { background:none; border:none; color:var(--text-dim); cursor:pointer; font-size:18px; line-height:1; }
+.modal-close:hover { color:var(--text-bright); }
+.modal-body { padding:18px; }
+.d-row { display:flex; justify-content:space-between; padding:8px 0; border-bottom:1px solid var(--border); }
+.d-lbl { color:var(--text-dim); font-family:'IBM Plex Mono',monospace; font-size:11px; }
+.d-val { color:var(--text-bright); font-family:'IBM Plex Mono',monospace; font-size:11px; }
+.spl-box { background:#030810; border:1px solid var(--border); padding:12px; font-family:'IBM Plex Mono',monospace; font-size:11px; color:var(--accent); line-height:1.65; margin-top:12px; white-space:pre; overflow-x:auto; }
+.act-row { display:flex; gap:8px; margin-top:14px; flex-wrap:wrap; }
+.act-btn { padding:7px 14px; border:1px solid; font-family:'IBM Plex Mono',monospace; font-size:10px; cursor:pointer; letter-spacing:.5px; background:transparent; transition:all .2s; }
+.a-red   { border-color:var(--red); color:var(--red); }   .a-red:hover   { background:rgba(255,34,68,.12); }
+.a-blue  { border-color:var(--blue); color:var(--blue); } .a-blue:hover  { background:rgba(0,136,255,.1); }
+.a-green { border-color:var(--green); color:var(--green); } .a-green:hover { background:rgba(0,232,122,.08); }
+.a-warn  { border-color:var(--warn); color:var(--warn); } .a-warn:hover  { background:rgba(255,170,0,.1); }
+
+/* NOTIFICATION */
+.notif {
+  position:fixed; top:68px; right:20px; background:var(--panel2);
+  border-left:3px solid var(--red); padding:12px 16px; z-index:9000;
+  display:none; min-width:290px; max-width:340px;
+  box-shadow:0 4px 24px rgba(0,0,0,.5);
+  animation:slide-in .3s ease;
+}
+@keyframes slide-in { from{transform:translateX(16px);opacity:0} to{transform:translateX(0);opacity:1} }
+.notif-title { font-family:'IBM Plex Mono',monospace; font-size:11px; font-weight:600; color:var(--red); margin-bottom:4px; }
+.notif-body  { font-size:11px; color:var(--text); line-height:1.4; }
+
+/* SAVED SEARCHES PANEL */
+.saved-panel { display:none; position:absolute; top:44px; right:0; background:var(--panel2); border:1px solid var(--accent); min-width:320px; z-index:200; box-shadow:0 8px 30px rgba(0,0,0,.6); }
+.saved-panel.show { display:block; }
+.saved-item { padding:10px 14px; border-bottom:1px solid var(--border); cursor:pointer; transition:background .15s; }
+.saved-item:hover { background:rgba(0,212,255,.05); }
+.saved-item-name { font-family:'IBM Plex Mono',monospace; font-size:11px; color:var(--accent); }
+.saved-item-desc { font-size:10px; color:var(--text-dim); margin-top:2px; }
+
+.search-rel { position:relative; display:inline-block; }
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<header class="header">
+  <div style="display:flex;align-items:center">
+    <div class="logo">SPLUNK<span>|SEC</span></div>
+    <div class="header-sub">PII Protection &amp; Access Intelligence · Grand Meridian Hotels</div>
+  </div>
+  <div style="display:flex;align-items:center;gap:16px">
+    <div class="live-badge"><div class="live-dot"></div>LIVE</div>
+    <div class="clock" id="clock">--:--:--</div>
+    <div style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--text-dim)">LAST 24H · 87 PROPERTIES</div>
+  </div>
+</header>
+
+<!-- TICKER -->
+<div class="ticker-bar">
+  <div class="ticker-tag">⚠ ACTIVE ALERTS</div>
+  <div style="overflow:hidden;flex:1">
+    <div class="ticker-text">
+      CRITICAL: Unauthorized bulk export — 847 guest passport records — IP 185.220.101.44 (Moscow RU) · BLOCKED &nbsp;|&nbsp;
+      HIGH: FrontDesk agent MR_CHEN accessed 312 passport numbers outside authorized shift hours &nbsp;|&nbsp;
+      HIGH: API scraping attempt on /reservations endpoint — 1,204 records probed &nbsp;|&nbsp;
+      MEDIUM: Credential stuffing surge on Loyalty Portal — 2,847 failed attempts in 10 min &nbsp;|&nbsp;
+      MEDIUM: New unrecognized device fingerprint accessing PII DB via IT_SUPPORT_03 credentials &nbsp;|&nbsp;
+      LOW: Compliance scanner found unmasked SSN pattern in /var/log/pms/audit_20240415.log
+    </div>
+  </div>
+</div>
+
+<!-- SEARCH BAR -->
+<div class="search-wrap">
+  <input class="spl-input" id="splInput" value='index=hotel_pii sourcetype=access_log | eval pii_type=case(match(field,"passport"),"PASSPORT",match(field,"cc_number"),"CREDIT_CARD",match(field,"email"),"EMAIL",true(),"OTHER") | stats count by user, pii_type, src_ip, action | sort -count' />
+  <button class="btn btn-primary" onclick="runSearch()">▶ RUN</button>
+  <div class="search-rel">
+    <button class="btn btn-secondary" onclick="toggleSaved()">SAVED SEARCHES ▾</button>
+    <div class="saved-panel" id="savedPanel">
+      <div class="saved-item" onclick="loadSearch('bulk')"><div class="saved-item-name">Bulk PII Export Detection</div><div class="saved-item-desc">Identifies users querying >100 PII records per session</div></div>
+      <div class="saved-item" onclick="loadSearch('offhours')"><div class="saved-item-name">Off-Hours Access Report</div><div class="saved-item-desc">PII access outside 06:00–22:00 local property time</div></div>
+      <div class="saved-item" onclick="loadSearch('external')"><div class="saved-item-name">External Threat Geo-Map</div><div class="saved-item-desc">Non-RFC1918 source IPs with PII query activity + threat score</div></div>
+      <div class="saved-item" onclick="loadSearch('unauth')"><div class="saved-item-name">RBAC Violation Scanner</div><div class="saved-item-desc">Cross-checks access against role-based policy lookup table</div></div>
+      <div class="saved-item" onclick="loadSearch('cc')"><div class="saved-item-name">Credit Card Scraping Pattern</div><div class="saved-item-desc">ML-based detection of sequential CC lookup patterns</div></div>
+      <div class="saved-item" onclick="loadSearch('top')"><div class="saved-item-name">Top PII Accessors (24h)</div><div class="saved-item-desc">Ranked by total records accessed with anomaly score</div></div>
+    </div>
+  </div>
+</div>
+
+<div class="dash">
+
+  <!-- KPIs -->
+  <div class="kpi-row">
+    <div class="kpi" style="--kc:#ff2244" onclick="openKpiModal('records')">
+      <div class="kpi-label">PII Records Monitored</div>
+      <div class="kpi-val" id="kRecords">2.41M</div>
+      <div class="kpi-sub">Across 87 properties</div>
+      <div class="kpi-delta up">↑ 14,230 today</div>
+    </div>
+    <div class="kpi" style="--kc:#ffaa00" onclick="openKpiModal('alerts')">
+      <div class="kpi-label">Active Alerts</div>
+      <div class="kpi-val" id="kAlerts">23</div>
+      <div class="kpi-sub">3 Critical · 8 High · 12 Med</div>
+      <div class="kpi-delta up">↑ 7 new in last hour</div>
+    </div>
+    <div class="kpi" style="--kc:#ff2244" onclick="openKpiModal('unauth')">
+      <div class="kpi-label">Unauthorized Access</div>
+      <div class="kpi-val">9</div>
+      <div class="kpi-sub">Internal incidents today</div>
+      <div class="kpi-delta up">↑ 3 vs yesterday</div>
+    </div>
+    <div class="kpi" style="--kc:#0088ff" onclick="openKpiModal('ext')">
+      <div class="kpi-label">External Threats Blocked</div>
+      <div class="kpi-val">4</div>
+      <div class="kpi-sub">Automated WAF response</div>
+      <div class="kpi-delta down">↓ 2 vs yesterday</div>
+    </div>
+    <div class="kpi" style="--kc:#00e87a">
+      <div class="kpi-label">PII Masking Coverage</div>
+      <div class="kpi-val">99.1<span style="font-size:13px">%</span></div>
+      <div class="kpi-sub">DLP engine active</div>
+      <div class="kpi-delta down">↑ 0.3pp vs 30d avg</div>
+    </div>
+    <div class="kpi" style="--kc:#9955ff">
+      <div class="kpi-label">Compliance Score</div>
+      <div class="kpi-val">847</div>
+      <div class="kpi-sub">GDPR · PCI-DSS · CCPA</div>
+      <div class="kpi-delta down">↑ 12pts this week</div>
+    </div>
+  </div>
+
+  <!-- Timeline + PII types -->
+  <div class="row2">
+    <div class="panel">
+      <div class="ph">
+        <div class="pt" style="--pc:#0088ff"><span class="pd" style="--pc:#0088ff"></span>PII Access Activity Timeline (Last 24h)</div>
+        <span class="badge b-blue">HOURLY BUCKETS</span>
+      </div>
+      <div class="chart-area">
+        <div class="legend-row">
+          <div class="leg"><div class="leg-dot" style="background:#0088ff"></div><span style="font-size:10px">Normal Access</span></div>
+          <div class="leg"><div class="leg-dot" style="background:#ffaa00"></div><span style="font-size:10px">Policy Warning</span></div>
+          <div class="leg"><div class="leg-dot" style="background:#ff2244"></div><span style="font-size:10px">Critical Alert</span></div>
+        </div>
+        <div class="bars" id="timeline"></div>
+        <div class="bar-lbl-row" id="tlabels"></div>
+      </div>
+    </div>
+    <div class="panel">
+      <div class="ph">
+        <div class="pt"><span class="pd" style="--pc:#9955ff"></span>PII Data Categories</div>
+        <span class="badge b-purp">8 TYPES</span>
+      </div>
+      <div class="pii-grid" id="piiGrid"></div>
+    </div>
+  </div>
+
+  <!-- Events table -->
+  <div class="panel">
+    <div class="ph">
+      <div class="pt" style="--pc:#ff2244"><span class="pd" style="--pc:#ff2244"></span>Security Events · Real-Time Feed</div>
+      <div style="display:flex;gap:8px;align-items:center">
+        <span class="badge b-red">23 OPEN</span>
+        <button class="mini-btn" onclick="refreshEvents()">↻ REFRESH</button>
+        <button class="mini-btn" onclick="filterEvents('critical')" id="filterBtn">CRITICAL ONLY</button>
+      </div>
+    </div>
+    <div style="overflow-x:auto">
+      <table class="events-tbl">
+        <thead>
+          <tr>
+            <th>SEV</th><th>TIMESTAMP</th><th>TYPE</th><th>USER / SOURCE</th>
+            <th>PII ACCESSED</th><th style="text-align:right">RECORDS</th>
+            <th>LOCATION</th><th>STATUS</th><th>ACTION</th>
+          </tr>
+        </thead>
+        <tbody id="evtBody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Bottom row -->
+  <div class="row3">
+
+    <!-- Alert Rules -->
+    <div class="panel">
+      <div class="ph">
+        <div class="pt"><span class="pd" style="--pc:#00e87a"></span>Alert Rules Configuration</div>
+        <span class="badge b-green">14 ACTIVE</span>
+      </div>
+      <div class="rule-list-wrap" id="ruleList"></div>
+    </div>
+
+    <!-- Top users -->
+    <div class="panel">
+      <div class="ph">
+        <div class="pt"><span class="pd" style="--pc:#ffaa00"></span>Highest PII Accessors · Today</div>
+        <span class="badge b-warn">RISK RANKED</span>
+      </div>
+      <div class="user-wrap" id="userList"></div>
+    </div>
+
+    <!-- Donut + detection -->
+    <div class="panel">
+      <div class="ph">
+        <div class="pt"><span class="pd" style="--pc:#9955ff"></span>Access Classification</div>
+        <span class="badge b-purp">BREAKDOWN</span>
+      </div>
+      <div class="donut-area">
+        <svg width="120" height="120" viewBox="0 0 120 120" id="donutSvg" style="flex-shrink:0"></svg>
+        <div class="donut-legend" id="donutLeg"></div>
+      </div>
+      <div class="detect-methods">
+        <div class="dm-label">Detection Methods</div>
+        <div id="dmList"></div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- MODAL -->
+<div class="modal-overlay" id="modalOvr" onclick="if(event.target===this)closeModal()">
+  <div class="modal">
+    <div class="modal-hdr">
+      <div class="modal-title" id="mTitle">Detail</div>
+      <button class="modal-close" onclick="closeModal()">✕</button>
+    </div>
+    <div class="modal-body" id="mBody"></div>
+  </div>
+</div>
+
+<!-- NOTIFICATION -->
+<div class="notif" id="notif">
+  <div class="notif-title" id="nTitle">ALERT</div>
+  <div class="notif-body" id="nBody"></div>
+</div>
+
+<script>
+// ---- CLOCK ----
+function tick() { document.getElementById('clock').textContent = new Date().toLocaleTimeString('en-US',{hour12:false}); }
+setInterval(tick, 1000); tick();
+
+// ---- TIMELINE ----
+const normD = [11,7,5,3,3,4,16,44,65,80,92,85,74,86,89,81,68,63,56,50,47,42,38,35];
+const warnD = [0,0,0,0,0,1,2,3,5,7,11,6,5,8,10,7,5,6,4,3,4,5,3,2];
+const critD = [0,0,0,0,0,0,0,1,0,2,3,1,0,1,2,0,1,0,0,1,0,1,2,1];
+const maxD  = Math.max(...normD.map((v,i)=>v+warnD[i]+critD[i]));
+const nowH  = new Date().getHours();
+const tl = document.getElementById('timeline');
+const tll = document.getElementById('tlabels');
+for (let i=0;i<24;i++) {
+  const h = (nowH - 23 + i + 24) % 24;
+  const grp = document.createElement('div'); grp.className='bar-grp';
+  grp.title = `${String(h).padStart(2,'0')}:00 — Normal:${normD[i]} Warn:${warnD[i]} Crit:${critD[i]}`;
+  ['b-norm','b-warn2','b-crit'].forEach((cls,j)=>{
+    const vals=[normD,warnD,critD]; const val=vals[j][i];
+    const b=document.createElement('div'); b.className='bar '+cls;
+    b.style.height=Math.max(val>0?2:0,val/maxD*86)+'px'; grp.appendChild(b);
+  });
+  tl.appendChild(grp);
+  if(i%4===0){ const l=document.createElement('span'); l.textContent=String(h).padStart(2,'0')+':00'; tll.appendChild(l); }
+}
+
+// ---- PII GRID ----
+const piiData = [
+  {name:'Passport / National ID', cnt:'341K', w:'85%', c:'#ff2244'},
+  {name:'Credit Card Numbers', cnt:'892K', w:'100%', c:'#ff7700'},
+  {name:'Email Addresses', cnt:'1.1M', w:'100%', c:'#ffaa00'},
+  {name:'Phone Numbers', cnt:'987K', w:'95%', c:'#9955ff'},
+  {name:'Home Addresses', cnt:'654K', w:'75%', c:'#0088ff'},
+  {name:'Date of Birth', cnt:'445K', w:'60%', c:'#00aaee'},
+  {name:'Loyalty / Rewards', cnt:'2.1M', w:'100%', c:'#00e87a'},
+  {name:'Health / Dietary', cnt:'89K', w:'20%', c:'#ff44aa'},
+];
+const pg = document.getElementById('piiGrid');
+piiData.forEach(p=>{
+  const d=document.createElement('div'); d.className='pii-item'; d.style.setProperty('--pi-color',p.c);
+  d.innerHTML=`<div class="pii-name">${p.name}</div><div class="pii-cnt">${p.cnt}</div><div class="pii-bar-track"><div class="pii-bar-fill" style="width:${p.w}"></div></div>`;
+  d.onclick=()=>openPiiModal(p); pg.appendChild(d);
+});
+
+// ---- EVENTS ----
+const evtData = [
+  {sev:'critical',sc:'s-crit',sv:'#ff2244',time:'14:37:22',type:'external',tc:'t-ext',user:'185.220.101.44',pii:'Passport, Credit Card',recs:'847',loc:'Moscow, RU',stat:'open',id:'EVT-00441'},
+  {sev:'critical',sc:'s-crit',sv:'#ff2244',time:'14:22:08',type:'internal',tc:'t-int',user:'MR_CHEN (FrontDesk)',pii:'Passport Numbers',recs:'312',loc:'NYC — FD Terminal 3',stat:'investigating',id:'EVT-00440'},
+  {sev:'high',sc:'s-high',sv:'#ffaa00',time:'13:58:44',type:'external',tc:'t-ext',user:'API:scraper_bot',pii:'Guest Reservations',recs:'1,204',loc:'Frankfurt, DE',stat:'open',id:'EVT-00439'},
+  {sev:'high',sc:'s-high',sv:'#ffaa00',time:'13:41:15',type:'internal',tc:'t-int',user:'IT_SUPPORT_03',pii:'SSN, Date of Birth',recs:'56',loc:'LA — IT Dept',stat:'investigating',id:'EVT-00438'},
+  {sev:'high',sc:'s-high',sv:'#ffaa00',time:'13:17:30',type:'policy',tc:'t-pol',user:'JSMITH (Manager)',pii:'Health Records',recs:'23',loc:'Chicago — Admin',stat:'closed',id:'EVT-00437'},
+  {sev:'medium',sc:'s-med',sv:'#0088ff',time:'12:55:02',type:'external',tc:'t-ext',user:'45.142.212.100',pii:'Email Addresses',recs:'389',loc:'Amsterdam, NL',stat:'closed',id:'EVT-00436'},
+  {sev:'medium',sc:'s-med',sv:'#0088ff',time:'12:33:18',type:'internal',tc:'t-int',user:'KREYES (Concierge)',pii:'Phone, Address',recs:'78',loc:'Miami — Lobby',stat:'open',id:'EVT-00435'},
+  {sev:'medium',sc:'s-med',sv:'#0088ff',time:'12:09:44',type:'system',tc:'t-sys',user:'PMS_BACKUP_SVC',pii:'All PII Types',recs:'14.2K',loc:'Datacenter-West',stat:'closed',id:'EVT-00434'},
+  {sev:'low',sc:'s-low',sv:'#00e87a',time:'11:47:21',type:'policy',tc:'t-pol',user:'BWILLIAMS (HR)',pii:'Employee SSN',recs:'12',loc:'HQ — HR Floor',stat:'closed',id:'EVT-00433'},
+  {sev:'low',sc:'s-low',sv:'#00e87a',time:'11:22:08',type:'system',tc:'t-sys',user:'ANALYTICS_JOB_7',pii:'Loyalty Data',recs:'45K',loc:'Cloud — AWS-E1',stat:'closed',id:'EVT-00432'},
+];
+let showAll=true;
+function renderEvents(data) {
+  const tbody=document.getElementById('evtBody'); tbody.innerHTML='';
+  data.forEach(e=>{
+    const sc={open:'st-open',investigating:'st-inv',closed:'st-cls'}[e.stat];
+    const tr=document.createElement('tr'); tr.onclick=()=>openEvtModal(e);
+    tr.innerHTML=`<td><span class="sev-dot ${e.sc}"></span>${e.sev.toUpperCase()}</td>
+<td style="color:var(--text-dim)">${e.time}</td>
+<td><span class="etype ${e.tc}">${e.type.toUpperCase()}</span></td>
+<td style="color:var(--text-bright)">${e.user}</td>
+<td style="color:var(--warn)">${e.pii}</td>
+<td style="text-align:right;color:var(--text-bright)">${e.recs}</td>
+<td style="color:var(--text-dim)">${e.loc}</td>
+<td><span class="st-chip ${sc}">${e.stat.toUpperCase()}</span></td>
+<td><button class="mini-btn" onclick="event.stopPropagation();openEvtModal(evtData.find(x=>x.id==='${e.id}'))">DETAILS</button></td>`;
+    tbody.appendChild(tr);
+  });
+}
+renderEvents(evtData);
+function filterEvents(f) {
+  const btn=document.getElementById('filterBtn');
+  if(!showAll){ renderEvents(evtData); btn.textContent='CRITICAL ONLY'; showAll=true; }
+  else { renderEvents(evtData.filter(e=>e.sev==='critical'||e.sev==='high')); btn.textContent='SHOW ALL'; showAll=false; }
+}
+function refreshEvents() { renderEvents(evtData); notify('↻ Refreshed','Event feed updated. All data current.'); }
+
+// ---- RULES ----
+const rulesData = [
+  {name:'Bulk PII Export (>100 records)',thresh:'100 records / query session',dest:'SOC + CISO',on:true,stat:'2 TRIGGERED TODAY'},
+  {name:'Off-Hours PII Access',thresh:'Outside 06:00–22:00 local time',dest:'Manager + SOC',on:true,stat:'1 TRIGGERED TODAY'},
+  {name:'External IP with Passport Query',thresh:'Any non-RFC1918 source IP',dest:'SOC + Auto-block IP',on:true,stat:'3 TRIGGERED TODAY'},
+  {name:'Credential Stuffing Detection',thresh:'>50 failed auth / 10 min',dest:'SOC + Account Lockout',on:true,stat:'1 TRIGGERED TODAY'},
+  {name:'New Device PII Access',thresh:'Unknown device fingerprint',dest:'User + IT Security',on:true,stat:'MONITORING'},
+  {name:'Credit Card Scraping Pattern',thresh:'>20 CC queries / minute',dest:'PCI Team + SOC',on:true,stat:'MONITORING'},
+  {name:'Anomalous Query Volume (ML)',thresh:'3σ above user 30-day baseline',dest:'Analyst Queue',on:true,stat:'MONITORING'},
+  {name:'Unmasked PII in Log Files',thresh:'Regex: SSN / CC / Passport',dest:'IT + Compliance',on:true,stat:'1 LOW TODAY'},
+  {name:'Cross-Property Data Access',thresh:'>3 properties / hour',dest:'Manager Alert',on:false,stat:'DISABLED'},
+];
+const rl=document.getElementById('ruleList');
+rulesData.forEach((r,i)=>{
+  const el=document.createElement('div'); el.className='rule-item'; el.onclick=()=>openRuleModal(r,i);
+  const trig=r.stat.includes('TRIGGERED');
+  el.innerHTML=`<div class="toggle ${r.on?'on':'off'}" onclick="event.stopPropagation();toggleRule(this,${i})"></div>
+<div style="flex:1"><div class="rule-name">${r.name}</div><div class="rule-thresh">${r.thresh}</div></div>
+<div class="rule-status" style="color:${trig?'var(--warn)':'var(--text-dim)'}">${r.stat}</div>`;
+  rl.appendChild(el);
+});
+function toggleRule(el,i) {
+  el.classList.toggle('on'); el.classList.toggle('off');
+  const on=el.classList.contains('on');
+  rulesData[i].on=on;
+  notify(on?'Rule Enabled':'Rule Disabled', on?`"${rulesData[i].name}" re-enabled`:`"${rulesData[i].name}" disabled — compliance team notified`);
+}
+
+// ---- USERS ----
+const usersData = [
+  {name:'M. Chen',dept:'FRONT_DESK',cnt:312,risk:'high',c:'#ff4455',ini:'MC'},
+  {name:'IT_SUPPORT_03',dept:'IT_DEPT',cnt:56,risk:'high',c:'#ff6699',ini:'IT'},
+  {name:'K. Reyes',dept:'CONCIERGE',cnt:78,risk:'med',c:'#ffaa00',ini:'KR'},
+  {name:'J. Smith',dept:'MANAGEMENT',cnt:45,risk:'med',c:'#9955ff',ini:'JS'},
+  {name:'B. Williams',dept:'HR_DEPT',cnt:22,risk:'low',c:'#0088ff',ini:'BW'},
+  {name:'T. Park',dept:'RESERVATIONS',cnt:18,risk:'low',c:'#00cc88',ini:'TP'},
+];
+const ul=document.getElementById('userList');
+usersData.forEach((u,i)=>{
+  const el=document.createElement('div'); el.className='user-row'; el.onclick=()=>openUserModal(u);
+  const rc={high:'r-h',med:'r-m',low:'r-l'}[u.risk];
+  el.innerHTML=`<div class="u-rank">#${i+1}</div>
+<div class="u-avatar" style="background:${u.c}22;border:1px solid ${u.c}44;color:${u.c}">${u.ini}</div>
+<div style="flex:1"><div class="u-name">${u.name}</div><div class="u-dept">${u.dept}</div></div>
+<div class="u-cnt">${u.cnt}</div>
+<div class="risk-chip ${rc}">${u.risk.toUpperCase()}</div>`;
+  ul.appendChild(el);
+});
+
+// ---- DONUT ----
+const donutD = [
+  {label:'Authorized Internal',val:71,c:'#0088ff'},
+  {label:'Policy Violation',val:16,c:'#ffaa00'},
+  {label:'External Threat',val:8,c:'#ff2244'},
+  {label:'System / Service',val:5,c:'#9955ff'},
+];
+const svgEl=document.getElementById('donutSvg');
+let cumA=0; const cx=60,cy=60,R=50,r=32;
+donutD.forEach(d=>{
+  const ang=(d.val/100)*360;
+  const toRad=a=>(a-90)*Math.PI/180;
+  const x1=cx+R*Math.cos(toRad(cumA)),y1=cy+R*Math.sin(toRad(cumA));
+  const x2=cx+R*Math.cos(toRad(cumA+ang)),y2=cy+R*Math.sin(toRad(cumA+ang));
+  const ix1=cx+r*Math.cos(toRad(cumA)),iy1=cy+r*Math.sin(toRad(cumA));
+  const ix2=cx+r*Math.cos(toRad(cumA+ang)),iy2=cy+r*Math.sin(toRad(cumA+ang));
+  const lg=ang>180?1:0;
+  const p=document.createElementNS('http://www.w3.org/2000/svg','path');
+  p.setAttribute('d',`M${x1} ${y1} A${R} ${R} 0 ${lg} 1 ${x2} ${y2} L${ix2} ${iy2} A${r} ${r} 0 ${lg} 0 ${ix1} ${iy1}Z`);
+  p.setAttribute('fill',d.c); p.setAttribute('opacity','0.82'); p.style.cursor='pointer';
+  svgEl.appendChild(p); cumA+=ang;
+});
+const ct=document.createElementNS('http://www.w3.org/2000/svg','text');
+ct.setAttribute('x','60');ct.setAttribute('y','57');ct.setAttribute('text-anchor','middle');
+ct.setAttribute('fill','#fff');ct.setAttribute('font-size','14');ct.setAttribute('font-family','IBM Plex Mono,monospace');ct.setAttribute('font-weight','600');ct.textContent='100%';
+svgEl.appendChild(ct);
+const cs=document.createElementNS('http://www.w3.org/2000/svg','text');
+cs.setAttribute('x','60');cs.setAttribute('y','70');cs.setAttribute('text-anchor','middle');
+cs.setAttribute('fill','#4a6580');cs.setAttribute('font-size','8');cs.setAttribute('font-family','IBM Plex Mono,monospace');cs.textContent='CLASSIFIED';
+svgEl.appendChild(cs);
+const dl=document.getElementById('donutLeg');
+donutD.forEach(d=>{
+  const el=document.createElement('div'); el.className='dleg';
+  el.innerHTML=`<div class="dleg-dot" style="background:${d.c}"></div><span>${d.label}</span><span class="dleg-val">${d.val}%</span>`;
+  dl.appendChild(el);
+});
+
+// Detection methods
+const dms=[{n:'Regex PII Pattern Match',p:94},{n:'ML Anomaly Detection',p:87},{n:'RBAC Policy Engine',p:100},{n:'DLP Integration',p:78}];
+const dmL=document.getElementById('dmList');
+dms.forEach(m=>{
+  const el=document.createElement('div'); el.className='dm-row';
+  el.innerHTML=`<div class="dm-row-top"><span style="color:var(--text-dim)">${m.n}</span><span style="font-family:'IBM Plex Mono',monospace;color:var(--text)">${m.p}%</span></div><div class="dm-bar-track"><div class="dm-bar-fill" style="width:${m.p}%"></div></div>`;
+  dmL.appendChild(el);
+});
+
+// ---- SEARCHES ----
+const searches = {
+  bulk: `index=hotel_pii sourcetype=access_log action=read\n| stats count as records_accessed by user, session_id\n| where records_accessed > 100\n| lookup staff_roles user OUTPUT role, department, supervisor\n| eval alert_type="BULK_EXPORT_SUSPECTED"\n| table user, role, department, records_accessed, supervisor`,
+  offhours: `index=hotel_pii sourcetype=access_log\n| eval local_hour=strftime(strptime(_time,"%s"),"%H")\n| eval is_off_hours=if(local_hour<6 OR local_hour>22,"YES","NO")\n| where is_off_hours="YES"\n| stats count by user, pii_type, _time\n| sort -count`,
+  external: `index=hotel_pii sourcetype=access_log\n| where NOT cidrmatch("10.0.0.0/8",src_ip) AND NOT cidrmatch("192.168.0.0/16",src_ip)\n| iplocation src_ip\n| eval threat_score=case(Country=="RU" OR Country=="CN" OR Country=="KP" OR Country=="IR",90,Country=="US",10,true(),55)\n| where threat_score > 40\n| stats count,values(pii_type) by src_ip,Country,City,threat_score\n| sort -threat_score`,
+  unauth: `index=hotel_pii sourcetype=access_log action=read\n| lookup rbac_policy.csv user OUTPUT authorized_pii_types\n| eval unauthorized=if(match(pii_type,authorized_pii_types),"NO","YES")\n| where unauthorized="YES"\n| stats count by user, pii_type, src_ip, _time\n| eval severity=if(count>10,"HIGH","MEDIUM")`,
+  cc: `index=hotel_pii sourcetype=access_log pii_type=CREDIT_CARD\n| bucket _time span=1m\n| stats count by _time, user, src_ip\n| where count > 20\n| eval pattern="SEQUENTIAL_CC_SCRAPE"\n| table _time, user, src_ip, count, pattern`,
+  top: `index=hotel_pii sourcetype=access_log\n| stats count as total_access, dc(pii_type) as pii_types_accessed, dc(guest_id) as unique_guests by user\n| join user [search index=ml_baselines | table user, avg_daily_access]\n| eval anomaly_score=round((total_access-avg_daily_access)/avg_daily_access*100,1)\n| sort -anomaly_score`,
+};
+function loadSearch(k) {
+  document.getElementById('splInput').value=searches[k]||''; 
+  document.getElementById('savedPanel').classList.remove('show');
+  notify('Search Loaded', 'Saved search loaded — click RUN to execute');
+}
+function toggleSaved() { document.getElementById('savedPanel').classList.toggle('show'); }
+document.addEventListener('click',e=>{
+  const sp=document.getElementById('savedPanel');
+  if(!sp.contains(e.target) && !e.target.closest('.search-rel')) sp.classList.remove('show');
+});
+
+// ---- MODALS ----
+function openEvtModal(e) {
+  const splQ=`index=hotel_security sourcetype=pii_access
+| search user="${e.user.split(' ')[0]}" OR src_ip="${e.user}"
+| eval pii_masked=if(match(data,regex_pii),"YES","NO")
+| stats count by user, pii_type, action, src_ip, _time
+| where count > 5
+| sort -count`;
+  setModal(`Event Detail · ${e.id}`,`
+<div class="d-row"><span class="d-lbl">Event ID</span><span class="d-val" style="color:var(--accent)">${e.id}</span></div>
+<div class="d-row"><span class="d-lbl">Severity</span><span class="d-val" style="color:${e.sv}">${e.sev.toUpperCase()}</span></div>
+<div class="d-row"><span class="d-lbl">Timestamp</span><span class="d-val">${new Date().toLocaleDateString()} ${e.time}</span></div>
+<div class="d-row"><span class="d-lbl">Access Type</span><span class="d-val">${e.type.toUpperCase()}</span></div>
+<div class="d-row"><span class="d-lbl">User / Source IP</span><span class="d-val" style="color:var(--warn)">${e.user}</span></div>
+<div class="d-row"><span class="d-lbl">PII Types Accessed</span><span class="d-val">${e.pii}</span></div>
+<div class="d-row"><span class="d-lbl">Records Accessed</span><span class="d-val" style="color:var(--red)">${e.recs}</span></div>
+<div class="d-row"><span class="d-lbl">Origin Location</span><span class="d-val">${e.loc}</span></div>
+<div class="d-row"><span class="d-lbl">Current Status</span><span class="d-val">${e.stat.toUpperCase()}</span></div>
+<div style="margin-top:14px;font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--text-dim);margin-bottom:6px;letter-spacing:1px;text-transform:uppercase">Correlation SPL Query</div>
+<div class="spl-box">${splQ}</div>
+<div class="act-row">
+  <button class="act-btn a-red" onclick="doAction('block','${e.user}')">🚫 BLOCK / SUSPEND</button>
+  <button class="act-btn a-warn" onclick="doAction('escalate','${e.id}')">⬆ ESCALATE TO SOC</button>
+  <button class="act-btn a-blue" onclick="doAction('ticket','${e.id}')">📋 CREATE TICKET</button>
+  <button class="act-btn a-green" onclick="doAction('resolve','${e.id}')">✓ MARK RESOLVED</button>
+</div>`);
+}
+
+function openRuleModal(r,i) {
+  const splQ=`| savedsearch "${r.name}"
+| eval threshold="${r.thresh}"
+| eval destination="${r.dest}"
+| eval status="${r.on?'ACTIVE':'DISABLED'}"
+| eval last_triggered="${r.stat}"`;
+  setModal(`Alert Rule: ${r.name}`,`
+<div class="d-row"><span class="d-lbl">Rule Name</span><span class="d-val" style="color:var(--accent)">${r.name}</span></div>
+<div class="d-row"><span class="d-lbl">Status</span><span class="d-val" style="color:${r.on?'var(--green)':'var(--text-dim)'}">${r.on?'ACTIVE':'DISABLED'}</span></div>
+<div class="d-row"><span class="d-lbl">Trigger Threshold</span><span class="d-val">${r.thresh}</span></div>
+<div class="d-row"><span class="d-lbl">Alert Destination</span><span class="d-val" style="color:var(--warn)">${r.dest}</span></div>
+<div class="d-row"><span class="d-lbl">Last Activity</span><span class="d-val">${r.stat}</span></div>
+<div style="margin-top:14px;font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--text-dim);margin-bottom:6px;letter-spacing:1px;text-transform:uppercase">Saved Search SPL</div>
+<div class="spl-box">${splQ}</div>
+<div class="act-row">
+  <button class="act-btn a-blue" onclick="closeModal()">✎ EDIT THRESHOLD</button>
+  <button class="act-btn ${r.on?'a-red':'a-green'}" onclick="closeModal();document.querySelectorAll('.toggle')[${i}].click()">${r.on?'⊘ DISABLE':'▶ ENABLE'} RULE</button>
+</div>`);
+}
+
+function openUserModal(u) {
+  const splQ=`index=hotel_pii user="${u.name.replace(' ','_')}"
+| bucket _time span=1h
+| stats count by _time, pii_type, action, src_ip
+| join _time [search index=ml_baselines user="${u.name.replace(' ','_')}" | table _time, avg_hourly]
+| eval anomaly=if(count > avg_hourly*2.5, "FLAGGED", "NORMAL")
+| where anomaly="FLAGGED"`;
+  setModal(`User Risk Profile: ${u.name}`,`
+<div class="d-row"><span class="d-lbl">User</span><span class="d-val" style="color:${u.c}">${u.name}</span></div>
+<div class="d-row"><span class="d-lbl">Department</span><span class="d-val">${u.dept}</span></div>
+<div class="d-row"><span class="d-lbl">Total PII Accesses Today</span><span class="d-val" style="color:var(--warn)">${u.cnt}</span></div>
+<div class="d-row"><span class="d-lbl">Risk Level</span><span class="d-val" style="color:${u.risk==='high'?'var(--red)':u.risk==='med'?'var(--warn)':'var(--green)'}">${u.risk.toUpperCase()}</span></div>
+<div class="d-row"><span class="d-lbl">30-Day Avg (daily)</span><span class="d-val">${Math.round(u.cnt * 0.45)}</span></div>
+<div class="d-row"><span class="d-lbl">Anomaly Score</span><span class="d-val" style="color:${u.risk==='high'?'var(--red)':'var(--warn)'}">${u.risk==='high'?'+287%':'+68%'} above baseline</span></div>
+<div style="margin-top:14px;font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--text-dim);margin-bottom:6px;letter-spacing:1px;text-transform:uppercase">User Behavior Analytics Query</div>
+<div class="spl-box">${splQ}</div>
+<div class="act-row">
+  <button class="act-btn a-red" onclick="doAction('suspend','${u.name}')">🚫 SUSPEND ACCESS</button>
+  <button class="act-btn a-warn" onclick="closeModal()">📧 ALERT MANAGER</button>
+  <button class="act-btn a-blue" onclick="closeModal()">👁 WATCH LIST</button>
+</div>`);
+}
+
+function openPiiModal(p) {
+  const splQ=`index=hotel_pii pii_type="${p.name.replace(/ \/ /,' OR ').split(' ')[0].toUpperCase()}"
+| stats count as records, dc(user) as unique_users, dc(src_ip) as unique_ips by property_id
+| eval masking_status=if(masked="YES","PROTECTED","EXPOSED")
+| where masking_status="EXPOSED"
+| sort -records`;
+  setModal(`PII Category: ${p.name}`,`
+<div class="d-row"><span class="d-lbl">Data Type</span><span class="d-val" style="color:${p.c}">${p.name}</span></div>
+<div class="d-row"><span class="d-lbl">Total Records</span><span class="d-val">${p.cnt}</span></div>
+<div class="d-row"><span class="d-lbl">Masking Coverage</span><span class="d-val" style="color:var(--green)">99.1%</span></div>
+<div class="d-row"><span class="d-lbl">Regulatory Framework</span><span class="d-val">${p.name.includes('Credit')?'PCI-DSS Level 1':p.name.includes('Health')?'HIPAA + GDPR Art.9':'GDPR Art.6 · CCPA'}</span></div>
+<div class="d-row"><span class="d-lbl">Retention Policy</span><span class="d-val">${p.name.includes('Loyalty')?'5 years':p.name.includes('Health')?'7 years':'3 years'}</span></div>
+<div style="margin-top:14px;font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--text-dim);margin-bottom:6px;letter-spacing:1px;text-transform:uppercase">Data Discovery SPL</div>
+<div class="spl-box">${splQ}</div>
+<div class="act-row">
+  <button class="act-btn a-blue" onclick="closeModal()">📊 FULL REPORT</button>
+  <button class="act-btn a-green" onclick="closeModal()">🔒 REVIEW MASKING</button>
+</div>`);
+}
+
+function openKpiModal(type) {
+  const qs={
+    records:{t:'PII Records Inventory',q:`index=hotel_pii sourcetype=data_catalog\n| stats dc(record_id) as records by pii_type, property_name\n| sort -records`},
+    alerts:{t:'Active Alerts Summary',q:`index=hotel_security severity IN (critical,high,medium)\n| stats count by severity, alert_name\n| sort severity, -count`},
+    unauth:{t:'Unauthorized Access Events',q:`index=hotel_pii\n| lookup rbac_policy user OUTPUT allowed_types\n| where NOT match(pii_type, allowed_types)\n| stats count by user, pii_type, src_ip`},
+    ext:{t:'External Threat Events',q:`index=hotel_security src_category=external\n| iplocation src_ip\n| stats count by src_ip, Country, threat_type, action`},
+  };
+  const q=qs[type]||qs.records;
+  setModal(q.t,`<div class="spl-box">${q.q}</div><div class="act-row"><button class="act-btn a-blue" onclick="document.getElementById('splInput').value=\`${q.q}\`;closeModal();notify('Search Loaded','Click RUN to execute')">▶ LOAD IN SEARCH</button><button class="act-btn a-green" onclick="closeModal()">CLOSE</button></div>`);
+}
+
+function setModal(title, html) {
+  document.getElementById('mTitle').textContent=title;
+  document.getElementById('mBody').innerHTML=html;
+  document.getElementById('modalOvr').classList.add('show');
+}
+function closeModal() { document.getElementById('modalOvr').classList.remove('show'); }
+
+function doAction(act, target) {
+  closeModal();
+  const msgs={
+    block:`User/IP "${target}" access suspended. IT Security + SOC notified. Ticket auto-created.`,
+    escalate:`Event ${target} escalated to Tier-2 SOC. On-call analyst paged.`,
+    ticket:`JIRA ticket created for ${target}. Assigned to Security Operations.`,
+    resolve:`Event ${target} closed. Post-incident notes required within 24h.`,
+    suspend:`User "${target}" suspended pending investigation. Manager notified.`,
+  };
+  notify(act.toUpperCase()+' ACTION',msgs[act]||'Action recorded.');
+}
+
+function runSearch() { notify('▶ Search Dispatched','Query sent to Splunk indexers. Results loading...'); }
+
+// Notifications
+function notify(title, body) {
+  document.getElementById('nTitle').textContent=title;
+  document.getElementById('nBody').textContent=body;
+  const n=document.getElementById('notif'); n.style.display='block';
+  clearTimeout(notify._t);
+  notify._t=setTimeout(()=>{ n.style.display='none'; }, 4000);
+}
+
+// Auto triggers
+setTimeout(()=>notify('🚨 NEW CRITICAL ALERT','Bulk export: API_KEY_891 queried 2,100 guest credit card records in 4 minutes'),6000);
+setTimeout(()=>notify('⚠ HIGH ALERT','Off-hours access: SVC_NIGHTLY accessed passport table at 03:14 AM'),12000);
+
+// Live counter
+let rCount=2410000;
+setInterval(()=>{
+  rCount+=Math.floor(Math.random()*3)+1;
+  const m=(rCount/1000000).toFixed(3);
+  document.getElementById('kRecords').textContent=m+'M';
+},4000);
+</script>
+</body>
+</html>
