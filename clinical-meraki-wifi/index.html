@@ -1,0 +1,658 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Splunk – Meraki Wi-Fi Clinical Zone Reliability</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+:root {
+  --bg: #11131a;
+  --nav: #0c0e14;
+  --panel: #181b24;
+  --panel2: #13151e;
+  --border: #242836;
+  --border2: #1e2130;
+  --orange: #f7902b;
+  --green: #5cb85c;
+  --red: #d9534f;
+  --yellow: #f0ad4e;
+  --blue: #4fa9e3;
+  --purple: #9b7fd4;
+  --teal: #3ec4ad;
+  --text: #cdd0dc;
+  --text2: #8b90a8;
+  --text3: #525670;
+  --font: 'Helvetica Neue', Arial, sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:var(--font);font-size:12px;min-height:100vh}
+a{color:inherit;text-decoration:none}
+
+/* ── NAV ── */
+.nav{background:var(--nav);border-bottom:1px solid #000;height:42px;display:flex;align-items:center;padding:0 16px;gap:22px}
+.logo{display:flex;align-items:center;gap:8px}
+.logo-sq{width:26px;height:26px;background:var(--orange);border-radius:3px;display:flex;align-items:center;justify-content:center}
+.logo-sq svg{width:17px;height:17px}
+.logo-text{font-size:17px;font-weight:700;color:var(--orange);letter-spacing:-0.5px}
+.nav-links{display:flex;gap:2px}
+.nav-links span{padding:5px 11px;color:var(--text2);border-radius:3px;font-size:11px;cursor:pointer}
+.nav-links span.on{background:#1e2230;color:var(--text)}
+.spacer{flex:1}
+.avatar{width:25px;height:25px;border-radius:50%;background:var(--orange);display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:#fff}
+.nav-user{display:flex;align-items:center;gap:7px;font-size:11px;color:var(--text2)}
+
+/* ── TOOLBAR ── */
+.toolbar{background:var(--nav);border-bottom:1px solid var(--border);padding:8px 16px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.dash-title{font-size:14px;font-weight:600;color:#e0e4f0}
+.dash-sub{font-size:10px;color:var(--text2);margin-left:4px}
+.tpill{background:#1e2230;border:1px solid var(--border);border-radius:4px;padding:4px 11px;font-size:11px;color:var(--blue);cursor:pointer}
+.tpill em{color:var(--text2);font-style:normal}
+.btn{padding:4px 12px;border-radius:4px;font-size:11px;font-weight:600;cursor:pointer;border:none}
+.btn-p{background:var(--orange);color:#fff}
+.btn-o{background:transparent;border:1px solid var(--border);color:var(--text2)}
+
+/* ── FILTER ── */
+.filters{background:#0e1018;border-bottom:1px solid var(--border);padding:6px 16px;display:flex;align-items:center;gap:9px;flex-wrap:wrap}
+.fl{font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.5px}
+.fc{background:#1e2230;border:1px solid var(--border);border-radius:12px;padding:2px 11px;font-size:10px;color:var(--text);cursor:pointer;transition:border-color .15s}
+.fc.on{border-color:var(--orange);color:var(--orange)}
+.fc:hover{border-color:var(--blue)}
+
+/* ── SPL BAR ── */
+.spl{background:#0c0e14;border:1px solid var(--border);border-radius:4px;padding:7px 13px;margin:12px 16px 0;display:flex;align-items:center;gap:10px}
+.spl-code{font-family:'Courier New',monospace;font-size:10px;color:var(--green);flex:1}
+.spl-cur{display:inline-block;width:6px;height:11px;background:var(--green);vertical-align:middle;margin-left:2px;animation:blink 1s infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:0}}
+.spl-meta{font-size:10px;color:var(--text3);white-space:nowrap}
+
+/* ── MAIN ── */
+.main{padding:10px 16px 24px;display:flex;flex-direction:column;gap:10px}
+
+/* ── KPI ROW ── */
+.kpi-row{display:grid;grid-template-columns:repeat(6,1fr);gap:8px}
+.kpi{background:var(--panel);border:1px solid var(--border);border-radius:4px;padding:11px 13px;position:relative;overflow:hidden}
+.kpi::after{content:'';position:absolute;top:0;left:0;right:0;height:2px}
+.kpi.g::after{background:var(--green)}
+.kpi.r::after{background:var(--red)}
+.kpi.o::after{background:var(--orange)}
+.kpi.b::after{background:var(--blue)}
+.kpi.p::after{background:var(--purple)}
+.kpi.t::after{background:var(--teal)}
+.kpi-lbl{font-size:9px;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:5px}
+.kpi-val{font-size:21px;font-weight:700;line-height:1}
+.kpi-val.g{color:var(--green)}.kpi-val.r{color:var(--red)}.kpi-val.o{color:var(--orange)}.kpi-val.b{color:var(--blue)}.kpi-val.p{color:var(--purple)}.kpi-val.t{color:var(--teal)}
+.kpi-unit{font-size:11px;font-weight:400}
+.kpi-sub{font-size:9px;color:var(--text3);margin-top:3px}
+.kpi-delta{font-size:9px;margin-top:2px}
+.kpi-delta.up{color:var(--green)}.kpi-delta.dn{color:var(--red)}
+
+/* ── PANELS ── */
+.r2{display:grid;grid-template-columns:2fr 1fr;gap:10px}
+.r3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px}
+.r2b{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.r2c{display:grid;grid-template-columns:3fr 2fr;gap:10px}
+.panel{background:var(--panel);border:1px solid var(--border);border-radius:4px;overflow:hidden}
+.ph{background:var(--panel2);border-bottom:1px solid var(--border);padding:8px 13px;display:flex;align-items:center;gap:7px}
+.ph-title{font-size:11px;font-weight:600;color:#cdd0dc;flex:1}
+.ph-badge{font-size:9px;background:#1e2230;border:1px solid var(--border);border-radius:10px;padding:1px 8px;color:var(--text2)}
+.pb{padding:11px}
+
+/* ── AP STATUS GRID ── */
+.ap-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:8px}
+.ap-card{background:var(--panel2);border:1px solid var(--border2);border-radius:4px;padding:9px;position:relative}
+.ap-card.alert{border-color:rgba(217,83,79,.4)}
+.ap-card.warn{border-color:rgba(240,173,78,.35)}
+.ap-card.ok{border-color:rgba(92,184,92,.2)}
+.ap-name{font-size:10px;font-weight:600;color:#dde0ea;margin-bottom:4px}
+.ap-loc{font-size:9px;color:var(--text3);margin-bottom:6px}
+.ap-stats{display:flex;flex-direction:column;gap:3px}
+.ap-stat{display:flex;justify-content:space-between;font-size:9px}
+.ap-stat .lbl{color:var(--text2)}
+.ap-stat .val{font-weight:600}
+.val-g{color:var(--green)}.val-r{color:var(--red)}.val-o{color:var(--orange)}.val-b{color:var(--blue)}
+.ap-dot{width:7px;height:7px;border-radius:50%;position:absolute;top:8px;right:8px}
+.ap-dot.g{background:var(--green)}.ap-dot.r{background:var(--red);box-shadow:0 0 5px var(--red)}.ap-dot.o{background:var(--orange)}
+
+/* ── ALERT FEED ── */
+.alert-li{display:flex;align-items:flex-start;gap:9px;padding:6px 0;border-bottom:1px solid #171a22}
+.alert-li:last-child{border-bottom:none}
+.adot{width:7px;height:7px;border-radius:50%;margin-top:3px;flex-shrink:0}
+.adot.r{background:var(--red);box-shadow:0 0 5px var(--red)}
+.adot.o{background:var(--orange);box-shadow:0 0 4px var(--orange)}
+.adot.y{background:var(--yellow)}
+.adot.g{background:var(--green)}
+.atx{font-size:10px;color:var(--text);line-height:1.45}
+.atm{font-size:9px;color:var(--text3);margin-top:1px}
+
+/* ── TABLE ── */
+table{width:100%;border-collapse:collapse;font-size:10px}
+thead th{color:var(--text3);font-weight:600;text-transform:uppercase;letter-spacing:.3px;padding:6px 8px;border-bottom:1px solid var(--border);text-align:left;font-size:9px}
+tbody tr{border-bottom:1px solid #171a22;transition:background .1s}
+tbody tr:hover{background:#1e2230}
+tbody td{padding:6px 8px;color:var(--text)}
+.bdg{display:inline-block;border-radius:3px;padding:1px 7px;font-size:9px;font-weight:700}
+.bdg-g{background:rgba(92,184,92,.15);color:var(--green)}
+.bdg-r{background:rgba(217,83,79,.15);color:var(--red)}
+.bdg-o{background:rgba(240,173,78,.15);color:var(--yellow)}
+.bdg-b{background:rgba(79,169,227,.15);color:var(--blue)}
+
+/* ── BAR ROWS ── */
+.bar-r{display:flex;align-items:center;gap:7px;margin-bottom:7px}
+.bar-lbl{width:105px;font-size:10px;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex-shrink:0}
+.bar-trk{flex:1;background:#1e2230;border-radius:2px;height:9px}
+.bar-fil{height:100%;border-radius:2px}
+.bar-val{width:38px;text-align:right;font-size:10px;color:var(--text2);flex-shrink:0}
+
+/* ── ROAM TABLE ── */
+.roam-zone{display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid #171a22}
+.roam-zone:last-child{border-bottom:none}
+.rz-name{width:90px;font-size:10px;color:var(--text);flex-shrink:0}
+.rz-bar-wrap{flex:1;background:#1e2230;border-radius:2px;height:8px}
+.rz-bar{height:100%;border-radius:2px;background:var(--purple)}
+.rz-val{width:36px;text-align:right;font-size:10px;color:var(--text2);flex-shrink:0}
+.rz-badge{width:50px;text-align:right;flex-shrink:0}
+
+/* ── SIGNAL GAUGE ── */
+.gauge-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;text-align:center}
+.gg-item{}
+.gg-lbl{font-size:9px;color:var(--text2);margin-bottom:6px}
+.gg-val{font-size:18px;font-weight:700}
+.gg-sub{font-size:9px;color:var(--text3);margin-top:2px}
+
+/* ── MINI SPARKLINE ── */
+.spark-row{display:flex;align-items:center;gap:6px;padding:4px 0;border-bottom:1px solid #171a22}
+.spark-row:last-child{border-bottom:none}
+.spark-lbl{width:90px;font-size:10px;color:var(--text);flex-shrink:0}
+.spark-canvas-wrap{flex:1}
+.spark-val{width:40px;text-align:right;font-size:10px;color:var(--text2);flex-shrink:0}
+
+/* ── FOOTER ── */
+.footer{text-align:center;color:var(--text3);font-size:9px;padding:6px 0 14px}
+
+/* SCROLLBAR */
+::-webkit-scrollbar{width:5px}::-webkit-scrollbar-track{background:#111}::-webkit-scrollbar-thumb{background:#333;border-radius:3px}
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<div class="nav">
+  <div class="logo">
+    <div class="logo-sq">
+      <svg viewBox="0 0 17 17" fill="none">
+        <path d="M2 13l4-7 3.5 5.5L12 8l3.5 5" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    </div>
+    <span class="logo-text">splunk&gt;</span>
+  </div>
+  <div class="nav-links">
+    <span>Search &amp; Reporting</span>
+    <span class="on">Dashboards</span>
+    <span>Alerts</span>
+    <span>Reports</span>
+  </div>
+  <div class="spacer"></div>
+  <div class="nav-user">
+    <div class="avatar">JD</div>
+    <span>jdoe@health.org</span>
+  </div>
+</div>
+
+<!-- TOOLBAR -->
+<div class="toolbar">
+  <div>
+    <span class="dash-title">Meraki Wi-Fi Reliability — Clinical Zones</span>
+    <span class="dash-sub">— ICU · OR · ED · Pharmacy | AP Health · Roaming · Client Failures</span>
+  </div>
+  <div class="spacer"></div>
+  <div class="tpill">&#128336; <em>Range:</em> Last 24 h ▾</div>
+  <button class="btn btn-o">Edit</button>
+  <button class="btn btn-p">&#8635; Refresh</button>
+</div>
+
+<!-- FILTERS -->
+<div class="filters">
+  <span class="fl">Zone:</span>
+  <div class="fc on">All Zones</div>
+  <div class="fc">ICU</div>
+  <div class="fc">Operating Room</div>
+  <div class="fc">Emergency Dept</div>
+  <div class="fc">Pharmacy</div>
+  &nbsp;
+  <span class="fl">Status:</span>
+  <div class="fc on">All</div>
+  <div class="fc">Online</div>
+  <div class="fc">Alerting</div>
+  <div class="fc">Offline</div>
+</div>
+
+<!-- SPL -->
+<div class="spl">
+  <span style="color:var(--orange);font-size:14px">|</span>
+  <span class="spl-code">index=meraki sourcetype=meraki:mr | eval zone=case(ssid="ICU-Clinical","ICU",ssid="OR-Secure","OR",ssid="ED-Wireless","ED",1==1,"Pharmacy") | stats avg(rssi) as snr, count(eval(type="assoc_fail")) as fail, count(eval(roam=1)) as roams by ap_name, zone, _time<span class="spl-cur"></span></span>
+  <span class="spl-meta">14 Apr 2026 · 1.87M events</span>
+</div>
+
+<!-- MAIN -->
+<div class="main">
+
+  <!-- KPI ROW -->
+  <div class="kpi-row">
+    <div class="kpi g">
+      <div class="kpi-lbl">APs Online</div>
+      <div class="kpi-val g">41<span class="kpi-unit">/44</span></div>
+      <div class="kpi-delta dn">▼ 3 offline vs. yesterday 0</div>
+      <div class="kpi-sub">All clinical zones</div>
+    </div>
+    <div class="kpi r">
+      <div class="kpi-lbl">Client Failures (24 h)</div>
+      <div class="kpi-val r">312</div>
+      <div class="kpi-delta dn">▲ +87 vs. yesterday</div>
+      <div class="kpi-sub">Assoc + auth failures</div>
+    </div>
+    <div class="kpi p">
+      <div class="kpi-lbl">Roaming Events</div>
+      <div class="kpi-val p">1,847</div>
+      <div class="kpi-delta dn">▲ +214 vs. yesterday</div>
+      <div class="kpi-sub">All zones · L2 + L3</div>
+    </div>
+    <div class="kpi o">
+      <div class="kpi-lbl">Avg SNR</div>
+      <div class="kpi-val o">29<span class="kpi-unit"> dB</span></div>
+      <div class="kpi-delta dn">▼ −3 dB vs. yesterday</div>
+      <div class="kpi-sub">Signal-to-noise ratio</div>
+    </div>
+    <div class="kpi b">
+      <div class="kpi-lbl">Channel Utilization</div>
+      <div class="kpi-val b">67<span class="kpi-unit">%</span></div>
+      <div class="kpi-delta dn">▲ +11% vs. yesterday</div>
+      <div class="kpi-sub">2.4 + 5 GHz combined</div>
+    </div>
+    <div class="kpi t">
+      <div class="kpi-lbl">Active Clients</div>
+      <div class="kpi-val t">584</div>
+      <div class="kpi-delta up">▲ +42 vs. yesterday</div>
+      <div class="kpi-sub">Devices connected now</div>
+    </div>
+  </div>
+
+  <!-- ROW 2: Trend + Alerts -->
+  <div class="r2">
+    <div class="panel">
+      <div class="ph">
+        <span class="ph-title">Client failures + roaming events over time — last 24 h</span>
+        <span class="ph-badge">Meraki MR</span>
+      </div>
+      <div class="pb">
+        <div style="position:relative;height:210px">
+          <canvas id="trendChart" role="img" aria-label="Line chart of client failures and roaming events by zone over 24 hours"></canvas>
+        </div>
+      </div>
+    </div>
+    <div class="panel">
+      <div class="ph">
+        <span class="ph-title">&#128308; Active alerts</span>
+        <span class="ph-badge">Meraki + Splunk</span>
+      </div>
+      <div class="pb">
+        <div class="alert-li"><div class="adot r"></div><div><div class="atx">AP offline — ICU-AP-03 (MR46) · 3 clients stranded</div><div class="atm">06:08:11 · ICU Bay 3 · consecutive ping failures &gt;5 min</div></div></div>
+        <div class="alert-li"><div class="adot r"></div><div><div class="atx">AP offline — OR-AP-02 (MR36H) · surgery suite 2</div><div class="atm">05:52:44 · OR Wing B · POE fault on switch port Gi1/0/14</div></div></div>
+        <div class="alert-li"><div class="adot o"></div><div><div class="atx">High roaming rate — ED zone · 94 events in 10 min</div><div class="atm">05:41:17 · ED-AP-01/02/04 · sticky client threshold exceeded</div></div></div>
+        <div class="alert-li"><div class="adot o"></div><div><div class="atx">SNR degraded — Pharmacy-AP-01 · avg 17 dB (threshold 25)</div><div class="atm">05:29:03 · Pharmacy Hub · 2.4 GHz channel overlap detected</div></div></div>
+        <div class="alert-li"><div class="adot y"></div><div><div class="atx">Auth failure spike — ICU · 41 failures in 5-min window</div><div class="atm">04:55:31 · WPA2-Enterprise · RADIUS timeout 10.0.1.22</div></div></div>
+        <div class="alert-li"><div class="adot y"></div><div><div class="atx">Channel utilization &gt;80% — ED-AP-04 · 5 GHz radio</div><div class="atm">04:12:09 · 147 associated clients · consider load balancing</div></div></div>
+        <div class="alert-li"><div class="adot g"></div><div><div class="atx">AP-01 OR restored after firmware push (MR 29.7.1)</div><div class="atm">02:44:18 · OR Wing A · latency normalized · 12 clients reconnected</div></div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- AP STATUS GRID -->
+  <div class="panel">
+    <div class="ph">
+      <span class="ph-title">Access point health — all clinical zones</span>
+      <span class="ph-badge">44 APs · Meraki MR</span>
+    </div>
+    <div class="pb">
+      <div class="ap-grid" id="apGrid"></div>
+    </div>
+  </div>
+
+  <!-- ROW 3: Failures by zone + Roaming + SNR -->
+  <div class="r3">
+    <div class="panel">
+      <div class="ph">
+        <span class="ph-title">Client failures by zone &amp; type</span>
+        <span class="ph-badge">assoc · auth · DHCP</span>
+      </div>
+      <div class="pb">
+        <div style="position:relative;height:200px">
+          <canvas id="failBar" role="img" aria-label="Stacked bar chart of client failures by type per clinical zone"></canvas>
+        </div>
+      </div>
+    </div>
+    <div class="panel">
+      <div class="ph">
+        <span class="ph-title">Roaming events by zone (24 h)</span>
+        <span class="ph-badge">L2 + L3 handoff</span>
+      </div>
+      <div class="pb">
+        <div class="roam-zone" style="padding-top:0">
+          <div class="rz-name" style="color:var(--text2);font-size:9px">Zone</div>
+          <div style="flex:1;font-size:9px;color:var(--text2)">Events</div>
+          <div class="rz-val" style="color:var(--text2)">Count</div>
+          <div class="rz-badge" style="color:var(--text2);font-size:9px">Status</div>
+        </div>
+        <div class="roam-zone">
+          <div class="rz-name">ICU</div>
+          <div class="rz-bar-wrap"><div class="rz-bar" style="width:72%;background:var(--blue)"></div></div>
+          <div class="rz-val">612</div>
+          <div class="rz-badge"><span class="bdg bdg-o">WARN</span></div>
+        </div>
+        <div class="roam-zone">
+          <div class="rz-name">Operating Room</div>
+          <div class="rz-bar-wrap"><div class="rz-bar" style="width:42%;background:var(--green)"></div></div>
+          <div class="rz-val">354</div>
+          <div class="rz-badge"><span class="bdg bdg-g">OK</span></div>
+        </div>
+        <div class="roam-zone">
+          <div class="rz-name">Emergency Dept</div>
+          <div class="rz-bar-wrap"><div class="rz-bar" style="width:100%;background:var(--red)"></div></div>
+          <div class="rz-val">847</div>
+          <div class="rz-badge"><span class="bdg bdg-r">HIGH</span></div>
+        </div>
+        <div class="roam-zone">
+          <div class="rz-name">Pharmacy</div>
+          <div class="rz-bar-wrap"><div class="rz-bar" style="width:28%;background:var(--green)"></div></div>
+          <div class="rz-val">234</div>
+          <div class="rz-badge"><span class="bdg bdg-g">OK</span></div>
+        </div>
+        <div style="margin-top:16px">
+          <div style="font-size:9px;color:var(--text2);margin-bottom:8px;text-transform:uppercase;letter-spacing:.4px">Roam type breakdown (all zones)</div>
+          <div style="position:relative;height:110px">
+            <canvas id="roamDonut" role="img" aria-label="Doughnut chart of roaming event types">L2 fast roam 58%, L3 roam 27%, slow roam 15%.</canvas>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="panel">
+      <div class="ph">
+        <span class="ph-title">SNR &amp; channel utilization by zone</span>
+        <span class="ph-badge">2.4 + 5 GHz</span>
+      </div>
+      <div class="pb">
+        <div class="gauge-grid" style="margin-bottom:14px">
+          <div class="gg-item"><div class="gg-lbl">ICU</div><div class="gg-val" style="color:var(--yellow)">27 dB</div><div class="gg-sub">Marginal</div></div>
+          <div class="gg-item"><div class="gg-lbl">OR</div><div class="gg-val" style="color:var(--green)">38 dB</div><div class="gg-sub">Excellent</div></div>
+          <div class="gg-item"><div class="gg-lbl">ED</div><div class="gg-val" style="color:var(--yellow)">24 dB</div><div class="gg-sub">Marginal</div></div>
+          <div class="gg-item"><div class="gg-lbl">Pharmacy</div><div class="gg-val" style="color:var(--red)">17 dB</div><div class="gg-sub">Poor</div></div>
+        </div>
+        <div style="font-size:9px;color:var(--text2);text-transform:uppercase;letter-spacing:.4px;margin-bottom:8px">Channel utilization %</div>
+        <div id="chanBars"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ZONE SUMMARY TABLE -->
+  <div class="panel">
+    <div class="ph">
+      <span class="ph-title">Zone-level Wi-Fi reliability summary — AP health · client failures · roaming</span>
+      <span class="ph-badge">Meraki Dashboard API + Splunk</span>
+    </div>
+    <div class="pb" style="padding:0">
+      <table>
+        <thead>
+          <tr>
+            <th>Zone</th>
+            <th>APs Online</th>
+            <th>APs Offline</th>
+            <th>Active Clients</th>
+            <th>Assoc Failures</th>
+            <th>Auth Failures</th>
+            <th>DHCP Failures</th>
+            <th>Roam Events</th>
+            <th>Avg SNR</th>
+            <th>Chan Util</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td>ICU</td><td class="val-g">10</td><td class="val-r">1</td><td>148</td><td class="val-r">87</td><td class="val-o">41</td><td>12</td><td class="val-o">612</td><td class="val-o">27 dB</td><td>71%</td><td><span class="bdg bdg-o">WARN</span></td></tr>
+          <tr><td>Operating Room</td><td class="val-g">8</td><td class="val-r">1</td><td>64</td><td class="val-g">18</td><td class="val-g">7</td><td>3</td><td class="val-g">354</td><td class="val-g">38 dB</td><td>44%</td><td><span class="bdg bdg-o">WARN</span></td></tr>
+          <tr><td>Emergency Dept</td><td class="val-g">14</td><td>0</td><td>247</td><td class="val-r">134</td><td class="val-r">58</td><td>22</td><td class="val-r">847</td><td class="val-o">24 dB</td><td>82%</td><td><span class="bdg bdg-r">CRITICAL</span></td></tr>
+          <tr><td>Pharmacy</td><td class="val-g">9</td><td>0</td><td>125</td><td class="val-g">14</td><td class="val-g">9</td><td>4</td><td class="val-g">234</td><td class="val-r">17 dB</td><td>53%</td><td><span class="bdg bdg-o">WARN</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ROW: AP failure heatmap + Channel interference -->
+  <div class="r2b">
+    <div class="panel">
+      <div class="ph">
+        <span class="ph-title">Client failure heatmap — zone × hour</span>
+        <span class="ph-badge">green=low · red=high failure rate</span>
+      </div>
+      <div class="pb">
+        <div id="hmGrid" style="display:grid;gap:2px;font-size:9px"></div>
+      </div>
+    </div>
+    <div class="panel">
+      <div class="ph">
+        <span class="ph-title">Top APs by client failure count (24 h)</span>
+        <span class="ph-badge">assoc + auth + DHCP</span>
+      </div>
+      <div class="pb">
+        <div style="position:relative;height:230px">
+          <canvas id="apFailBar" role="img" aria-label="Horizontal bar chart of top APs by client failure count"></canvas>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Sticky client + RADIUS -->
+  <div class="r2b">
+    <div class="panel">
+      <div class="ph">
+        <span class="ph-title">Sticky client events by AP — roaming delay &gt;5 s</span>
+        <span class="ph-badge">L2 threshold</span>
+      </div>
+      <div class="pb">
+        <div style="position:relative;height:190px">
+          <canvas id="stickyBar" role="img" aria-label="Bar chart of sticky client events by access point"></canvas>
+        </div>
+      </div>
+    </div>
+    <div class="panel">
+      <div class="ph">
+        <span class="ph-title">RADIUS auth failures over time — by zone</span>
+        <span class="ph-badge">WPA2-Enterprise</span>
+      </div>
+      <div class="pb">
+        <div style="position:relative;height:190px">
+          <canvas id="radiusChart" role="img" aria-label="Line chart of RADIUS authentication failures by zone"></canvas>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /main -->
+<div class="footer">Splunk Enterprise · healthcare-prod · sourcetype: meraki:mr, meraki:events · Last refresh: 14 Apr 2026 06:00 UTC · Owner: Network Ops</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script>
+const gc='rgba(255,255,255,0.06)';
+Chart.defaults.color='#8b90a8';
+Chart.defaults.font.family='Helvetica Neue,Arial,sans-serif';
+Chart.defaults.font.size=10;
+
+// ── AP GRID ──────────────────────────────────────────────────────
+const apData=[
+  // ICU
+  {n:'ICU-AP-01',loc:'ICU Bay 1',status:'ok',clients:18,snr:31,util:62,fail:4},
+  {n:'ICU-AP-02',loc:'ICU Bay 2',status:'ok',clients:22,snr:28,util:71,fail:9},
+  {n:'ICU-AP-03',loc:'ICU Bay 3',status:'down',clients:0,snr:0,util:0,fail:0},
+  {n:'ICU-AP-04',loc:'ICU Nurses Stn',status:'ok',clients:14,snr:34,util:55,fail:2},
+  {n:'ICU-AP-05',loc:'ICU Corridor',status:'ok',clients:11,snr:29,util:48,fail:3},
+  {n:'ICU-AP-06',loc:'ICU Step-Down',status:'warn',clients:19,snr:22,util:80,fail:14},
+  // OR
+  {n:'OR-AP-01',loc:'OR Suite 1',status:'ok',clients:8,snr:40,util:38,fail:2},
+  {n:'OR-AP-02',loc:'OR Suite 2',status:'down',clients:0,snr:0,util:0,fail:0},
+  {n:'OR-AP-03',loc:'OR Suite 3',status:'ok',clients:7,snr:37,util:42,fail:1},
+  {n:'OR-AP-04',loc:'OR Scrub Hall',status:'ok',clients:12,snr:35,util:40,fail:3},
+  {n:'OR-AP-05',loc:'OR Recovery',status:'ok',clients:16,snr:39,util:44,fail:2},
+  // ED
+  {n:'ED-AP-01',loc:'ED Triage',status:'ok',clients:31,snr:25,util:83,fail:28},
+  {n:'ED-AP-02',loc:'ED Trauma 1',status:'ok',clients:27,snr:22,util:79,fail:22},
+  {n:'ED-AP-03',loc:'ED Trauma 2',status:'ok',clients:24,snr:26,util:77,fail:18},
+  {n:'ED-AP-04',loc:'ED Fast Track',status:'warn',clients:33,snr:21,util:88,fail:31},
+  {n:'ED-AP-05',loc:'ED Waiting Rm',status:'ok',clients:29,snr:24,util:81,fail:19},
+  {n:'ED-AP-06',loc:'ED Nurses Stn',status:'ok',clients:21,snr:27,util:72,fail:11},
+  // Pharmacy
+  {n:'PHM-AP-01',loc:'Pharm Main',status:'warn',clients:22,snr:17,util:56,fail:9},
+  {n:'PHM-AP-02',loc:'Pharm Dispensary',status:'ok',clients:18,snr:24,util:48,fail:3},
+  {n:'PHM-AP-03',loc:'Pharm Storage',status:'ok',clients:14,snr:26,util:41,fail:2},
+  {n:'PHM-AP-04',loc:'Pharm IV Room',status:'ok',clients:11,snr:28,util:37,fail:1},
+];
+const dotColor={ok:'g',warn:'o',down:'r'};
+const cardClass={ok:'ok',warn:'warn',down:'alert'};
+document.getElementById('apGrid').innerHTML=apData.map(ap=>`
+<div class="ap-card ${cardClass[ap.status]}">
+  <div class="ap-dot ${dotColor[ap.status]}"></div>
+  <div class="ap-name">${ap.n}</div>
+  <div class="ap-loc">${ap.loc}</div>
+  <div class="ap-stats">
+    <div class="ap-stat"><span class="lbl">Status</span><span class="val ${ap.status==='ok'?'val-g':ap.status==='warn'?'val-o':'val-r'}">${ap.status.toUpperCase()}</span></div>
+    <div class="ap-stat"><span class="lbl">Clients</span><span class="val val-b">${ap.clients}</span></div>
+    <div class="ap-stat"><span class="lbl">SNR</span><span class="val ${ap.snr>=30?'val-g':ap.snr>=22?'val-o':'val-r'}">${ap.snr>0?ap.snr+' dB':'—'}</span></div>
+    <div class="ap-stat"><span class="lbl">Ch Util</span><span class="val ${ap.util<60?'val-g':ap.util<80?'val-o':'val-r'}">${ap.util>0?ap.util+'%':'—'}</span></div>
+    <div class="ap-stat"><span class="lbl">Failures</span><span class="val ${ap.fail===0?'val-g':ap.fail<10?'val-o':'val-r'}">${ap.fail}</span></div>
+  </div>
+</div>`).join('');
+
+// ── TREND CHART ──────────────────────────────────────────────────
+const hrs=Array.from({length:25},(_,i)=>`${String((6+i)%24).padStart(2,'0')}:00`);
+function wv(b,a,ph,len){return Array.from({length:len},(_,i)=>Math.max(0,Math.round(b+a*Math.sin((i+ph)*.45)+(Math.random()-.5)*a*.4)));}
+new Chart(document.getElementById('trendChart'),{
+  type:'line',
+  data:{labels:hrs,datasets:[
+    {label:'ICU failures',data:wv(12,8,0,25),borderColor:'#4fa9e3',backgroundColor:'rgba(79,169,227,.05)',tension:.4,pointRadius:1.5,borderWidth:1.8,yAxisID:'y'},
+    {label:'ED failures',data:wv(22,14,1,25),borderColor:'#d9534f',backgroundColor:'rgba(217,83,79,.05)',tension:.4,pointRadius:1.5,borderWidth:1.8,yAxisID:'y'},
+    {label:'Pharm failures',data:wv(4,4,2,25),borderColor:'#9b7fd4',backgroundColor:'rgba(155,127,212,.05)',tension:.4,pointRadius:1.5,borderWidth:1.8,yAxisID:'y'},
+    {label:'Roam events (all)',data:wv(77,40,0.5,25),borderColor:'#f7902b',backgroundColor:'rgba(247,144,43,.05)',tension:.4,pointRadius:1.5,borderWidth:1.8,borderDash:[4,3],yAxisID:'y2'},
+  ]},
+  options:{responsive:true,maintainAspectRatio:false,interaction:{mode:'index',intersect:false},
+    plugins:{legend:{labels:{boxWidth:9,padding:12,font:{size:10}}}},
+    scales:{
+      x:{grid:{color:gc},ticks:{maxTicksLimit:10}},
+      y:{grid:{color:gc},title:{display:true,text:'Failures',color:'#8b90a8'},beginAtZero:true,position:'left'},
+      y2:{grid:{color:'transparent'},title:{display:true,text:'Roam events',color:'#8b90a8'},beginAtZero:true,position:'right'},
+    }}
+});
+
+// ── FAIL BAR STACKED ─────────────────────────────────────────────
+new Chart(document.getElementById('failBar'),{
+  type:'bar',
+  data:{
+    labels:['ICU','OR','ED','Pharmacy'],
+    datasets:[
+      {label:'Assoc failure',data:[87,18,134,14],backgroundColor:'rgba(217,83,79,.8)',borderRadius:2},
+      {label:'Auth failure',data:[41,7,58,9],backgroundColor:'rgba(240,173,78,.8)',borderRadius:2},
+      {label:'DHCP failure',data:[12,3,22,4],backgroundColor:'rgba(79,169,227,.7)',borderRadius:2},
+    ]
+  },
+  options:{responsive:true,maintainAspectRatio:false,
+    plugins:{legend:{labels:{boxWidth:9,padding:10,font:{size:10}}}},
+    scales:{x:{stacked:true,grid:{color:'transparent'}},y:{stacked:true,grid:{color:gc},title:{display:true,text:'Failure count'}}}}
+});
+
+// ── ROAM DONUT ────────────────────────────────────────────────────
+new Chart(document.getElementById('roamDonut'),{
+  type:'doughnut',
+  data:{
+    labels:['L2 fast roam','L3 roam','Slow roam / re-assoc'],
+    datasets:[{data:[1071,499,277],backgroundColor:['#5cb85c','#4fa9e3','#f0ad4e'],borderWidth:1,borderColor:'#181b24'}]
+  },
+  options:{responsive:true,maintainAspectRatio:false,cutout:'60%',
+    plugins:{legend:{position:'right',labels:{boxWidth:9,padding:8,font:{size:9}}},
+      tooltip:{callbacks:{label:c=>`${c.label}: ${c.parsed}`}}}}
+});
+
+// ── CHAN UTIL BARS ─────────────────────────────────────────────────
+const chanData=[
+  {lbl:'ICU · 2.4 GHz',v:71,thr:70},
+  {lbl:'ICU · 5 GHz',v:58,thr:70},
+  {lbl:'OR · 2.4 GHz',v:44,thr:70},
+  {lbl:'OR · 5 GHz',v:36,thr:70},
+  {lbl:'ED · 2.4 GHz',v:82,thr:70},
+  {lbl:'ED · 5 GHz',v:78,thr:70},
+  {lbl:'Pharm · 2.4 GHz',v:53,thr:70},
+  {lbl:'Pharm · 5 GHz',v:41,thr:70},
+];
+document.getElementById('chanBars').innerHTML=chanData.map(d=>{
+  const c=d.v>=d.thr?'#d9534f':d.v>=d.thr*.75?'#f0ad4e':'#5cb85c';
+  return`<div class="bar-r"><div class="bar-lbl">${d.lbl}</div><div class="bar-trk"><div class="bar-fil" style="width:${d.v}%;background:${c}"></div></div><div class="bar-val">${d.v}%</div></div>`;
+}).join('');
+
+// ── FAILURE HEATMAP ──────────────────────────────────────────────
+const zones=['ICU','OR','ED','Pharmacy'];
+const hmBase=[[12,7,22,4],[10,5,28,3],[15,8,19,5],[18,6,25,4],[14,9,31,6],[11,4,27,3],[13,7,24,5],[9,5,20,3]];
+const tlbls=['00','03','06','09','12','15','18','21'];
+const hmEl=document.getElementById('hmGrid');
+hmEl.style.gridTemplateColumns=`70px repeat(8,1fr)`;
+hmEl.innerHTML='<div></div>'+tlbls.map(t=>`<div style="text-align:center;color:var(--text3);font-size:9px;padding:2px">${t}:00</div>`).join('');
+zones.forEach((z,zi)=>{
+  hmEl.innerHTML+=`<div style="display:flex;align-items:center;font-size:9px;color:var(--text2)">${z}</div>`;
+  tlbls.forEach((_,ti)=>{
+    const v=Math.max(0,hmBase[ti][zi]+Math.round((Math.random()-.5)*6));
+    const r=v/35;
+    const bg=r<.3?'#1a4a1a':r<.5?'#2d6e2d':r<.7?'#7a6400':r<.9?'#8a3000':'#6e1a1a';
+    hmEl.innerHTML+=`<div style="height:22px;border-radius:2px;background:${bg};display:flex;align-items:center;justify-content:center;font-size:8px;font-weight:600;cursor:pointer" title="${z} · ${tlbls[ti]}:00 · ${v} failures">${v}</div>`;
+  });
+});
+
+// ── TOP AP FAIL BAR ──────────────────────────────────────────────
+new Chart(document.getElementById('apFailBar'),{
+  type:'bar',
+  data:{
+    labels:['ED-AP-04','ED-AP-01','ICU-AP-06','ED-AP-02','ED-AP-05','ED-AP-03','ICU-AP-02','ED-AP-06'],
+    datasets:[{
+      label:'Failures',
+      data:[31,28,23,22,19,18,14,11],
+      backgroundColor:['#d9534f','#d9534f','#f0ad4e','#d9534f','#f0ad4e','#f0ad4e','#f0ad4e','#5cb85c'],
+      borderRadius:2,borderSkipped:false
+    }]
+  },
+  options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,
+    plugins:{legend:{display:false}},
+    scales:{x:{grid:{color:gc},title:{display:true,text:'Failure count (24 h)'}},y:{grid:{color:'transparent'}}}}
+});
+
+// ── STICKY CLIENT BAR ────────────────────────────────────────────
+new Chart(document.getElementById('stickyBar'),{
+  type:'bar',
+  data:{
+    labels:['ICU-AP-06','ED-AP-01','ED-AP-04','PHM-AP-01','ICU-AP-02','ED-AP-02','OR-AP-04'],
+    datasets:[{label:'Sticky events',data:[24,21,19,14,11,9,5],backgroundColor:'rgba(155,127,212,.8)',borderRadius:2}]
+  },
+  options:{responsive:true,maintainAspectRatio:false,
+    plugins:{legend:{display:false}},
+    scales:{x:{grid:{color:'transparent'},ticks:{maxRotation:35,font:{size:9}}},y:{grid:{color:gc},title:{display:true,text:'Sticky roam events'}}}}
+});
+
+// ── RADIUS LINE ───────────────────────────────────────────────────
+new Chart(document.getElementById('radiusChart'),{
+  type:'line',
+  data:{labels:hrs,datasets:[
+    {label:'ICU',data:wv(8,5,0,25),borderColor:'#4fa9e3',tension:.4,pointRadius:1.5,borderWidth:1.8,backgroundColor:'rgba(79,169,227,.05)'},
+    {label:'ED',data:wv(14,9,1,25),borderColor:'#d9534f',tension:.4,pointRadius:1.5,borderWidth:1.8,backgroundColor:'rgba(217,83,79,.05)'},
+    {label:'OR',data:wv(2,2,2,25),borderColor:'#5cb85c',tension:.4,pointRadius:1.5,borderWidth:1.8,backgroundColor:'rgba(92,184,92,.05)'},
+    {label:'Pharmacy',data:wv(4,3,3,25),borderColor:'#9b7fd4',tension:.4,pointRadius:1.5,borderWidth:1.8,backgroundColor:'rgba(155,127,212,.05)'},
+  ]},
+  options:{responsive:true,maintainAspectRatio:false,interaction:{mode:'index',intersect:false},
+    plugins:{legend:{labels:{boxWidth:9,padding:10,font:{size:10}}}},
+    scales:{x:{grid:{color:gc},ticks:{maxTicksLimit:10}},y:{grid:{color:gc},title:{display:true,text:'Auth failures'},beginAtZero:true}}}
+});
+</script>
+</body>
+</html>
