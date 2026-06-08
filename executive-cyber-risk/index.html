@@ -1,1057 +1,924 @@
-<div style="padding: 15px;">
-  <a href="../" style="color:#4ea1ff; text-decoration:none; font-size:16px;">
-    ← Back to Demo Portal
-  </a>
-</div>
-
-
 <!DOCTYPE html>
-<!--
-=============================================================================
-  EXECUTIVE CYBER RISK DASHBOARD — Splunk Simple XML + Inline HTML Panel
-=============================================================================
-
-  HOW TO DEPLOY IN SPLUNK:
-  ─────────────────────────
-  OPTION A — As a Splunk Simple XML Dashboard (Recommended)
-    1. In Splunk Web, go to Search & Reporting (or your app).
-    2. Click "Dashboards" → "Create New Dashboard".
-    3. Choose "Classic Dashboard" and give it a title.
-    4. Click the pencil (Edit) icon, then "Source" to open XML editor.
-    5. Replace all content with the <dashboard> XML block at the bottom of
-       this file (below the "SPLUNK SIMPLE XML" comment marker).
-    6. Save. All token-driven panels will auto-wire to your Splunk indexes.
-
-  OPTION B — As a Splunk HTML Dashboard Panel
-    1. Create a new dashboard, add an "HTML" panel type.
-    2. Paste the contents of the <html> block below directly into it.
-    3. Use $token$ syntax to inject Splunk search results into the JS vars
-       at the top of the script section (see inline comments).
-
-  SEARCH CUSTOMISATION:
-  ─────────────────────
-  Every SPL search string is in the XML block and labelled with comments.
-  Replace index names (index=main, index=security) with your own.
-  Time ranges use Splunk's standard earliest/latest tokens.
-
-  REQUIREMENTS:
-  ─────────────
-  • Splunk Enterprise 8.x+ or Splunk Cloud
-  • Search heads with access to security/network index data
-  • Optional: Splunk Security Essentials or ES for richer lookups
-=============================================================================
--->
 <html lang="en">
 <head>
-<meta charset="UTF-8"/>
-<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>Executive Cyber Risk Dashboard</title>
-
-<!-- Google Fonts — Bebas Neue (display) + DM Sans (body) -->
-<link rel="preconnect" href="https://fonts.googleapis.com"/>
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
-<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,500;0,9..40,700;1,9..40,300&display=swap" rel="stylesheet"/>
-
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Executive Cyber Risk Dashboard · Splunk</title>
+<link rel="stylesheet" href="https://rsms.me/inter/inter.css">
+<script src="https://cdn.jsdelivr.net/npm/d3@7/dist/d3.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/topojson-client@3/dist/topojson-client.min.js"></script>
 <style>
-/* ── DESIGN TOKENS ─────────────────────────────────────────────────────── */
 :root{
-  --bg:            #080c12;
-  --surface:       #0d1420;
-  --surface2:      #111b2e;
-  --border:        #1e2d47;
-  --border-hi:     #2a4066;
-  --text:          #e2eaf6;
-  --text-muted:    #6b84a8;
-  --text-dim:      #3d5278;
-
-  --accent:        #00d4ff;
-  --accent-glow:   rgba(0,212,255,.18);
-  --accent2:       #0062ff;
-
-  --red:           #ff3b5c;
-  --red-bg:        rgba(255,59,92,.10);
-  --amber:         #ffb020;
-  --amber-bg:      rgba(255,176,32,.10);
-  --green:         #00e676;
-  --green-bg:      rgba(0,230,118,.10);
-
-  --radius:        6px;
-  --radius-lg:     12px;
-  --font-display:  'Bebas Neue', sans-serif;
-  --font-body:     'DM Sans', sans-serif;
-  --transition:    .25s cubic-bezier(.4,0,.2,1);
+  /* Splunk 2026 brand tokens */
+  --magenta:#FF007F; --orange:#FF9000; --cyan:#02C8FF; --blue:#0A60FF;
+  --splunk-gradient:linear-gradient(135deg,#FF007F 0%,#FF9000 100%);
+  --bg-top:#04070B; --bg-bottom:#0B1118;
+  --text:#F2F5FA; --text-muted:#BCC4CF; --text-subtle:#6E7682;
+  --card:#10151C; --card-2:#0C1119; --border:rgba(255,255,255,.07);
+  --border-strong:rgba(255,255,255,.12);
+  /* severity scale */
+  --crit:#FF2D55; --high:#FF7A1A; --med:#FFB020; --low:#00E676; --info:#02C8FF;
+  --radius:16px;
+  --font:"Inter","Inter var",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
 }
-
-/* ── RESET ──────────────────────────────────────────────────────────────── */
-*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+*{box-sizing:border-box;margin:0;padding:0}
+html{-webkit-text-size-adjust:100%}
 body{
-  background:var(--bg);
+  font-family:var(--font);
+  background:linear-gradient(180deg,var(--bg-top) 0%,var(--bg-bottom) 100%);
   color:var(--text);
-  font-family:var(--font-body);
-  font-size:14px;
-  line-height:1.5;
   min-height:100vh;
+  -webkit-font-smoothing:antialiased;
+  font-feature-settings:"ss01","cv01","cv02";
+  position:relative;
   overflow-x:hidden;
 }
+/* background glows — bleed off-canvas, magenta+orange travel together (+cisco blue corner anchor) */
+.glow{position:fixed;border-radius:50%;filter:blur(150px);pointer-events:none;z-index:0}
+.g1{top:-220px;right:-160px;width:620px;height:620px;background:var(--magenta);opacity:.30}
+.g2{top:-120px;right:240px;width:420px;height:420px;background:var(--orange);opacity:.22}
+.g3{bottom:-260px;left:-180px;width:560px;height:560px;background:var(--blue);opacity:.20}
+.wrap{position:relative;z-index:1;max-width:1640px;margin:0 auto;padding:28px 32px 56px}
 
-/* ── GRID NOISE BACKGROUND ───────────────────────────────────────────────── */
-body::before{
-  content:'';
-  position:fixed;inset:0;
-  background-image:
-    linear-gradient(rgba(0,212,255,.025) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(0,212,255,.025) 1px, transparent 1px);
-  background-size:40px 40px;
-  pointer-events:none;
-  z-index:0;
+/* ---------- Header ---------- */
+header{display:flex;align-items:center;justify-content:space-between;gap:24px;flex-wrap:wrap;margin-bottom:8px}
+.brand{display:flex;align-items:center;gap:16px}
+.mark{
+  width:46px;height:46px;border-radius:13px;display:grid;place-items:center;
+  background:var(--splunk-gradient);box-shadow:0 0 40px rgba(255,0,127,.45)
 }
+.mark svg{width:24px;height:24px}
+.wordmark{line-height:1.05}
+.wordmark .w{font-size:21px;font-weight:700;letter-spacing:-.02em}
+.wordmark .c{font-size:11px;color:var(--text-subtle);letter-spacing:.02em}
+.title-block{flex:1;min-width:260px}
+.title-block .eyebrow{font-size:12px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--magenta)}
+.title-block h1{font-size:30px;font-weight:600;letter-spacing:-.02em;margin-top:2px;line-height:1.1}
+.title-block h1 .grad{background:var(--splunk-gradient);-webkit-background-clip:text;background-clip:text;color:transparent}
+.title-block .sub{font-size:13px;color:var(--text-muted);margin-top:4px}
+.head-right{display:flex;align-items:center;gap:14px;flex-wrap:wrap;justify-content:flex-end}
+.pill{display:inline-flex;align-items:center;gap:7px;padding:7px 13px;border-radius:999px;font-size:12.5px;font-weight:500;border:1px solid var(--border-strong);background:rgba(255,255,255,.03)}
+a.pill-link{text-decoration:none;color:var(--text);cursor:pointer;transition:border-color .18s,background .18s,transform .12s}
+a.pill-link:hover{border-color:var(--magenta);background:rgba(255,0,127,.10)}
+a.pill-link:active{transform:translateY(1px)}
+a.pill-link svg{width:14px;height:14px;flex:none}
+.resources{display:flex;align-items:center;gap:8px}
+.live-dot{width:8px;height:8px;border-radius:50%;background:var(--low);box-shadow:0 0 0 0 rgba(0,230,118,.6);animation:pulse 2s infinite}
+@keyframes pulse{0%{box-shadow:0 0 0 0 rgba(0,230,118,.55)}70%{box-shadow:0 0 0 9px rgba(0,230,118,0)}100%{box-shadow:0 0 0 0 rgba(0,230,118,0)}}
+.clock{font-variant-numeric:tabular-nums;font-weight:600;font-size:13px;color:var(--text)}
+.tf{color:var(--text-subtle)}
 
-/* ── HEADER ─────────────────────────────────────────────────────────────── */
-header{
-  position:relative;z-index:10;
-  display:flex;align-items:center;justify-content:space-between;
-  padding:18px 32px;
-  background:linear-gradient(180deg,rgba(0,0,0,.6) 0%,transparent 100%);
-  border-bottom:1px solid var(--border);
-}
-.logo-group{display:flex;align-items:center;gap:14px}
-.logo-icon{
-  width:38px;height:38px;
-  background:linear-gradient(135deg,var(--accent2),var(--accent));
-  border-radius:8px;
-  display:flex;align-items:center;justify-content:center;
-  font-size:18px;
-  box-shadow:0 0 24px var(--accent-glow);
-  flex-shrink:0;
-}
-.logo-text h1{
-  font-family:var(--font-display);
-  font-size:22px;letter-spacing:.08em;
-  color:var(--text);
-  line-height:1;
-}
-.logo-text span{
-  font-size:11px;color:var(--text-muted);
-  letter-spacing:.14em;text-transform:uppercase;
-}
-.header-meta{display:flex;align-items:center;gap:20px}
-.live-badge{
-  display:flex;align-items:center;gap:6px;
-  font-size:11px;color:var(--green);
-  letter-spacing:.1em;text-transform:uppercase;
-}
-.live-dot{
-  width:7px;height:7px;border-radius:50%;
-  background:var(--green);
-  animation:pulse 2s ease-in-out infinite;
-}
-@keyframes pulse{0%,100%{opacity:1;box-shadow:0 0 0 0 rgba(0,230,118,.4)}50%{opacity:.7;box-shadow:0 0 0 6px transparent}}
-.header-time{font-size:12px;color:var(--text-muted)}
+.section-label{display:flex;align-items:center;gap:10px;margin:26px 2px 14px;font-size:12px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--text-subtle)}
+.section-label::after{content:"";flex:1;height:1px;background:var(--border)}
 
-/* ── MAIN LAYOUT ────────────────────────────────────────────────────────── */
-main{
-  position:relative;z-index:1;
-  padding:24px 32px 40px;
-  display:grid;
-  gap:20px;
-}
+/* ---------- Cards ---------- */
+.card{background:linear-gradient(180deg,var(--card) 0%,var(--card-2) 100%);border:1px solid var(--border);border-radius:var(--radius);padding:18px 20px;position:relative;overflow:hidden}
+.card h3{font-size:13.5px;font-weight:600;letter-spacing:.01em;display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:14px;color:var(--text)}
+.card h3 .tag{font-size:10.5px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;padding:3px 8px;border-radius:999px}
+.tag.crit{background:rgba(255,45,85,.14);color:var(--crit)}
+.tag.warn{background:rgba(255,176,32,.14);color:var(--med)}
+.tag.ok{background:rgba(0,230,118,.13);color:var(--low)}
+.tag.info{background:rgba(2,200,255,.13);color:var(--info)}
+.tag.ext{background:rgba(255,0,127,.14);color:var(--magenta)}
 
-/* ── SECTION LABEL ───────────────────────────────────────────────────────── */
-.section-label{
-  font-size:10px;letter-spacing:.18em;text-transform:uppercase;
-  color:var(--text-dim);margin-bottom:2px;
-}
+/* ---------- KRI strip ---------- */
+.kris{display:grid;grid-template-columns:repeat(6,1fr);gap:14px}
+.kri{padding:16px 18px}
+.kri .lab{font-size:12px;color:var(--text-muted);font-weight:500}
+.kri .val{font-size:34px;font-weight:700;letter-spacing:-.02em;margin-top:4px;line-height:1;font-variant-numeric:tabular-nums}
+.kri .unit{font-size:15px;color:var(--text-subtle);font-weight:500}
+.kri .delta{font-size:12px;margin-top:8px;display:inline-flex;align-items:center;gap:5px;font-weight:500}
+.up{color:var(--crit)} .down{color:var(--low)} .flat{color:var(--text-subtle)}
+.kri.accent-crit{border-color:rgba(255,45,85,.35)}
+.kri .barwrap{height:4px;background:rgba(255,255,255,.06);border-radius:999px;margin-top:12px;overflow:hidden}
+.kri .barwrap i{display:block;height:100%;border-radius:999px}
 
-/* ── KPI ROW ─────────────────────────────────────────────────────────────── */
-.kpi-row{
-  display:grid;
-  grid-template-columns:repeat(auto-fit,minmax(180px,1fr));
-  gap:14px;
-}
-.kpi-card{
-  background:var(--surface);
-  border:1px solid var(--border);
-  border-radius:var(--radius-lg);
-  padding:18px 20px;
-  position:relative;overflow:hidden;
-  transition:border-color var(--transition),box-shadow var(--transition);
-  cursor:default;
-}
-.kpi-card:hover{border-color:var(--border-hi);box-shadow:0 0 24px rgba(0,212,255,.08)}
-.kpi-card::before{
-  content:'';position:absolute;top:0;left:0;right:0;height:2px;
-  border-radius:var(--radius-lg) var(--radius-lg) 0 0;
-}
-.kpi-card.red::before{background:linear-gradient(90deg,var(--red),transparent)}
-.kpi-card.amber::before{background:linear-gradient(90deg,var(--amber),transparent)}
-.kpi-card.green::before{background:linear-gradient(90deg,var(--green),transparent)}
-.kpi-card.blue::before{background:linear-gradient(90deg,var(--accent),transparent)}
+/* gauge in risk tile */
+.riskrow{display:flex;align-items:center;gap:14px}
+.gauge{width:74px;height:74px;flex:none}
 
-.kpi-label{font-size:11px;color:var(--text-muted);letter-spacing:.06em;text-transform:uppercase;margin-bottom:8px}
-.kpi-value{
-  font-family:var(--font-display);
-  font-size:40px;letter-spacing:.02em;
-  line-height:1;
-}
-.kpi-value.red{color:var(--red);text-shadow:0 0 28px rgba(255,59,92,.35)}
-.kpi-value.amber{color:var(--amber);text-shadow:0 0 28px rgba(255,176,32,.35)}
-.kpi-value.green{color:var(--green);text-shadow:0 0 28px rgba(0,230,118,.35)}
-.kpi-value.blue{color:var(--accent);text-shadow:0 0 28px var(--accent-glow)}
-.kpi-delta{
-  display:inline-flex;align-items:center;gap:3px;
-  font-size:11px;margin-top:6px;
-  padding:2px 8px;border-radius:99px;
-}
-.kpi-delta.up{background:var(--red-bg);color:var(--red)}
-.kpi-delta.down{background:var(--green-bg);color:var(--green)}
-.kpi-delta.flat{background:rgba(107,132,168,.12);color:var(--text-muted)}
-.kpi-sub{font-size:11px;color:var(--text-dim);margin-top:4px}
+/* ---------- main grid ---------- */
+.grid{display:grid;gap:14px}
+.g-map{grid-template-columns:1fr 340px}
+.g-3{grid-template-columns:1.3fr 1fr 1fr}
+.g-2{grid-template-columns:1fr 1fr}
 
-/* ── TWO-COL ROW ─────────────────────────────────────────────────────────── */
-.two-col{display:grid;grid-template-columns:1fr 1fr;gap:20px}
-.three-col{display:grid;grid-template-columns:1fr 1fr 1fr;gap:20px}
+/* map */
+#mapcard{padding:0;min-height:430px}
+.maphd{display:flex;align-items:center;justify-content:space-between;padding:18px 20px 10px}
+.mapwrap{position:relative;width:100%;height:430px}
+#map{width:100%;height:100%;display:block}
+.legend{position:absolute;left:20px;bottom:16px;display:flex;flex-direction:column;gap:6px;font-size:11px;color:var(--text-muted);background:rgba(4,7,11,.55);padding:10px 12px;border-radius:10px;border:1px solid var(--border);backdrop-filter:blur(4px)}
+.legend .scale{display:flex;align-items:center;gap:2px}
+.legend .scale i{width:22px;height:9px;display:block}
+.legend .row{display:flex;align-items:center;gap:7px}
+.legend .dot{width:9px;height:9px;border-radius:50%}
+.maptip{position:absolute;pointer-events:none;background:#04070B;border:1px solid var(--border-strong);border-radius:9px;padding:8px 11px;font-size:12px;opacity:0;transition:opacity .12s;z-index:6;max-width:200px}
+.maptip b{font-size:13px}
+.maptip .mt-c{font-variant-numeric:tabular-nums}
+.country{stroke:#1a222c;stroke-width:.4px;cursor:default;transition:fill .2s}
+.soc-label{font-size:11px;fill:var(--cyan);font-weight:600}
 
-@media(max-width:1100px){.three-col{grid-template-columns:1fr 1fr}}
-@media(max-width:780px){.two-col,.three-col{grid-template-columns:1fr}}
+/* origin ranked list */
+.origins{display:flex;flex-direction:column;gap:11px;padding-top:2px}
+.origin{display:grid;grid-template-columns:18px 1fr auto;align-items:center;gap:10px}
+.origin .rk{font-size:12px;color:var(--text-subtle);font-variant-numeric:tabular-nums;text-align:right}
+.origin .nm{font-size:13px;display:flex;align-items:center;gap:8px}
+.origin .nm .sd{width:7px;height:7px;border-radius:50%;flex:none}
+.origin .ct{font-size:13px;font-weight:600;font-variant-numeric:tabular-nums;text-align:right}
+.origin .obar{grid-column:2 / 4;height:4px;background:rgba(255,255,255,.06);border-radius:999px;overflow:hidden;margin-top:-4px}
+.origin .obar i{display:block;height:100%;border-radius:999px}
 
-/* ── PANEL BASE ──────────────────────────────────────────────────────────── */
-.panel{
-  background:var(--surface);
-  border:1px solid var(--border);
-  border-radius:var(--radius-lg);
-  overflow:hidden;
-}
-.panel-header{
-  display:flex;align-items:center;justify-content:space-between;
-  padding:14px 18px 10px;
-  border-bottom:1px solid var(--border);
-}
-.panel-title{
-  font-size:11px;letter-spacing:.14em;text-transform:uppercase;
-  color:var(--text-muted);
-}
-.panel-badge{
-  font-size:10px;letter-spacing:.1em;text-transform:uppercase;
-  padding:2px 8px;border-radius:99px;
-}
-.panel-badge.red{background:var(--red-bg);color:var(--red)}
-.panel-badge.amber{background:var(--amber-bg);color:var(--amber)}
-.panel-badge.green{background:var(--green-bg);color:var(--green)}
-.panel-body{padding:16px 18px}
+/* horizontal category bars */
+.hbars{display:flex;flex-direction:column;gap:10px}
+.hbar{display:grid;grid-template-columns:130px 1fr 42px;align-items:center;gap:10px;font-size:12.5px}
+.hbar .track{height:9px;background:rgba(255,255,255,.06);border-radius:999px;overflow:hidden}
+.hbar .track i{display:block;height:100%;border-radius:999px;background:var(--splunk-gradient)}
+.hbar .n{text-align:right;font-weight:600;font-variant-numeric:tabular-nums;color:var(--text-muted)}
 
-/* ── RISK SCORE DIAL ─────────────────────────────────────────────────────── */
-.dial-wrap{
-  display:flex;flex-direction:column;align-items:center;
-  padding:20px 18px;
+/* donut */
+.donutwrap{display:flex;align-items:center;gap:18px}
+.donut{width:150px;height:150px;flex:none;position:relative}
+.donut .center{position:absolute;inset:0;display:grid;place-items:center;text-align:center}
+.donut .center .big{font-size:26px;font-weight:700;line-height:1}
+.donut .center .sm{font-size:10.5px;color:var(--text-subtle);letter-spacing:.08em;text-transform:uppercase}
+.dlegend{display:flex;flex-direction:column;gap:9px;flex:1}
+.dlegend .dl{display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:12.5px}
+.dlegend .dl .l{display:flex;align-items:center;gap:8px}
+.dlegend .dl .sw{width:9px;height:9px;border-radius:3px}
+.dlegend .dl .v{font-weight:600;font-variant-numeric:tabular-nums}
+
+/* table */
+table{width:100%;border-collapse:collapse;font-size:12.5px}
+thead th{text-align:left;font-size:10.5px;letter-spacing:.07em;text-transform:uppercase;color:var(--text-subtle);font-weight:600;padding:0 10px 10px}
+tbody td{padding:9px 10px;border-top:1px solid var(--border);font-variant-numeric:tabular-nums}
+tbody tr:first-child td{animation:flash .8s ease}
+@keyframes flash{from{background:rgba(255,0,127,.12)}to{background:transparent}}
+.sevpill{display:inline-flex;align-items:center;gap:6px;font-weight:600;font-size:11.5px}
+.sevpill .d{width:7px;height:7px;border-radius:50%}
+.mono{font-family:ui-monospace,"SF Mono",Menlo,monospace;font-size:11.5px;color:var(--text-muted)}
+
+/* compliance */
+.frameworks{display:flex;flex-direction:column;gap:13px}
+.fw{font-size:12.5px}
+.fw .top{display:flex;justify-content:space-between;margin-bottom:6px}
+.fw .top .s{font-weight:600;font-variant-numeric:tabular-nums}
+.fw .track{height:8px;background:rgba(255,255,255,.06);border-radius:999px;position:relative;overflow:hidden}
+.fw .track i{display:block;height:100%;border-radius:999px}
+.fw .target{position:absolute;top:-2px;bottom:-2px;width:2px;background:var(--text);opacity:.55}
+
+/* SLA */
+.sla{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+.slacol{text-align:center}
+.slacol .rg{width:96px;height:96px;margin:0 auto}
+.slacol .pr{font-size:11px;color:var(--text-subtle);text-transform:uppercase;letter-spacing:.06em;margin-top:6px}
+.slacol .mt{font-size:12.5px;color:var(--text-muted);margin-top:3px}
+.slacol .mt b{color:var(--text);font-variant-numeric:tabular-nums}
+
+/* axis text for d3 */
+.axis text{fill:var(--text-subtle);font-size:10.5px}
+.axis line,.axis path{stroke:var(--border)}
+.gridline{stroke:rgba(255,255,255,.05)}
+
+.chartlegend{display:flex;gap:16px;flex-wrap:wrap;font-size:11.5px;color:var(--text-muted);margin-top:6px}
+.chartlegend span{display:inline-flex;align-items:center;gap:6px}
+.chartlegend i{width:11px;height:3px;border-radius:2px;display:block}
+
+footer{margin-top:32px;padding-top:18px;border-top:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;font-size:11.5px;color:var(--text-subtle)}
+footer .r{text-align:right}
+
+.note{font-size:12px;color:var(--text-muted);background:rgba(2,200,255,.06);border:1px solid rgba(2,200,255,.18);border-radius:12px;padding:12px 16px;margin-bottom:18px;display:flex;gap:10px;align-items:flex-start}
+.note b{color:var(--cyan)}
+
+@media(max-width:1240px){
+  .kris{grid-template-columns:repeat(3,1fr)}
+  .g-map,.g-3,.g-2{grid-template-columns:1fr}
 }
-.dial-svg{width:180px;height:100px;overflow:visible}
-.dial-label{font-size:11px;color:var(--text-muted);letter-spacing:.1em;text-transform:uppercase;margin-top:10px}
-.dial-score{font-family:var(--font-display);font-size:52px;color:var(--amber);text-shadow:0 0 32px rgba(255,176,32,.4);line-height:1}
-.dial-max{font-size:13px;color:var(--text-dim)}
-.dial-verdict{
-  margin-top:8px;font-size:11px;letter-spacing:.1em;text-transform:uppercase;
-  padding:3px 12px;border-radius:99px;
-  background:var(--amber-bg);color:var(--amber);
-}
-
-/* ── THREAT TABLE ────────────────────────────────────────────────────────── */
-.threat-table{width:100%;border-collapse:collapse}
-.threat-table th{
-  font-size:10px;letter-spacing:.12em;text-transform:uppercase;
-  color:var(--text-dim);padding:6px 10px;text-align:left;
-  border-bottom:1px solid var(--border);
-}
-.threat-table td{
-  padding:9px 10px;font-size:12px;
-  border-bottom:1px solid rgba(30,45,71,.6);
-  vertical-align:middle;
-}
-.threat-table tr:last-child td{border-bottom:none}
-.threat-table tr:hover td{background:var(--surface2)}
-
-.severity{
-  display:inline-flex;align-items:center;gap:5px;
-  font-size:10px;letter-spacing:.08em;text-transform:uppercase;
-  padding:2px 7px;border-radius:4px;white-space:nowrap;
-}
-.severity.critical{background:rgba(255,59,92,.15);color:var(--red)}
-.severity.high{background:rgba(255,120,50,.15);color:#ff7832}
-.severity.medium{background:var(--amber-bg);color:var(--amber)}
-.severity.low{background:var(--green-bg);color:var(--green)}
-
-.trend-spark{font-size:14px}
-
-/* ── BAR CHART ───────────────────────────────────────────────────────────── */
-.bar-chart{display:flex;flex-direction:column;gap:10px;padding:4px 0}
-.bar-row{display:flex;align-items:center;gap:10px}
-.bar-label{font-size:11px;color:var(--text-muted);width:130px;flex-shrink:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.bar-track{flex:1;height:8px;background:rgba(255,255,255,.05);border-radius:99px;overflow:hidden}
-.bar-fill{height:100%;border-radius:99px;transition:width 1.2s cubic-bezier(.4,0,.2,1)}
-.bar-val{font-size:11px;color:var(--text-muted);width:36px;text-align:right;flex-shrink:0}
-
-/* ── TIMELINE / EVENT LOG ────────────────────────────────────────────────── */
-.event-log{display:flex;flex-direction:column;gap:0}
-.event-item{
-  display:flex;align-items:flex-start;gap:12px;
-  padding:10px 0;
-  border-bottom:1px solid rgba(30,45,71,.5);
-}
-.event-item:last-child{border-bottom:none}
-.event-dot{
-  width:8px;height:8px;border-radius:50%;
-  flex-shrink:0;margin-top:4px;
-}
-.event-dot.critical{background:var(--red);box-shadow:0 0 8px rgba(255,59,92,.5)}
-.event-dot.high{background:#ff7832;box-shadow:0 0 8px rgba(255,120,50,.4)}
-.event-dot.medium{background:var(--amber)}
-.event-dot.info{background:var(--accent)}
-.event-time{font-size:10px;color:var(--text-dim);flex-shrink:0;width:56px;padding-top:2px}
-.event-text{font-size:12px;color:var(--text);line-height:1.4}
-.event-src{font-size:10px;color:var(--text-dim);margin-top:2px}
-
-/* ── COMPLIANCE METER ────────────────────────────────────────────────────── */
-.compliance-grid{
-  display:grid;
-  grid-template-columns:1fr 1fr;
-  gap:12px;
-  padding:4px 0;
-}
-.comp-item{
-  background:var(--surface2);
-  border:1px solid var(--border);
-  border-radius:var(--radius);
-  padding:12px 14px;
-}
-.comp-name{font-size:11px;color:var(--text-muted);letter-spacing:.06em;text-transform:uppercase;margin-bottom:8px}
-.comp-bar-track{height:6px;background:rgba(255,255,255,.06);border-radius:99px;overflow:hidden;margin-bottom:6px}
-.comp-bar-fill{height:100%;border-radius:99px}
-.comp-bar-fill.high{background:linear-gradient(90deg,var(--green),#00b359)}
-.comp-bar-fill.med{background:linear-gradient(90deg,var(--amber),#cc8a00)}
-.comp-bar-fill.low{background:linear-gradient(90deg,var(--red),#cc1f3b)}
-.comp-pct{font-family:var(--font-display);font-size:26px;line-height:1}
-.comp-pct.high{color:var(--green)}
-.comp-pct.med{color:var(--amber)}
-.comp-pct.low{color:var(--red)}
-
-/* ── GEO ATTACKS ─────────────────────────────────────────────────────────── */
-.geo-list{display:flex;flex-direction:column;gap:8px}
-.geo-row{display:flex;align-items:center;gap:10px}
-.geo-flag{font-size:18px;width:26px;text-align:center;flex-shrink:0}
-.geo-country{font-size:12px;color:var(--text);flex:1}
-.geo-count{font-size:12px;color:var(--text-muted);flex-shrink:0;width:42px;text-align:right}
-.geo-bar-track{flex:1;height:5px;background:rgba(255,255,255,.05);border-radius:99px;overflow:hidden}
-.geo-bar-fill{height:100%;background:linear-gradient(90deg,var(--accent2),var(--accent));border-radius:99px}
-
-/* ── VULN DONUT ──────────────────────────────────────────────────────────── */
-.donut-wrap{display:flex;align-items:center;gap:20px;padding:6px 0}
-.donut-svg{flex-shrink:0}
-.donut-legend{display:flex;flex-direction:column;gap:8px}
-.donut-item{display:flex;align-items:center;gap:8px}
-.donut-swatch{width:10px;height:10px;border-radius:3px;flex-shrink:0}
-.donut-item-label{font-size:11px;color:var(--text-muted)}
-.donut-item-val{font-size:13px;color:var(--text);font-weight:500;margin-left:auto;padding-left:12px}
-
-/* ── MTTR / SLA ──────────────────────────────────────────────────────────── */
-.sla-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
-.sla-card{
-  background:var(--surface2);
-  border:1px solid var(--border);
-  border-radius:var(--radius);
-  padding:12px;text-align:center;
-}
-.sla-val{font-family:var(--font-display);font-size:30px;line-height:1}
-.sla-unit{font-size:10px;color:var(--text-dim);letter-spacing:.1em;text-transform:uppercase}
-.sla-name{font-size:10px;color:var(--text-muted);margin-top:4px;letter-spacing:.06em;text-transform:uppercase}
-
-/* ── SPARKLINES (SVG inline) ─────────────────────────────────────────────── */
-.sparkline{overflow:visible}
-
-/* ── FOOTER ──────────────────────────────────────────────────────────────── */
-footer{
-  position:relative;z-index:1;
-  padding:14px 32px;
-  border-top:1px solid var(--border);
-  display:flex;align-items:center;justify-content:space-between;
-  font-size:11px;color:var(--text-dim);
-}
-
-/* ── SPLUNK PANEL WRAPPER (used when dropped into Splunk HTML panel) ──────── */
-.splunk-note{
-  background:rgba(0,212,255,.06);
-  border:1px solid rgba(0,212,255,.2);
-  border-radius:var(--radius);
-  padding:10px 16px;
-  font-size:11px;color:var(--accent);
-  letter-spacing:.04em;
-  margin-bottom:20px;
-}
-.splunk-note strong{font-weight:700}
-
-/* ── ANIMATIONS ──────────────────────────────────────────────────────────── */
-@keyframes fadeUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
-.kpi-card{animation:fadeUp .5s ease both}
-.kpi-card:nth-child(1){animation-delay:.05s}
-.kpi-card:nth-child(2){animation-delay:.10s}
-.kpi-card:nth-child(3){animation-delay:.15s}
-.kpi-card:nth-child(4){animation-delay:.20s}
-.kpi-card:nth-child(5){animation-delay:.25s}
-.kpi-card:nth-child(6){animation-delay:.30s}
-.panel{animation:fadeUp .5s ease both;animation-delay:.3s}
+@media(max-width:620px){.kris{grid-template-columns:repeat(2,1fr)}.wrap{padding:20px 16px 40px}}
 </style>
 </head>
 <body>
+<div class="glow g1"></div><div class="glow g2"></div><div class="glow g3"></div>
 
-<!-- ═══════════════════════════════════════════════════════════════════════ -->
-<!--  HEADER                                                                  -->
-<!-- ═══════════════════════════════════════════════════════════════════════ -->
-<header>
-  <div class="logo-group">
-    <div class="logo-icon">🛡</div>
-    <div class="logo-text">
-      <h1>CYBER RISK DASHBOARD</h1>
-      <span>Executive Intelligence View · Confidential</span>
+<div class="wrap">
+  <!-- HEADER -->
+  <header>
+    <div class="brand">
+      <div class="mark" title="Splunk · a Cisco company">
+        <svg viewBox="0 0 24 24" fill="none"><path d="M4 5l11 7-11 7V5z" fill="#fff"/><path d="M14 11h6v2h-6z" fill="#fff" opacity=".85"/></svg>
+      </div>
+      <div class="wordmark"><div class="w">splunk</div><div class="c">a Cisco company</div></div>
     </div>
-  </div>
-  <div class="header-meta">
-    <div class="live-badge"><span class="live-dot"></span>Live</div>
-    <div class="header-time" id="clock">--:-- --</div>
-  </div>
-</header>
-
-<!-- ═══════════════════════════════════════════════════════════════════════ -->
-<!--  MAIN                                                                    -->
-<!-- ═══════════════════════════════════════════════════════════════════════ -->
-<main>
-
-  <!-- Splunk deployment note -->
-  <div class="splunk-note">
-    <strong>📡 Splunk Integration:</strong>&nbsp; This dashboard is pre-wired for Splunk.
-    See the embedded XML block at the bottom of this file for Simple XML deployment,
-    or drop the <code>&lt;body&gt;</code> content into an HTML panel and bind
-    <code>$token$</code> variables to the JS data arrays below.
-  </div>
-
-  <!-- ── KPI ROW ─────────────────────────────────────────────────────── -->
-  <div>
-    <div class="section-label">Key Risk Indicators · Last 24 Hours</div>
-    <div class="kpi-row" id="kpiRow">
-
-      <div class="kpi-card red">
-        <div class="kpi-label">Critical Alerts</div>
-        <div class="kpi-value red" id="kpi-critical">47</div>
-        <div class="kpi-delta up" id="kpi-critical-delta">▲ +12 vs yesterday</div>
-      </div>
-
-      <div class="kpi-card amber">
-        <div class="kpi-label">High Alerts</div>
-        <div class="kpi-value amber" id="kpi-high">183</div>
-        <div class="kpi-delta up">▲ +28 vs yesterday</div>
-      </div>
-
-      <div class="kpi-card blue">
-        <div class="kpi-label">Total Events</div>
-        <div class="kpi-value blue" id="kpi-events">1.2M</div>
-        <div class="kpi-delta flat">— within baseline</div>
-      </div>
-
-      <div class="kpi-card amber">
-        <div class="kpi-label">Open Vulnerabilities</div>
-        <div class="kpi-value amber" id="kpi-vulns">312</div>
-        <div class="kpi-delta down">▼ –14 patched today</div>
-      </div>
-
-      <div class="kpi-card green">
-        <div class="kpi-label">Avg MTTR</div>
-        <div class="kpi-value green" id="kpi-mttr">3.2<span style="font-size:18px;color:var(--text-muted)">h</span></div>
-        <div class="kpi-delta down">▼ –0.4h vs last week</div>
-      </div>
-
-      <div class="kpi-card amber">
-        <div class="kpi-label">Risk Score</div>
-        <div class="kpi-value amber" id="kpi-risk">68</div>
-        <div class="kpi-sub">/ 100 · ELEVATED</div>
-      </div>
-
+    <div class="title-block">
+      <div class="eyebrow">Executive intelligence view · Confidential</div>
+      <h1>Cyber <span class="grad">risk</span> dashboard</h1>
+      <div class="sub">Enterprise security posture, external threat landscape, and response performance</div>
     </div>
+    <div class="head-right">
+      <div class="resources">
+        <a class="pill pill-link" href="#" id="dlXml" title="Open the Splunk Simple XML in a new tab">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l-6-6 6-6"/><path d="M15 6l6 6-6 6"/></svg>
+          Splunk XML
+        </a>
+        <a class="pill pill-link" href="#" id="dlDoc" title="Open the data sources reference in a new tab">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="M8 13h8M8 17h6"/></svg>
+          Data sources doc
+        </a>
+      </div>
+      <span class="pill"><span class="live-dot"></span> Live</span>
+      <span class="pill tf">Last 24 hours</span>
+      <span class="pill"><span class="clock" id="clock">--:--:--</span></span>
+    </div>
+  </header>
+
+  <div class="note" style="margin-top:18px">
+    <span>📡</span>
+    <div><b>Splunk-ready.</b> This demo renders sample SOC data. Use the links at the top right to open the companion <span style="color:var(--text)">Splunk XML</span> (paste into Splunk to bind every panel to live searches) and the <span style="color:var(--text)">data sources reference</span> covering required indexes, sourcetypes, and CIM fields &mdash; each opens in a new browser tab. The XML is also embedded as a comment at the bottom of this file.</div>
   </div>
 
-  <!-- ── ROW 2: Risk Dial + Threat Table ────────────────────────────── -->
-  <div class="two-col">
+  <!-- KRI STRIP -->
+  <div class="section-label">Key risk indicators</div>
+  <div class="kris" id="kris"></div>
 
-    <!-- Threat Activity by Category -->
-    <div class="panel">
-      <div class="panel-header">
-        <span class="panel-title">Top Threat Categories</span>
-        <span class="panel-badge amber">Elevated</span>
+  <!-- GLOBAL THREAT MAP -->
+  <div class="section-label">External threat landscape</div>
+  <div class="grid g-map">
+    <div class="card" id="mapcard">
+      <div class="maphd">
+        <h3 style="margin:0">Global attack origin <span class="tag ext">External</span></h3>
+        <span class="tf" style="font-size:12px" id="mapcount"></span>
       </div>
-      <div class="panel-body">
-        <div class="bar-chart" id="threatBars">
-          <!-- populated by JS -->
+      <div class="mapwrap">
+        <svg id="map" viewBox="0 0 960 430" preserveAspectRatio="xMidYMid meet"></svg>
+        <div class="legend">
+          <div class="scale">
+            <span style="margin-right:6px">Low</span>
+            <i style="background:#2a1530"></i><i style="background:#5e1745"></i><i style="background:#a31659"></i><i style="background:#e21072"></i><i style="background:#FF007F"></i>
+            <span style="margin-left:6px">High</span>
+          </div>
+          <div class="row"><span class="dot" style="background:var(--cyan)"></span> Defended SOC node</div>
+          <div class="row"><span style="width:14px;height:2px;background:linear-gradient(90deg,#FF007F,#FF9000);display:block"></span> Live attack vector</div>
         </div>
+        <div class="maptip" id="maptip"></div>
       </div>
     </div>
-
-    <!-- Recent Critical Events -->
-    <div class="panel">
-      <div class="panel-header">
-        <span class="panel-title">Critical Event Log</span>
-        <span class="panel-badge red">Live</span>
-      </div>
-      <div class="panel-body">
-        <div class="event-log" id="eventLog">
-          <!-- populated by JS -->
-        </div>
-      </div>
+    <div class="card">
+      <h3>Top attack origins <span class="tag crit">24h</span></h3>
+      <div class="origins" id="origins"></div>
     </div>
-
   </div>
 
-  <!-- ── ROW 3: Vuln Breakdown + Geo + Compliance ────────────────────── -->
-  <div class="three-col">
-
-    <!-- Vulnerability Breakdown donut -->
-    <div class="panel">
-      <div class="panel-header">
-        <span class="panel-title">Vulnerability Breakdown</span>
-        <span class="panel-badge red">312 Open</span>
-      </div>
-      <div class="panel-body">
-        <div class="donut-wrap">
-          <svg class="donut-svg" width="110" height="110" viewBox="0 0 110 110">
-            <!-- donut rings drawn by JS -->
-            <g id="donutArcs"></g>
-            <text x="55" y="52" text-anchor="middle" font-family="'Bebas Neue',sans-serif" font-size="22" fill="#ff3b5c">312</text>
-            <text x="55" y="65" text-anchor="middle" font-family="'DM Sans',sans-serif" font-size="9" fill="#6b84a8" letter-spacing="1">OPEN</text>
-          </svg>
-          <div class="donut-legend" id="donutLegend"></div>
-        </div>
+  <!-- THREAT CATS + TREND + DONUT -->
+  <div class="grid g-3" style="margin-top:14px">
+    <div class="card">
+      <h3>Top threat categories <span class="tag warn">Elevated</span></h3>
+      <div class="hbars" id="cats"></div>
+    </div>
+    <div class="card">
+      <h3>24-hour alert volume <span class="tag crit">Anomaly 02:00</span></h3>
+      <svg id="volume" viewBox="0 0 460 240" preserveAspectRatio="none" style="width:100%;height:200px"></svg>
+      <div class="chartlegend" id="vol-legend"></div>
+    </div>
+    <div class="card">
+      <h3>Open vulnerabilities <span class="tag warn">312 open</span></h3>
+      <div class="donutwrap">
+        <div class="donut"><svg viewBox="0 0 150 150" id="donut"></svg><div class="center"><div class="big">312</div><div class="sm">Open</div></div></div>
+        <div class="dlegend" id="vuln-legend"></div>
       </div>
     </div>
-
-    <!-- Attack Origin Geography -->
-    <div class="panel">
-      <div class="panel-header">
-        <span class="panel-title">Attack Origin — Top Countries</span>
-        <span class="panel-badge red">External</span>
-      </div>
-      <div class="panel-body">
-        <div class="geo-list" id="geoList"></div>
-      </div>
-    </div>
-
-    <!-- Compliance Posture -->
-    <div class="panel">
-      <div class="panel-header">
-        <span class="panel-title">Compliance Posture</span>
-        <span class="panel-badge amber">Review Due</span>
-      </div>
-      <div class="panel-body">
-        <div class="compliance-grid" id="complianceGrid"></div>
-      </div>
-    </div>
-
   </div>
 
-  <!-- ── ROW 4: MTTR / SLA + Attack Timeline sparkline ─────────────── -->
-  <div class="two-col">
-
-    <!-- MTTR / SLA -->
-    <div class="panel">
-      <div class="panel-header">
-        <span class="panel-title">Response SLA Performance</span>
-        <span class="panel-badge green">Within Target</span>
-      </div>
-      <div class="panel-body">
-        <div class="sla-grid">
-          <div class="sla-card">
-            <div class="sla-val green" style="color:var(--green)">1.8<span style="font-size:16px">h</span></div>
-            <div class="sla-unit">MTTR P1</div>
-            <div class="sla-name">Critical</div>
-          </div>
-          <div class="sla-card">
-            <div class="sla-val" style="color:var(--amber)">6.4<span style="font-size:16px">h</span></div>
-            <div class="sla-unit">MTTR P2</div>
-            <div class="sla-name">High</div>
-          </div>
-          <div class="sla-card">
-            <div class="sla-val" style="color:var(--accent)">28<span style="font-size:16px">h</span></div>
-            <div class="sla-unit">MTTR P3</div>
-            <div class="sla-name">Medium</div>
-          </div>
-          <div class="sla-card">
-            <div class="sla-val" style="color:var(--green)">98<span style="font-size:16px">%</span></div>
-            <div class="sla-unit">SLA MET</div>
-            <div class="sla-name">Critical</div>
-          </div>
-          <div class="sla-card">
-            <div class="sla-val" style="color:var(--amber)">91<span style="font-size:16px">%</span></div>
-            <div class="sla-unit">SLA MET</div>
-            <div class="sla-name">High</div>
-          </div>
-          <div class="sla-card">
-            <div class="sla-val" style="color:var(--accent)">84<span style="font-size:16px">%</span></div>
-            <div class="sla-unit">SLA MET</div>
-            <div class="sla-name">Medium</div>
-          </div>
-        </div>
-      </div>
+  <!-- EVENT LOG + COMPLIANCE -->
+  <div class="grid g-2" style="margin-top:14px">
+    <div class="card">
+      <h3>Critical event log <span class="tag crit">Live</span></h3>
+      <table>
+        <thead><tr><th>Time</th><th>Event</th><th>Source IP</th><th>Origin</th><th>Severity</th></tr></thead>
+        <tbody id="events"></tbody>
+      </table>
     </div>
-
-    <!-- 24h Alert Volume Sparkline -->
-    <div class="panel">
-      <div class="panel-header">
-        <span class="panel-title">24-Hour Alert Volume Trend</span>
-        <span class="panel-badge amber">Anomaly detected</span>
-      </div>
-      <div class="panel-body" style="padding-top:8px">
-        <svg id="sparkSVG" width="100%" height="130" viewBox="0 0 560 130" preserveAspectRatio="none" style="display:block"></svg>
-        <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--text-dim);margin-top:6px">
-          <span>00:00</span><span>06:00</span><span>12:00</span><span>18:00</span><span>Now</span>
-        </div>
-      </div>
+    <div class="card">
+      <h3>Compliance posture <span class="tag info">Review due</span></h3>
+      <div class="frameworks" id="frameworks"></div>
     </div>
-
   </div>
 
-</main>
+  <!-- SLA + MTTR TREND -->
+  <div class="grid g-2" style="margin-top:14px">
+    <div class="card">
+      <h3>Response SLA performance <span class="tag ok">Within target</span></h3>
+      <div class="sla" id="sla"></div>
+    </div>
+    <div class="card">
+      <h3>MTTR trend — 30 days <span class="tag ok">Improving</span></h3>
+      <svg id="mttr" viewBox="0 0 460 230" preserveAspectRatio="none" style="width:100%;height:200px"></svg>
+      <div class="chartlegend" id="mttr-legend"></div>
+    </div>
+  </div>
 
-<!-- ═══════════════════════════════════════════════════════════════════════ -->
-<!--  FOOTER                                                                  -->
-<!-- ═══════════════════════════════════════════════════════════════════════ -->
-<footer>
-  <span>Executive Cyber Risk Dashboard · Generated by Security Operations</span>
-  <span id="footerDate">--</span>
-</footer>
+  <footer>
+    <span>Splunk · a Cisco company &nbsp;·&nbsp; Generated by Security Operations</span>
+    <span class="r">© 2026 Cisco and/or its affiliates. All rights reserved.<br>Cisco Confidential · Demo data</span>
+  </footer>
+</div>
 
-
-<!-- ═══════════════════════════════════════════════════════════════════════ -->
-<!--  JAVASCRIPT DATA + RENDER                                                 -->
-<!--                                                                           -->
-<!--  ► In Splunk HTML panels, replace the static arrays below with           -->
-<!--    $token$ values injected from your SPL searches, e.g.:                 -->
-<!--    var criticalCount = $alertCount$;                                      -->
-<!--    var threatData = $js:threatData$;                                      -->
-<!-- ═══════════════════════════════════════════════════════════════════════ -->
 <script>
-/* ── STATIC DATA (replace with Splunk tokens in production) ───────────── */
+/* ============================================================
+   SAMPLE SOC DATA  (replace with Splunk $token$ bindings)
+   ============================================================ */
+const SEV = {critical:'#FF2D55', high:'#FF7A1A', medium:'#FFB020', low:'#00E676', info:'#02C8FF'};
 
-// ── Threat category bars
-// SPL: index=security sourcetype=alert | stats count by category | sort -count | head 7
-const threatData = [
-  { label:"Malware / Ransomware",  val:234, color:"#ff3b5c" },
-  { label:"Phishing / BEC",        val:189, color:"#ff7832" },
-  { label:"Brute Force",           val:142, color:"#ffb020" },
-  { label:"Data Exfiltration",     val: 97, color:"#e040fb" },
-  { label:"Lateral Movement",      val: 71, color:"#0062ff" },
-  { label:"Privilege Escalation",  val: 58, color:"#00d4ff" },
-  { label:"DDoS / Flood",          val: 34, color:"#00e676" },
+const KRIS = [
+  {lab:'Risk score', val:68, unit:'/100', tag:'ELEVATED', delta:'+6 vs last week', dir:'up', risk:true},
+  {lab:'Critical alerts', val:47, delta:'+12 vs yesterday', dir:'up', accent:true, bar:.47, barc:SEV.critical},
+  {lab:'High alerts', val:183, delta:'+28 vs yesterday', dir:'up', bar:.62, barc:SEV.high},
+  {lab:'Total events', val:'1.2M', delta:'within baseline', dir:'flat', bar:.5, barc:'#02C8FF'},
+  {lab:'Open vulnerabilities', val:312, delta:'–14 patched today', dir:'down', bar:.55, barc:SEV.medium},
+  {lab:'Avg MTTR', val:'3.2', unit:'h', delta:'–0.4h vs last week', dir:'down', bar:.32, barc:SEV.low},
 ];
 
-// ── Critical event log
-// SPL: index=security severity=critical | sort -_time | head 8 | table _time, event_title, src_ip, category
-const events = [
-  { time:"14:32", sev:"critical", text:"Ransomware signature detected on WKSTN-042",  src:"EDR · 10.1.4.42" },
-  { time:"14:19", sev:"critical", text:"Credential stuffing attack — 2,400 attempts",  src:"IDP · auth.corp" },
-  { time:"13:58", sev:"high",     text:"Outbound DNS tunneling — potential exfil",     src:"DNS Proxy" },
-  { time:"13:44", sev:"high",     text:"Admin account login from TOR exit node",       src:"SIEM · IAM" },
-  { time:"13:31", sev:"critical", text:"PII data query outside business hours",        src:"DLP · DB-PROD-01" },
-  { time:"12:55", sev:"medium",   text:"Failed MFA spike — 140 attempts in 5 min",    src:"Azure AD" },
-  { time:"12:22", sev:"high",     text:"Lateral movement detected via SMB relay",     src:"NDR · Segment C" },
-  { time:"11:47", sev:"info",     text:"Patch cycle completed — 47 CVEs remediated",  src:"Vuln Mgmt" },
+/* country: [lon, lat], numeric ISO id (matches world-atlas), count, severity */
+const ORIGINS = [
+  {c:'China',        id:156, lon:104.2, lat:35.9, n:3820, s:'critical'},
+  {c:'Russia',       id:643, lon:99.3,  lat:61.5, n:2970, s:'critical'},
+  {c:'North Korea',  id:408, lon:127.5, lat:40.3, n:1240, s:'critical'},
+  {c:'Iran',         id:364, lon:53.7,  lat:32.4, n:1110, s:'high'},
+  {c:'Brazil',       id:76,  lon:-51.9, lat:-10.2,n:880,  s:'high'},
+  {c:'Nigeria',      id:566, lon:8.7,   lat:9.1,  n:640,  s:'high'},
+  {c:'Vietnam',      id:704, lon:108.3, lat:14.1, n:560,  s:'medium'},
+  {c:'India',        id:356, lon:78.9,  lat:22.6, n:520,  s:'medium'},
+  {c:'Ukraine',      id:804, lon:31.2,  lat:48.4, n:430,  s:'medium'},
+  {c:'Romania',      id:642, lon:25.0,  lat:45.9, n:310,  s:'medium'},
+];
+const SOC = {c:'SOC · HQ', lon:-95.7, lat:38.5}; // central US operations node
+const ID2NAME = Object.fromEntries(ORIGINS.map(o=>[o.id,o.c]));
+const ID2DATA = Object.fromEntries(ORIGINS.map(o=>[o.id,o]));
+const TOTAL_EXT = ORIGINS.reduce((a,o)=>a+o.n,0);
+
+const CATS = [
+  {c:'Malware / trojan', n:412}, {c:'Phishing', n:367}, {c:'Brute force', n:298},
+  {c:'C2 beaconing', n:241}, {c:'Data exfiltration', n:188}, {c:'Recon / scanning', n:163},
+  {c:'Web app attack', n:142}, {c:'Ransomware', n:97},
 ];
 
-// ── Vulnerability donut
-// SPL: index=vuln_scan | stats count by severity | sort severity
-const vulnData = [
-  { label:"Critical", val: 28, color:"#ff3b5c" },
-  { label:"High",     val: 94, color:"#ff7832" },
-  { label:"Medium",   val:143, color:"#ffb020" },
-  { label:"Low",      val: 47, color:"#00e676" },
+const VULN = [
+  {l:'Critical', n:38, c:SEV.critical}, {l:'High', n:104, c:SEV.high},
+  {l:'Medium', n:121, c:SEV.medium}, {l:'Low', n:49, c:SEV.low},
 ];
 
-// ── Geo attacks
-// SPL: index=security | iplocation src_ip | stats count by Country | sort -count | head 6
-const geoData = [
-  { flag:"🇷🇺", country:"Russia",        count:3847, max:3847 },
-  { flag:"🇨🇳", country:"China",         count:2914, max:3847 },
-  { flag:"🇰🇵", country:"North Korea",   count:1203, max:3847 },
-  { flag:"🇧🇷", country:"Brazil",        count: 876, max:3847 },
-  { flag:"🇮🇷", country:"Iran",          count: 641, max:3847 },
-  { flag:"🇳🇬", country:"Nigeria",       count: 428, max:3847 },
+const FRAMEWORKS = [
+  {f:'NIST CSF 2.0', s:88, t:90}, {f:'ISO 27001', s:84, t:90},
+  {f:'PCI DSS 4.0', s:79, t:95}, {f:'SOC 2 Type II', s:92, t:90},
+  {f:'CIS Controls v8', s:81, t:85},
 ];
 
-// ── Compliance
-// SPL: index=compliance | stats avg(score) by framework
-const complianceData = [
-  { name:"NIST CSF",  pct:82, tier:"high" },
-  { name:"ISO 27001", pct:74, tier:"high" },
-  { name:"PCI DSS",   pct:67, tier:"med"  },
-  { name:"SOC 2",     pct:89, tier:"high" },
-  { name:"GDPR",      pct:58, tier:"med"  },
-  { name:"HIPAA",     pct:44, tier:"low"  },
+const SLA = [
+  {pr:'P1 · Critical', met:98, mttr:'1.8h', c:SEV.critical},
+  {pr:'P2 · High', met:91, mttr:'6.4h', c:SEV.high},
+  {pr:'P3 · Medium', met:84, mttr:'28h', c:SEV.medium},
 ];
 
-// ── 24h sparkline data (hourly buckets, 0-23)
-// SPL: index=security | timechart span=1h count
-const sparkData = [
-  420,380,310,295,270,340,480,620,810,940,1020,980,
-  1100,1240,1180,1050,1320,1480,1580,1420,1350,1290,1180,1050
+const EVENT_POOL = [
+  ['Credential stuffing burst','185.220.','China','critical'],
+  ['Ransomware canary triggered','45.137.','Russia','critical'],
+  ['C2 beacon to known APT','175.45.','North Korea','critical'],
+  ['SQL injection attempt','91.243.','Iran','high'],
+  ['Privilege escalation detected','177.54.','Brazil','high'],
+  ['Mass port scan','105.112.','Nigeria','high'],
+  ['Suspicious data egress 4.2GB','14.241.','Vietnam','medium'],
+  ['Impossible travel login','103.27.','India','medium'],
+  ['Phishing payload blocked','31.43.','Ukraine','high'],
+  ['Malware C2 DNS tunnel','89.40.','Romania','medium'],
 ];
 
-/* ── RENDER: Threat Bars ─────────────────────────────────────────────── */
-const maxThreat = Math.max(...threatData.map(d=>d.val));
-const barsEl = document.getElementById("threatBars");
-threatData.forEach(d=>{
-  const pct = Math.round((d.val/maxThreat)*100);
-  barsEl.innerHTML+=`
-    <div class="bar-row">
-      <div class="bar-label">${d.label}</div>
-      <div class="bar-track"><div class="bar-fill" style="width:${pct}%;background:${d.color}"></div></div>
-      <div class="bar-val">${d.val}</div>
-    </div>`;
-});
-
-/* ── RENDER: Event Log ───────────────────────────────────────────────── */
-const logEl = document.getElementById("eventLog");
-events.forEach(e=>{
-  logEl.innerHTML+=`
-    <div class="event-item">
-      <div class="event-dot ${e.sev}"></div>
-      <div class="event-time">${e.time}</div>
-      <div>
-        <div class="event-text">${e.text}</div>
-        <div class="event-src">${e.src}</div>
-      </div>
-    </div>`;
-});
-
-/* ── RENDER: Donut Chart ─────────────────────────────────────────────── */
-(function(){
-  const total = vulnData.reduce((s,d)=>s+d.val,0);
-  const r=44, cx=55, cy=55, stroke=12;
-  const circ=2*Math.PI*r;
-  let offset=0;
-  const arcsEl=document.getElementById("donutArcs");
-  const legEl=document.getElementById("donutLegend");
-  vulnData.forEach(d=>{
-    const dash=(d.val/total)*circ;
-    const gap=circ-dash;
-    arcsEl.innerHTML+=`<circle cx="${cx}" cy="${cy}" r="${r}"
-      fill="none" stroke="${d.color}" stroke-width="${stroke}"
-      stroke-dasharray="${dash} ${gap}"
-      stroke-dashoffset="${-offset}"
-      transform="rotate(-90 ${cx} ${cy})"/>`;
-    offset+=dash;
-    legEl.innerHTML+=`
-      <div class="donut-item">
-        <div class="donut-swatch" style="background:${d.color}"></div>
-        <span class="donut-item-label">${d.label}</span>
-        <span class="donut-item-val">${d.val}</span>
-      </div>`;
-  });
-})();
-
-/* ── RENDER: Geo List ────────────────────────────────────────────────── */
-const geoEl=document.getElementById("geoList");
-geoData.forEach(d=>{
-  const pct=Math.round((d.count/d.max)*100);
-  geoEl.innerHTML+=`
-    <div class="geo-row">
-      <div class="geo-flag">${d.flag}</div>
-      <div class="geo-country">${d.country}</div>
-      <div class="geo-bar-track"><div class="geo-bar-fill" style="width:${pct}%"></div></div>
-      <div class="geo-count">${d.count.toLocaleString()}</div>
-    </div>`;
-});
-
-/* ── RENDER: Compliance Grid ─────────────────────────────────────────── */
-const compEl=document.getElementById("complianceGrid");
-complianceData.forEach(d=>{
-  compEl.innerHTML+=`
-    <div class="comp-item">
-      <div class="comp-name">${d.name}</div>
-      <div class="comp-bar-track"><div class="comp-bar-fill ${d.tier}" style="width:${d.pct}%"></div></div>
-      <div class="comp-pct ${d.tier}">${d.pct}<span style="font-size:14px;opacity:.6">%</span></div>
-    </div>`;
-});
-
-/* ── RENDER: 24h Sparkline ───────────────────────────────────────────── */
-(function(){
-  const svg=document.getElementById("sparkSVG");
-  const W=560,H=130,pad=4;
-  const max=Math.max(...sparkData),min=Math.min(...sparkData);
-  const xs=sparkData.map((_,i)=>pad+(i/(sparkData.length-1))*(W-2*pad));
-  const ys=sparkData.map(v=>H-pad-(((v-min)/(max-min))*(H-2*pad)));
-
-  // gradient fill
-  svg.innerHTML=`
-    <defs>
-      <linearGradient id="sg" x1="0" y1="0" x2="0" y2="1">
-        <stop offset="0%" stop-color="#00d4ff" stop-opacity=".22"/>
-        <stop offset="100%" stop-color="#00d4ff" stop-opacity="0"/>
-      </linearGradient>
-    </defs>`;
-
-  const area="M"+xs.map((x,i)=>`${x},${ys[i]}`).join("L")+`L${xs[xs.length-1]},${H} L${xs[0]},${H} Z`;
-  const line="M"+xs.map((x,i)=>`${x},${ys[i]}`).join("L");
-
-  svg.innerHTML+=`<path d="${area}" fill="url(#sg)"/>`;
-  svg.innerHTML+=`<path d="${line}" fill="none" stroke="#00d4ff" stroke-width="2" stroke-linejoin="round"/>`;
-
-  // anomaly marker at spike
-  const peakIdx=sparkData.indexOf(max);
-  svg.innerHTML+=`
-    <circle cx="${xs[peakIdx]}" cy="${ys[peakIdx]}" r="5" fill="#ff3b5c" stroke="#080c12" stroke-width="2"/>
-    <text x="${xs[peakIdx]+8}" y="${ys[peakIdx]+4}" font-family="DM Sans,sans-serif" font-size="10" fill="#ff3b5c">peak</text>`;
-})();
-
-/* ── Clock ───────────────────────────────────────────────────────────── */
-function updateClock(){
-  const now=new Date();
-  document.getElementById("clock").textContent=now.toLocaleTimeString("en-US",{hour:"2-digit",minute:"2-digit",second:"2-digit"});
-  document.getElementById("footerDate").textContent=
-    "Last updated: "+now.toLocaleString("en-US",{dateStyle:"medium",timeStyle:"short"});
+/* ============================================================
+   RENDER: KRIs
+   ============================================================ */
+function gauge(score){
+  const r=30, cx=37, cy=37, circ=2*Math.PI*r;
+  const frac=score/100;
+  const col = score>=75?SEV.critical:score>=50?SEV.high:score>=25?SEV.medium:SEV.low;
+  return `<svg class="gauge" viewBox="0 0 74 74">
+    <circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="rgba(255,255,255,.08)" stroke-width="7"/>
+    <circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="${col}" stroke-width="7"
+      stroke-linecap="round" stroke-dasharray="${circ}" stroke-dashoffset="${circ*(1-frac)}"
+      transform="rotate(-90 ${cx} ${cy})"/>
+    <text x="${cx}" y="${cy+2}" text-anchor="middle" font-size="20" font-weight="700" fill="#F2F5FA">${score}</text>
+    <text x="${cx}" y="${cy+13}" text-anchor="middle" font-size="8" fill="#6E7682">/100</text>
+  </svg>`;
 }
-updateClock();
-setInterval(updateClock,1000);
-</script>
+function arrow(dir){return dir==='up'?'▲':dir==='down'?'▼':'—';}
+const krisEl=document.getElementById('kris');
+KRIS.forEach(k=>{
+  const d=document.createElement('div');
+  d.className='card kri'+(k.accent?' accent-crit':'');
+  if(k.risk){
+    d.innerHTML=`<div class="lab">${k.lab}</div><div class="riskrow">${gauge(k.val)}
+      <div><div style="font-size:11px;font-weight:600;letter-spacing:.06em;color:${k.val>=50?'#FF7A1A':'#00E676'}">${k.tag}</div>
+      <div class="delta ${k.dir}">${arrow(k.dir)} ${k.delta}</div></div></div>`;
+  } else {
+    d.innerHTML=`<div class="lab">${k.lab}</div>
+      <div class="val">${k.val}${k.unit?`<span class="unit">${k.unit}</span>`:''}</div>
+      <div class="delta ${k.dir}">${arrow(k.dir)} ${k.delta}</div>
+      <div class="barwrap"><i style="width:${k.bar*100}%;background:${k.barc}"></i></div>`;
+  }
+  krisEl.appendChild(d);
+});
 
+/* ============================================================
+   RENDER: ORIGIN LIST
+   ============================================================ */
+const maxN=Math.max(...ORIGINS.map(o=>o.n));
+const origEl=document.getElementById('origins');
+ORIGINS.forEach((o,i)=>{
+  const row=document.createElement('div');row.className='origin';
+  row.innerHTML=`<div class="rk">${i+1}</div>
+    <div class="nm"><span class="sd" style="background:${SEV[o.s]}"></span>${o.c}</div>
+    <div class="ct">${o.n.toLocaleString()}</div>
+    <div class="obar"><i style="width:${o.n/maxN*100}%;background:${SEV[o.s]}"></i></div>`;
+  origEl.appendChild(row);
+});
+document.getElementById('mapcount').textContent=TOTAL_EXT.toLocaleString()+' external events · 142 countries observed';
+
+/* ============================================================
+   RENDER: WORLD THREAT MAP (D3 + world-atlas)
+   ============================================================ */
+const W=960,H=430;
+const svgMap=d3.select('#map');
+const proj=d3.geoNaturalEarth1().scale(180).translate([W/2,H/2+18]);
+const path=d3.geoPath(proj);
+const tip=document.getElementById('maptip');
+
+// magenta intensity scale
+const cScale=d3.scaleLog().domain([1,maxN]).range([0,1]).clamp(true);
+const rampColor=d3.interpolateRgbBasis(['#161b22','#2a1530','#5e1745','#a31659','#e21072','#FF007F']);
+
+d3.json('https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json').then(world=>{
+  const countries=topojson.feature(world,world.objects.countries).features;
+  const gWorld=svgMap.append('g');
+
+  gWorld.selectAll('path.country').data(countries).enter().append('path')
+    .attr('class','country').attr('d',path)
+    .attr('fill',d=>{const dt=ID2DATA[+d.id];return dt?rampColor(cScale(dt.n)):'#141a22';})
+    .on('mousemove',function(ev,d){
+      const dt=ID2DATA[+d.id];
+      const nm=ID2NAME[+d.id]||d.properties?.name||'Region';
+      tip.style.opacity=1;
+      tip.style.left=Math.min(ev.offsetX+14, W- 0)+'px';
+      tip.style.top=(ev.offsetY+14)+'px';
+      tip.innerHTML= dt
+        ? `<b>${nm}</b><br><span class="mt-c" style="color:${SEV[dt.s]}">${dt.n.toLocaleString()} attacks</span> · ${dt.s}`
+        : `<b>${nm}</b><br><span style="color:#6E7682">No external threats detected</span>`;
+      d3.select(this).attr('stroke','#FF007F').attr('stroke-width',1);
+    })
+    .on('mouseleave',function(){tip.style.opacity=0;d3.select(this).attr('stroke','#1a222c').attr('stroke-width',.4);});
+
+  // attack arcs + SOC node
+  const gArc=svgMap.append('g');
+  const [sx,sy]=proj([SOC.lon,SOC.lat]);
+  ORIGINS.forEach((o,i)=>{
+    const [ox,oy]=proj([o.lon,o.lat]);
+    const mx=(ox+sx)/2, my=(oy+sy)/2 - Math.hypot(ox-sx,oy-sy)*0.32;
+    const dPath=`M${ox},${oy} Q${mx},${my} ${sx},${sy}`;
+    const id='arc'+i;
+    gArc.append('path').attr('id',id).attr('d',dPath).attr('fill','none')
+      .attr('stroke',SEV[o.s]).attr('stroke-width',.9).attr('opacity',.28)
+      .attr('stroke-dasharray','3 5');
+    // origin node
+    svgMap.append('circle').attr('cx',ox).attr('cy',oy).attr('r',2.6).attr('fill',SEV[o.s]).attr('opacity',.9);
+    // traveling pulse
+    const dur=2.6 + (i%4)*0.7;
+    const pulse=gArc.append('circle').attr('r',2.4).attr('fill',SEV[o.s]);
+    pulse.append('animateMotion').attr('dur',dur+'s').attr('repeatCount','indefinite')
+      .attr('begin',(i*0.35)+'s').attr('path',dPath);
+    const halo=gArc.append('circle').attr('r',4.5).attr('fill','none').attr('stroke',SEV[o.s]).attr('opacity',.4);
+    halo.append('animateMotion').attr('dur',dur+'s').attr('repeatCount','indefinite')
+      .attr('begin',(i*0.35)+'s').attr('path',dPath);
+  });
+
+  // SOC node (drawn last, on top)
+  const socG=svgMap.append('g');
+  socG.append('circle').attr('cx',sx).attr('cy',sy).attr('r',6).attr('fill','none')
+    .attr('stroke','#02C8FF').attr('stroke-width',1.4)
+    .append('animate').attr('attributeName','r').attr('values','6;16;6').attr('dur','2.4s').attr('repeatCount','indefinite');
+  socG.select('circle').clone(true);
+  socG.append('circle').attr('cx',sx).attr('cy',sy).attr('r',4).attr('fill','#02C8FF');
+  socG.append('text').attr('x',sx+10).attr('y',sy+4).attr('class','soc-label').text('SOC · HQ');
+}).catch(()=>{
+  svgMap.append('text').attr('x',W/2).attr('y',H/2).attr('text-anchor','middle')
+    .attr('fill','#6E7682').attr('font-size','13')
+    .text('World map unavailable offline — see ranked origins panel →');
+});
+
+/* ============================================================
+   RENDER: CATEGORY BARS
+   ============================================================ */
+const maxCat=Math.max(...CATS.map(c=>c.n));
+const catsEl=document.getElementById('cats');
+CATS.forEach(c=>{
+  const r=document.createElement('div');r.className='hbar';
+  r.innerHTML=`<span>${c.c}</span><div class="track"><i style="width:${c.n/maxCat*100}%"></i></div><span class="n">${c.n}</span>`;
+  catsEl.appendChild(r);
+});
+
+/* ============================================================
+   RENDER: 24H VOLUME (stacked area)
+   ============================================================ */
+(function(){
+  const hours=24, sevs=['critical','high','medium','low'];
+  const data=d3.range(hours).map(h=>{
+    const base=1+Math.sin(h/3)*0.5;
+    const spike=(h>=2&&h<=4)?(h===3?2.4:1.6):1;
+    return {h, critical:Math.round((3+Math.random()*4)*spike), high:Math.round((10+Math.random()*12)*base*spike),
+      medium:Math.round((18+Math.random()*15)*base), low:Math.round((22+Math.random()*16)*base)};
+  });
+  const m={t:14,r:8,b:22,l:28}, w=460-m.l-m.r, hh=240-m.t-m.b;
+  const svg=d3.select('#volume').append('g').attr('transform',`translate(${m.l},${m.t})`);
+  const x=d3.scaleLinear().domain([0,23]).range([0,w]);
+  const stack=d3.stack().keys(sevs)(data);
+  const y=d3.scaleLinear().domain([0,d3.max(stack[stack.length-1],d=>d[1])]).nice().range([hh,0]);
+  const area=d3.area().x(d=>x(d.data.h)).y0(d=>y(d[0])).y1(d=>y(d[1])).curve(d3.curveBasis);
+  d3.select('#volume').attr('viewBox',`0 0 460 240`);
+  svg.selectAll('path').data(stack).enter().append('path')
+    .attr('d',area).attr('fill',d=>SEV[d.key]).attr('opacity',.78);
+  // axes
+  const xa=d3.axisBottom(x).ticks(5).tickFormat(d=>String(d).padStart(2,'0')+':00').tickSize(0).tickPadding(8);
+  svg.append('g').attr('class','axis').attr('transform',`translate(0,${hh})`).call(xa).select('.domain').remove();
+  svg.append('g').attr('class','axis').call(d3.axisLeft(y).ticks(4).tickSize(-w)).select('.domain').remove();
+  svg.selectAll('.axis line').attr('class','gridline');
+  const leg=document.getElementById('vol-legend');
+  sevs.forEach(s=>leg.insertAdjacentHTML('beforeend',`<span><i style="background:${SEV[s]}"></i>${s}</span>`));
+})();
+
+/* ============================================================
+   RENDER: VULN DONUT
+   ============================================================ */
+(function(){
+  const total=VULN.reduce((a,v)=>a+v.n,0);
+  const arc=d3.arc().innerRadius(48).outerRadius(70).padAngle(.03).cornerRadius(2);
+  const pie=d3.pie().value(d=>d.n).sort(null)(VULN);
+  const g=d3.select('#donut').append('g').attr('transform','translate(75,75)');
+  g.selectAll('path').data(pie).enter().append('path').attr('d',arc).attr('fill',d=>d.data.c);
+  const leg=document.getElementById('vuln-legend');
+  VULN.forEach(v=>leg.insertAdjacentHTML('beforeend',
+    `<div class="dl"><span class="l"><span class="sw" style="background:${v.c}"></span>${v.l}</span><span class="v">${v.n}</span></div>`));
+})();
+
+/* ============================================================
+   RENDER: EVENT LOG (live prepend)
+   ============================================================ */
+const evEl=document.getElementById('events');
+function ip(p){return p+(Math.floor(Math.random()*255))+'.'+(Math.floor(Math.random()*255));}
+function ts(d){return d.toTimeString().slice(0,8);}
+function makeEvent(){
+  const e=EVENT_POOL[Math.floor(Math.random()*EVENT_POOL.length)];
+  return {t:ts(new Date()),ev:e[0],ip:ip(e[1]),org:e[2],s:e[3]};
+}
+function rowHTML(e){
+  return `<td class="mono">${e.t}</td><td>${e.ev}</td><td class="mono">${e.ip}</td><td>${e.org}</td>
+    <td><span class="sevpill" style="color:${SEV[e.s]}"><span class="d" style="background:${SEV[e.s]}"></span>${e.s}</span></td>`;
+}
+let evData=[];
+for(let i=0;i<8;i++){const e=makeEvent();e.t=ts(new Date(Date.now()-i*47000));evData.push(e);}
+function renderEvents(){evEl.innerHTML='';evData.slice(0,8).forEach(e=>{const tr=document.createElement('tr');tr.innerHTML=rowHTML(e);evEl.appendChild(tr);});}
+renderEvents();
+
+/* ============================================================
+   RENDER: COMPLIANCE
+   ============================================================ */
+const fwEl=document.getElementById('frameworks');
+FRAMEWORKS.forEach(f=>{
+  const col=f.s>=f.t?SEV.low:f.s>=f.t-8?SEV.medium:SEV.high;
+  const d=document.createElement('div');d.className='fw';
+  d.innerHTML=`<div class="top"><span>${f.f}</span><span class="s" style="color:${col}">${f.s}%</span></div>
+    <div class="track"><i style="width:${f.s}%;background:${col}"></i><span class="target" style="left:${f.t}%"></span></div>`;
+  fwEl.appendChild(d);
+});
+
+/* ============================================================
+   RENDER: SLA RADIAL
+   ============================================================ */
+function radial(pct,col){
+  const r=40,cx=48,cy=48,circ=2*Math.PI*r;
+  return `<svg class="rg" viewBox="0 0 96 96">
+    <circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="rgba(255,255,255,.08)" stroke-width="8"/>
+    <circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="${col}" stroke-width="8" stroke-linecap="round"
+      stroke-dasharray="${circ}" stroke-dashoffset="${circ*(1-pct/100)}" transform="rotate(-90 ${cx} ${cy})"/>
+    <text x="${cx}" y="${cy+5}" text-anchor="middle" font-size="20" font-weight="700" fill="#F2F5FA">${pct}%</text>
+  </svg>`;
+}
+const slaEl=document.getElementById('sla');
+SLA.forEach(s=>{
+  const d=document.createElement('div');d.className='slacol';
+  d.innerHTML=`${radial(s.met,s.c)}<div class="pr">${s.pr}</div><div class="mt">MTTR <b>${s.mttr}</b> · SLA met</div>`;
+  slaEl.appendChild(d);
+});
+
+/* ============================================================
+   RENDER: MTTR TREND (multi-line, 30d)
+   ============================================================ */
+(function(){
+  const days=30, pris=[{k:'P1',c:SEV.critical,b:2.5},{k:'P2',c:SEV.medium,b:7},{k:'P3',c:SEV.info,b:30}];
+  const series=pris.map(p=>({k:p.k,c:p.c,vals:d3.range(days).map(d=>{
+    const trend=p.b*(1-d/days*0.28); return Math.max(.4, trend + (Math.random()-.5)*p.b*0.25);
+  })}));
+  const m={t:14,r:8,b:22,l:28}, w=460-m.l-m.r, hh=230-m.t-m.b;
+  const svg=d3.select('#mttr').append('g').attr('transform',`translate(${m.l},${m.t})`);
+  d3.select('#mttr').attr('viewBox','0 0 460 230');
+  const x=d3.scaleLinear().domain([0,days-1]).range([0,w]);
+  const y=d3.scaleLinear().domain([0,d3.max(series,s=>d3.max(s.vals))]).nice().range([hh,0]);
+  svg.append('g').attr('class','axis').call(d3.axisLeft(y).ticks(4).tickSize(-w).tickFormat(d=>d+'h')).select('.domain').remove();
+  svg.append('g').attr('class','axis').attr('transform',`translate(0,${hh})`)
+    .call(d3.axisBottom(x).tickValues([0,10,20,29]).tickFormat(d=>(days-d)+'d').tickSize(0).tickPadding(8)).select('.domain').remove();
+  svg.selectAll('.axis line').attr('class','gridline');
+  const line=d3.line().x((d,i)=>x(i)).y(d=>y(d)).curve(d3.curveMonotoneX);
+  series.forEach(s=>{
+    svg.append('path').datum(s.vals).attr('d',line).attr('fill','none').attr('stroke',s.c).attr('stroke-width',2);
+    svg.append('circle').attr('cx',x(days-1)).attr('cy',y(s.vals[days-1])).attr('r',3).attr('fill',s.c);
+  });
+  const leg=document.getElementById('mttr-legend');
+  series.forEach(s=>leg.insertAdjacentHTML('beforeend',`<span><i style="background:${s.c}"></i>${s.k} priority</span>`));
+})();
+
+/* ============================================================
+   LIVE: clock + event stream
+   ============================================================ */
+function tickClock(){document.getElementById('clock').textContent=new Date().toTimeString().slice(0,8)+' UTC';}
+tickClock(); setInterval(tickClock,1000);
+setInterval(()=>{evData.unshift(makeEvent());evData=evData.slice(0,8);renderEvents();}, 6500);
+</script>
 
 <!--
 =============================================================================
-  SPLUNK SIMPLE XML DASHBOARD DEFINITION
-  ─────────────────────────────────────────────────────────────────────────
-  Copy everything between the <dashboard> tags below into a new Splunk
-  Classic Dashboard via Edit → Source.
-
-  Adjust indexes, sourcetypes, and field names to match your environment.
+  SPLUNK SIMPLE XML  —  Executive Cyber Risk Dashboard
+  Paste into Splunk Web:  Dashboards > Create New Dashboard > Classic (Simple XML)
+  > Edit > Source, then replace the source with everything between the markers.
+  Companion files: executive-cyber-risk.xml (standalone) and
+  data-sources-reference.md (required indexes / sourcetypes / CIM fields).
 =============================================================================
 
-<?xml version="1.0"?>
-<dashboard version="1.1" theme="dark">
+<form theme="dark" version="1.1">
   <label>Executive Cyber Risk Dashboard</label>
-  <description>Executive-level security risk posture — last 24 hours</description>
+  <description>Enterprise security posture, external threat landscape, and response performance.</description>
 
-  <!-- ── ROW 1: KPI Single Values ──────────────────────────────────── -->
+  <fieldset submitButton="false" autoRun="true">
+    <input type="time" token="time" searchWhenChanged="true">
+      <label>Time range</label>
+      <default><earliest>-24h@h</earliest><latest>now</latest></default>
+    </input>
+  </fieldset>
+
+  <!-- ===================== KEY RISK INDICATORS ===================== -->
   <row>
     <panel>
+      <title>Risk Score</title>
       <single>
-        <title>Critical Alerts (24h)</title>
         <search>
-          <!-- CUSTOMISE: replace index=main with your security index -->
-          <query>index=security severity=critical earliest=-24h@h latest=now | stats count</query>
-          <earliest>-24h@h</earliest>
-          <latest>now</latest>
+          <query>| `risk_score_index` | stats latest(risk_score) as score | eval score=round(score,0)</query>
+          <earliest>$time.earliest$</earliest><latest>$time.latest$</latest>
         </search>
-        <option name="colorBy">value</option>
-        <option name="colorMode">block</option>
-        <option name="rangeColors">["0x006600","0xFF8C00","0xFF0000"]</option>
-        <option name="rangeValues">[0,10]</option>
-        <option name="useColors">1</option>
-        <option name="drilldown">all</option>
-      </single>
-    </panel>
-    <panel>
-      <single>
-        <title>High Alerts (24h)</title>
-        <search>
-          <query>index=security severity=high earliest=-24h@h latest=now | stats count</query>
-          <earliest>-24h@h</earliest>
-          <latest>now</latest>
-        </search>
+        <option name="rangeColors">["0x00CC44","0xFFB020","0xFF7A1A","0xFF2D55"]</option>
+        <option name="rangeValues">[25,50,75]</option>
         <option name="useColors">1</option>
         <option name="colorBy">value</option>
+        <option name="underLabel">/ 100 RISK INDEX</option>
       </single>
     </panel>
     <panel>
+      <title>Critical Alerts</title>
       <single>
-        <title>Total Security Events</title>
         <search>
-          <query>index=security earliest=-24h@h latest=now | stats count</query>
-          <earliest>-24h@h</earliest>
-          <latest>now</latest>
+          <query>index=security severity=critical | stats count | appendcols [search index=security severity=critical earliest=-48h@h latest=-24h@h | stats count as prev]</query>
+          <earliest>$time.earliest$</earliest><latest>$time.latest$</latest>
         </search>
-        <option name="useColors">0</option>
+        <option name="rangeColors">["0x00CC44","0xFFB020","0xFF2D55"]</option>
+        <option name="rangeValues">[10,30]</option>
+        <option name="useColors">1</option><option name="colorBy">value</option>
+        <option name="trellis.enabled">0</option>
       </single>
     </panel>
     <panel>
+      <title>High Alerts</title>
       <single>
-        <title>Open Vulnerabilities</title>
         <search>
-          <!-- CUSTOMISE: replace index=vuln_scan with your vuln index -->
-          <query>index=vuln_scan status=open earliest=-7d@d latest=now | stats count</query>
-          <earliest>-7d@d</earliest>
-          <latest>now</latest>
+          <query>index=security severity=high | stats count</query>
+          <earliest>$time.earliest$</earliest><latest>$time.latest$</latest>
         </search>
-        <option name="useColors">1</option>
-        <option name="rangeColors">["0x00CC44","0xFF8C00","0xFF0000"]</option>
-        <option name="rangeValues">[0,100]</option>
+        <option name="numberPrecision">0</option>
       </single>
     </panel>
     <panel>
+      <title>Total Security Events</title>
       <single>
-        <title>Avg MTTR (hours)</title>
         <search>
-          <!-- CUSTOMISE: adjust field names to your incident data -->
-          <query>index=incidents status=closed earliest=-7d@d latest=now
-            | eval mttr_hours=round((close_time - open_time)/3600, 1)
-            | stats avg(mttr_hours) as avg_mttr
-            | eval avg_mttr=round(avg_mttr,1)</query>
-          <earliest>-7d@d</earliest>
-          <latest>now</latest>
+          <query>index=security | stats count</query>
+          <earliest>$time.earliest$</earliest><latest>$time.latest$</latest>
         </search>
-        <option name="useColors">1</option>
-        <option name="rangeColors">["0x00CC44","0xFF8C00","0xFF0000"]</option>
-        <option name="rangeValues">[0,4]</option>
+        <option name="numberPrecision">0</option>
+      </single>
+    </panel>
+    <panel>
+      <title>Open Vulnerabilities</title>
+      <single>
+        <search>
+          <query>index=vuln_scan status=open | stats dc(signature) as openvulns</query>
+          <earliest>-7d@d</earliest><latest>now</latest>
+        </search>
+        <option name="rangeColors">["0x00CC44","0xFFB020","0xFF2D55"]</option>
+        <option name="rangeValues">[100,250]</option>
+        <option name="useColors">1</option><option name="colorBy">value</option>
+      </single>
+    </panel>
+    <panel>
+      <title>Avg MTTR (hours)</title>
+      <single>
+        <search>
+          <query>index=incidents status=closed | eval mttr_hours=round((close_time - open_time)/3600,1) | stats avg(mttr_hours) as avg_mttr | eval avg_mttr=round(avg_mttr,1)</query>
+          <earliest>-7d@d</earliest><latest>now</latest>
+        </search>
+        <option name="unit">h</option>
+        <option name="rangeColors">["0x00CC44","0xFFB020","0xFF2D55"]</option>
+        <option name="rangeValues">[2,4]</option>
+        <option name="useColors">1</option><option name="colorBy">value</option>
       </single>
     </panel>
   </row>
 
-  <!-- ── ROW 2: Threat Categories Bar + Event Log ───────────────────── -->
+  <!-- ===================== GLOBAL ATTACK MAP (CHOROPLETH) ===================== -->
   <row>
     <panel>
-      <chart>
-        <title>Top Threat Categories (24h)</title>
+      <title>Global Attack Origin by Country</title>
+      <map>
         <search>
-          <query>index=security earliest=-24h@h latest=now
-            | stats count by category
-            | sort -count
-            | head 10</query>
-          <earliest>-24h@h</earliest>
-          <latest>now</latest>
+          <query>index=security action=blocked OR severity IN (critical,high,medium)
+| iplocation src_ip
+| search Country=*
+| stats count by Country
+| geom geo_countries featureIdField=Country</query>
+          <earliest>$time.earliest$</earliest><latest>$time.latest$</latest>
         </search>
-        <option name="charting.chart">bar</option>
-        <option name="charting.chart.showDataLabels">all</option>
-        <option name="charting.axisTitleX.visibility">collapsed</option>
-        <option name="charting.legend.placement">none</option>
-        <option name="charting.chart.orientation">bar</option>
-        <option name="charting.seriesColors">["#ff3b5c","#ff7832","#ffb020","#e040fb","#0062ff","#00d4ff","#00e676"]</option>
-      </chart>
+        <option name="mapping.type">choropleth</option>
+        <option name="mapping.choroplethLayer.colorMode">auto</option>
+        <option name="mapping.choroplethLayer.maximumColor">0xFF007F</option>
+        <option name="mapping.choroplethLayer.minimumColor">0x2A1530</option>
+        <option name="mapping.choroplethLayer.colorBins">6</option>
+        <option name="mapping.choroplethLayer.neutralPoint">0</option>
+        <option name="mapping.choroplethLayer.showBorder">1</option>
+        <option name="mapping.data.maxClusters">100</option>
+        <option name="mapping.map.center">(20,0)</option>
+        <option name="mapping.map.zoom">2</option>
+        <option name="mapping.tileLayer.maxZoom">7</option>
+        <option name="height">430</option>
+      </map>
     </panel>
     <panel>
+      <title>Top Attack Origins</title>
       <table>
-        <title>Critical Events — Last 2 Hours</title>
         <search>
-          <query>index=security severity=critical earliest=-2h@h latest=now
-            | sort -_time
-            | head 10
-            | table _time, event_title, src_ip, category, dest_host
-            | rename _time as "Time", event_title as "Event", src_ip as "Source IP",
-              category as "Category", dest_host as "Destination"</query>
-          <earliest>-2h@h</earliest>
-          <latest>now</latest>
+          <query>index=security severity IN (critical,high,medium)
+| iplocation src_ip | search Country=*
+| stats count as attacks by Country
+| sort -attacks | head 10</query>
+          <earliest>$time.earliest$</earliest><latest>$time.latest$</latest>
         </search>
         <option name="count">10</option>
-        <option name="rowNumbers">false</option>
-        <option name="dataOverlayMode">none</option>
-        <option name="drilldown">row</option>
-        <format type="color" field="Category">
-          <colorPalette type="sharedList"/>
+        <option name="drilldown">none</option>
+        <format type="color" field="attacks">
+          <colorPalette type="minMidMax" maxColor="0xFF007F" midColor="0xFF9000" minColor="0xFFB020"/>
         </format>
       </table>
     </panel>
   </row>
 
-  <!-- ── ROW 3: Vulnerability Pie + Geo Map + Compliance ──────────── -->
+  <!-- ===================== CATEGORIES / VOLUME / VULNS ===================== -->
   <row>
     <panel>
+      <title>Top Threat Categories</title>
       <chart>
-        <title>Open Vulnerabilities by Severity</title>
         <search>
-          <query>index=vuln_scan status=open earliest=-7d@d latest=now
-            | stats count by severity
-            | sort -count</query>
-          <earliest>-7d@d</earliest>
-          <latest>now</latest>
-        </search>
-        <option name="charting.chart">pie</option>
-        <option name="charting.seriesColors">["#ff3b5c","#ff7832","#ffb020","#00e676"]</option>
-        <option name="charting.legend.placement">right</option>
-      </chart>
-    </panel>
-    <panel>
-      <map>
-        <title>Attack Origin by Country</title>
-        <search>
-          <query>index=security earliest=-24h@h latest=now
-            | iplocation src_ip
-            | stats count by Country
-            | geom geo_countries featureIdField=Country</query>
-          <earliest>-24h@h</earliest>
-          <latest>now</latest>
-        </search>
-        <option name="mapping.type">choropleth</option>
-        <option name="mapping.choroplethLayer.colorMode">auto</option>
-        <option name="mapping.choroplethLayer.maximumColor">0xFF0000</option>
-        <option name="mapping.choroplethLayer.minimumColor">0x0062ff</option>
-      </map>
-    </panel>
-    <panel>
-      <chart>
-        <title>Compliance Score by Framework</title>
-        <search>
-          <!-- CUSTOMISE: replace with your compliance index/lookup -->
-          <query>index=compliance earliest=-7d@d latest=now
-            | stats avg(score) as score by framework
-            | eval score=round(score,0)</query>
-          <earliest>-7d@d</earliest>
-          <latest>now</latest>
+          <query>index=security | stats count by category | sort -count | head 8</query>
+          <earliest>$time.earliest$</earliest><latest>$time.latest$</latest>
         </search>
         <option name="charting.chart">bar</option>
-        <option name="charting.chart.showDataLabels">all</option>
-        <option name="charting.axisY.maximumNumber">100</option>
-        <option name="charting.seriesColors">["#00d4ff"]</option>
-        <option name="charting.axisTitleY.text">Score (%)</option>
+        <option name="charting.seriesColors">[0xFF007F,0xFF9000]</option>
+        <option name="charting.legend.placement">none</option>
       </chart>
     </panel>
-  </row>
-
-  <!-- ── ROW 4: 24h Alert Volume Timeline ──────────────────────────── -->
-  <row>
     <panel>
+      <title>24-Hour Alert Volume by Severity</title>
       <chart>
-        <title>24-Hour Alert Volume by Severity</title>
         <search>
-          <query>index=security earliest=-24h@h latest=now
-            | timechart span=1h count by severity
-            | fillnull value=0</query>
-          <earliest>-24h@h</earliest>
-          <latest>now</latest>
+          <query>index=security | timechart span=1h count by severity | fillnull value=0</query>
+          <earliest>$time.earliest$</earliest><latest>$time.latest$</latest>
         </search>
         <option name="charting.chart">area</option>
         <option name="charting.chart.stackMode">stacked</option>
-        <option name="charting.seriesColors">["#ff3b5c","#ff7832","#ffb020","#00e676"]</option>
-        <option name="charting.axisTitleX.text">Time</option>
-        <option name="charting.axisTitleY.text">Alert Count</option>
+        <option name="charting.fieldColors">{"critical":0xFF2D55,"high":0xFF7A1A,"medium":0xFFB020,"low":0x00E676}</option>
         <option name="charting.legend.placement">bottom</option>
       </chart>
     </panel>
     <panel>
+      <title>Open Vulnerabilities by Severity</title>
       <chart>
-        <title>MTTR Trend — Last 30 Days</title>
         <search>
-          <query>index=incidents status=closed earliest=-30d@d latest=now
-            | eval mttr_hours=round((close_time - open_time)/3600,1)
-            | timechart span=1d avg(mttr_hours) as avg_mttr by priority
-            | fillnull value=0</query>
-          <earliest>-30d@d</earliest>
-          <latest>now</latest>
+          <query>index=vuln_scan status=open | stats dc(signature) as count by severity | sort -count</query>
+          <earliest>-7d@d</earliest><latest>now</latest>
         </search>
-        <option name="charting.chart">line</option>
-        <option name="charting.seriesColors">["#ff3b5c","#ffb020","#00d4ff"]</option>
-        <option name="charting.axisTitleX.text">Date</option>
-        <option name="charting.axisTitleY.text">Hours</option>
-        <option name="charting.legend.placement">bottom</option>
+        <option name="charting.chart">pie</option>
+        <option name="charting.seriesColors">[0xFF2D55,0xFF7A1A,0xFFB020,0x00E676]</option>
       </chart>
     </panel>
   </row>
 
-</dashboard>
+  <!-- ===================== EVENT LOG + COMPLIANCE ===================== -->
+  <row>
+    <panel>
+      <title>Critical Event Log</title>
+      <table>
+        <search>
+          <query>index=security severity=critical
+| iplocation src_ip
+| sort -_time | head 12
+| table _time, signature, src_ip, Country, dest_host, severity
+| rename _time as Time, signature as Event, src_ip as "Source IP", Country as Origin, dest_host as Destination</query>
+          <earliest>$time.earliest$</earliest><latest>$time.latest$</latest>
+        </search>
+        <option name="drilldown">none</option><option name="count">12</option>
+        <format type="color" field="severity">
+          <colorPalette type="map">{"critical":#FF2D55,"high":#FF7A1A,"medium":#FFB020}</colorPalette>
+        </format>
+      </table>
+    </panel>
+    <panel>
+      <title>Compliance Posture by Framework</title>
+      <chart>
+        <search>
+          <query>index=compliance | stats avg(score) as score by framework | eval score=round(score,0) | sort -score</query>
+          <earliest>-7d@d</earliest><latest>now</latest>
+        </search>
+        <option name="charting.chart">bar</option>
+        <option name="charting.chart.rangeValues">[0,100]</option>
+        <option name="charting.seriesColors">[0x02C8FF]</option>
+        <option name="charting.legend.placement">none</option>
+      </chart>
+    </panel>
+  </row>
+
+  <!-- ===================== SLA + MTTR TREND ===================== -->
+  <row>
+    <panel>
+      <title>Response SLA Performance by Priority</title>
+      <chart>
+        <search>
+          <query>index=incidents status=closed
+| eval met=if((close_time-open_time)/3600 &lt;= sla_target_hours, 1, 0)
+| stats sum(met) as met count as total by priority
+| eval sla_pct=round(met/total*100,0)
+| fields priority sla_pct | sort priority</query>
+          <earliest>-7d@d</earliest><latest>now</latest>
+        </search>
+        <option name="charting.chart">bar</option>
+        <option name="charting.chart.rangeValues">[0,100]</option>
+        <option name="charting.seriesColors">[0x00E676]</option>
+        <option name="charting.legend.placement">none</option>
+      </chart>
+    </panel>
+    <panel>
+      <title>MTTR Trend — Last 30 Days</title>
+      <chart>
+        <search>
+          <query>index=incidents status=closed
+| eval mttr_hours=round((close_time-open_time)/3600,1)
+| timechart span=1d avg(mttr_hours) as avg_mttr by priority | fillnull value=0</query>
+          <earliest>-30d@d</earliest><latest>now</latest>
+        </search>
+        <option name="charting.chart">line</option>
+        <option name="charting.fieldColors">{"P1":0xFF2D55,"P2":0xFFB020,"P3":0x02C8FF}</option>
+        <option name="charting.legend.placement">bottom</option>
+        <option name="charting.axisTitleY.text">Hours</option>
+      </chart>
+    </panel>
+  </row>
+</form>
 
 =============================================================================
-  END OF SPLUNK XML BLOCK
+  END OF SPLUNK SIMPLE XML BLOCK
 =============================================================================
 -->
+
+<script>
+/* Companion files open in a new browser tab (no download). Both views are
+   embedded so this works even when the HTML is opened directly from disk. */
+const XML_VIEW = "<!DOCTYPE html><html lang=\"en\"><head><meta charset=\"UTF-8\">\n<meta name=\"viewport\" content=\"width=device-width,initial-scale=1\">\n<title>Splunk Simple XML \u2014 Executive Cyber Risk Dashboard</title>\n<style>\n  :root{--mag:#FF007F;--org:#FF9000;--cyan:#02C8FF}\n  *{box-sizing:border-box}\n  body{margin:0;background:linear-gradient(180deg,#04070B,#0B1118);color:#F2F5FA;\n    font-family:-apple-system,BlinkMacSystemFont,\"Segoe UI\",Inter,sans-serif;min-height:100vh}\n  .bar{position:sticky;top:0;display:flex;align-items:center;justify-content:space-between;gap:16px;\n    padding:16px 28px;background:rgba(4,7,11,.85);backdrop-filter:blur(8px);border-bottom:1px solid rgba(255,255,255,.08)}\n  .ttl{font-size:15px;font-weight:600}\n  .eb{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--mag);font-weight:600}\n  .btn{border:1px solid rgba(255,255,255,.18);background:rgba(255,255,255,.03);color:#F2F5FA;\n    font:inherit;font-size:13px;padding:8px 16px;border-radius:999px;cursor:pointer}\n  .btn:hover{border-color:var(--mag);background:rgba(255,0,127,.12)}\n  .wrap{max-width:1100px;margin:0 auto;padding:24px 28px 60px}\n  .hint{font-size:13px;color:#BCC4CF;margin:4px 0 18px}\n  pre{margin:0;padding:22px;border-radius:14px;background:#0C1119;border:1px solid rgba(255,255,255,.08);\n    overflow:auto;font-family:ui-monospace,\"SF Mono\",Menlo,Consolas,monospace;font-size:12.5px;line-height:1.6;\n    color:#D7DEE7;white-space:pre;tab-size:2}\n</style></head><body>\n<div class=\"bar\">\n  <div><div class=\"eb\">Splunk &middot; a Cisco company</div><div class=\"ttl\">Executive Cyber Risk Dashboard &mdash; Simple XML</div></div>\n  <button class=\"btn\" onclick=\"(function(b){var r=document.createRange();r.selectNode(document.getElementById('xml'));var s=window.getSelection();s.removeAllRanges();s.addRange(r);try{document.execCommand('copy');b.textContent='\u2713 Copied';setTimeout(function(){b.textContent='Copy to clipboard'},1800);}catch(e){b.textContent='Press Ctrl/Cmd+C';}s.removeAllRanges();})(this)\">Copy to clipboard</button>\n</div>\n<div class=\"wrap\">\n  <p class=\"hint\">Paste into Splunk: <b>Dashboards &rarr; Create New Dashboard &rarr; Classic (Simple XML) &rarr; Edit &rarr; Source</b>, then replace the source with everything below.</p>\n  <pre id=\"xml\">&lt;form theme=&quot;dark&quot; version=&quot;1.1&quot;&gt;\n  &lt;label&gt;Executive Cyber Risk Dashboard&lt;/label&gt;\n  &lt;description&gt;Enterprise security posture, external threat landscape, and response performance.&lt;/description&gt;\n\n  &lt;fieldset submitButton=&quot;false&quot; autoRun=&quot;true&quot;&gt;\n    &lt;input type=&quot;time&quot; token=&quot;time&quot; searchWhenChanged=&quot;true&quot;&gt;\n      &lt;label&gt;Time range&lt;/label&gt;\n      &lt;default&gt;\n        &lt;earliest&gt;-24h@h&lt;/earliest&gt;\n        &lt;latest&gt;now&lt;/latest&gt;\n      &lt;/default&gt;\n    &lt;/input&gt;\n  &lt;/fieldset&gt;\n\n  &lt;!-- ===================== KEY RISK INDICATORS ===================== --&gt;\n  &lt;row&gt;\n    &lt;panel&gt;\n      &lt;title&gt;Risk Score&lt;/title&gt;\n      &lt;single&gt;\n        &lt;search&gt;\n          &lt;query&gt;index=risk | stats latest(risk_score) as score | eval score=round(score,0)&lt;/query&gt;\n          &lt;earliest&gt;$time.earliest$&lt;/earliest&gt;\n          &lt;latest&gt;$time.latest$&lt;/latest&gt;\n        &lt;/search&gt;\n        &lt;option name=&quot;rangeColors&quot;&gt;[&quot;0x00CC44&quot;,&quot;0xFFB020&quot;,&quot;0xFF7A1A&quot;,&quot;0xFF2D55&quot;]&lt;/option&gt;\n        &lt;option name=&quot;rangeValues&quot;&gt;[25,50,75]&lt;/option&gt;\n        &lt;option name=&quot;useColors&quot;&gt;1&lt;/option&gt;\n        &lt;option name=&quot;colorBy&quot;&gt;value&lt;/option&gt;\n        &lt;option name=&quot;underLabel&quot;&gt;/ 100 RISK INDEX&lt;/option&gt;\n      &lt;/single&gt;\n    &lt;/panel&gt;\n    &lt;panel&gt;\n      &lt;title&gt;Critical Alerts&lt;/title&gt;\n      &lt;single&gt;\n        &lt;search&gt;\n          &lt;query&gt;index=security severity=critical | stats count&lt;/query&gt;\n          &lt;earliest&gt;$time.earliest$&lt;/earliest&gt;\n          &lt;latest&gt;$time.latest$&lt;/latest&gt;\n        &lt;/search&gt;\n        &lt;option name=&quot;rangeColors&quot;&gt;[&quot;0x00CC44&quot;,&quot;0xFFB020&quot;,&quot;0xFF2D55&quot;]&lt;/option&gt;\n        &lt;option name=&quot;rangeValues&quot;&gt;[10,30]&lt;/option&gt;\n        &lt;option name=&quot;useColors&quot;&gt;1&lt;/option&gt;\n        &lt;option name=&quot;colorBy&quot;&gt;value&lt;/option&gt;\n      &lt;/single&gt;\n    &lt;/panel&gt;\n    &lt;panel&gt;\n      &lt;title&gt;High Alerts&lt;/title&gt;\n      &lt;single&gt;\n        &lt;search&gt;\n          &lt;query&gt;index=security severity=high | stats count&lt;/query&gt;\n          &lt;earliest&gt;$time.earliest$&lt;/earliest&gt;\n          &lt;latest&gt;$time.latest$&lt;/latest&gt;\n        &lt;/search&gt;\n        &lt;option name=&quot;numberPrecision&quot;&gt;0&lt;/option&gt;\n      &lt;/single&gt;\n    &lt;/panel&gt;\n    &lt;panel&gt;\n      &lt;title&gt;Total Security Events&lt;/title&gt;\n      &lt;single&gt;\n        &lt;search&gt;\n          &lt;query&gt;index=security | stats count&lt;/query&gt;\n          &lt;earliest&gt;$time.earliest$&lt;/earliest&gt;\n          &lt;latest&gt;$time.latest$&lt;/latest&gt;\n        &lt;/search&gt;\n        &lt;option name=&quot;numberPrecision&quot;&gt;0&lt;/option&gt;\n      &lt;/single&gt;\n    &lt;/panel&gt;\n    &lt;panel&gt;\n      &lt;title&gt;Open Vulnerabilities&lt;/title&gt;\n      &lt;single&gt;\n        &lt;search&gt;\n          &lt;query&gt;index=vuln_scan status=open | stats dc(signature) as openvulns&lt;/query&gt;\n          &lt;earliest&gt;-7d@d&lt;/earliest&gt;\n          &lt;latest&gt;now&lt;/latest&gt;\n        &lt;/search&gt;\n        &lt;option name=&quot;rangeColors&quot;&gt;[&quot;0x00CC44&quot;,&quot;0xFFB020&quot;,&quot;0xFF2D55&quot;]&lt;/option&gt;\n        &lt;option name=&quot;rangeValues&quot;&gt;[100,250]&lt;/option&gt;\n        &lt;option name=&quot;useColors&quot;&gt;1&lt;/option&gt;\n        &lt;option name=&quot;colorBy&quot;&gt;value&lt;/option&gt;\n      &lt;/single&gt;\n    &lt;/panel&gt;\n    &lt;panel&gt;\n      &lt;title&gt;Avg MTTR (hours)&lt;/title&gt;\n      &lt;single&gt;\n        &lt;search&gt;\n          &lt;query&gt;index=incidents status=closed | eval mttr_hours=round((close_time - open_time)/3600,1) | stats avg(mttr_hours) as avg_mttr | eval avg_mttr=round(avg_mttr,1)&lt;/query&gt;\n          &lt;earliest&gt;-7d@d&lt;/earliest&gt;\n          &lt;latest&gt;now&lt;/latest&gt;\n        &lt;/search&gt;\n        &lt;option name=&quot;unit&quot;&gt;h&lt;/option&gt;\n        &lt;option name=&quot;rangeColors&quot;&gt;[&quot;0x00CC44&quot;,&quot;0xFFB020&quot;,&quot;0xFF2D55&quot;]&lt;/option&gt;\n        &lt;option name=&quot;rangeValues&quot;&gt;[2,4]&lt;/option&gt;\n        &lt;option name=&quot;useColors&quot;&gt;1&lt;/option&gt;\n        &lt;option name=&quot;colorBy&quot;&gt;value&lt;/option&gt;\n      &lt;/single&gt;\n    &lt;/panel&gt;\n  &lt;/row&gt;\n\n  &lt;!-- ===================== GLOBAL ATTACK MAP (CHOROPLETH) ===================== --&gt;\n  &lt;row&gt;\n    &lt;panel&gt;\n      &lt;title&gt;Global Attack Origin by Country&lt;/title&gt;\n      &lt;map&gt;\n        &lt;search&gt;\n          &lt;query&gt;index=security severity IN (critical,high,medium)\n| iplocation src_ip\n| search Country=*\n| stats count by Country\n| geom geo_countries featureIdField=Country&lt;/query&gt;\n          &lt;earliest&gt;$time.earliest$&lt;/earliest&gt;\n          &lt;latest&gt;$time.latest$&lt;/latest&gt;\n        &lt;/search&gt;\n        &lt;option name=&quot;mapping.type&quot;&gt;choropleth&lt;/option&gt;\n        &lt;option name=&quot;mapping.choroplethLayer.colorMode&quot;&gt;auto&lt;/option&gt;\n        &lt;option name=&quot;mapping.choroplethLayer.maximumColor&quot;&gt;0xFF007F&lt;/option&gt;\n        &lt;option name=&quot;mapping.choroplethLayer.minimumColor&quot;&gt;0x2A1530&lt;/option&gt;\n        &lt;option name=&quot;mapping.choroplethLayer.colorBins&quot;&gt;6&lt;/option&gt;\n        &lt;option name=&quot;mapping.choroplethLayer.neutralPoint&quot;&gt;0&lt;/option&gt;\n        &lt;option name=&quot;mapping.choroplethLayer.showBorder&quot;&gt;1&lt;/option&gt;\n        &lt;option name=&quot;mapping.data.maxClusters&quot;&gt;100&lt;/option&gt;\n        &lt;option name=&quot;mapping.map.center&quot;&gt;(20,0)&lt;/option&gt;\n        &lt;option name=&quot;mapping.map.zoom&quot;&gt;2&lt;/option&gt;\n        &lt;option name=&quot;mapping.tileLayer.maxZoom&quot;&gt;7&lt;/option&gt;\n        &lt;option name=&quot;height&quot;&gt;430&lt;/option&gt;\n      &lt;/map&gt;\n    &lt;/panel&gt;\n    &lt;panel&gt;\n      &lt;title&gt;Top Attack Origins&lt;/title&gt;\n      &lt;table&gt;\n        &lt;search&gt;\n          &lt;query&gt;index=security severity IN (critical,high,medium)\n| iplocation src_ip\n| search Country=*\n| stats count as attacks by Country\n| sort -attacks\n| head 10&lt;/query&gt;\n          &lt;earliest&gt;$time.earliest$&lt;/earliest&gt;\n          &lt;latest&gt;$time.latest$&lt;/latest&gt;\n        &lt;/search&gt;\n        &lt;option name=&quot;count&quot;&gt;10&lt;/option&gt;\n        &lt;option name=&quot;drilldown&quot;&gt;none&lt;/option&gt;\n        &lt;format type=&quot;color&quot; field=&quot;attacks&quot;&gt;\n          &lt;colorPalette type=&quot;minMidMax&quot; maxColor=&quot;0xFF007F&quot; midColor=&quot;0xFF9000&quot; minColor=&quot;0xFFB020&quot;&gt;&lt;/colorPalette&gt;\n        &lt;/format&gt;\n      &lt;/table&gt;\n    &lt;/panel&gt;\n  &lt;/row&gt;\n\n  &lt;!-- ===================== CATEGORIES / VOLUME / VULNS ===================== --&gt;\n  &lt;row&gt;\n    &lt;panel&gt;\n      &lt;title&gt;Top Threat Categories&lt;/title&gt;\n      &lt;chart&gt;\n        &lt;search&gt;\n          &lt;query&gt;index=security | stats count by category | sort -count | head 8&lt;/query&gt;\n          &lt;earliest&gt;$time.earliest$&lt;/earliest&gt;\n          &lt;latest&gt;$time.latest$&lt;/latest&gt;\n        &lt;/search&gt;\n        &lt;option name=&quot;charting.chart&quot;&gt;bar&lt;/option&gt;\n        &lt;option name=&quot;charting.seriesColors&quot;&gt;[0xFF007F,0xFF9000]&lt;/option&gt;\n        &lt;option name=&quot;charting.legend.placement&quot;&gt;none&lt;/option&gt;\n      &lt;/chart&gt;\n    &lt;/panel&gt;\n    &lt;panel&gt;\n      &lt;title&gt;24-Hour Alert Volume by Severity&lt;/title&gt;\n      &lt;chart&gt;\n        &lt;search&gt;\n          &lt;query&gt;index=security | timechart span=1h count by severity | fillnull value=0&lt;/query&gt;\n          &lt;earliest&gt;$time.earliest$&lt;/earliest&gt;\n          &lt;latest&gt;$time.latest$&lt;/latest&gt;\n        &lt;/search&gt;\n        &lt;option name=&quot;charting.chart&quot;&gt;area&lt;/option&gt;\n        &lt;option name=&quot;charting.chart.stackMode&quot;&gt;stacked&lt;/option&gt;\n        &lt;option name=&quot;charting.fieldColors&quot;&gt;{&quot;critical&quot;:0xFF2D55,&quot;high&quot;:0xFF7A1A,&quot;medium&quot;:0xFFB020,&quot;low&quot;:0x00E676}&lt;/option&gt;\n        &lt;option name=&quot;charting.legend.placement&quot;&gt;bottom&lt;/option&gt;\n      &lt;/chart&gt;\n    &lt;/panel&gt;\n    &lt;panel&gt;\n      &lt;title&gt;Open Vulnerabilities by Severity&lt;/title&gt;\n      &lt;chart&gt;\n        &lt;search&gt;\n          &lt;query&gt;index=vuln_scan status=open | stats dc(signature) as count by severity | sort -count&lt;/query&gt;\n          &lt;earliest&gt;-7d@d&lt;/earliest&gt;\n          &lt;latest&gt;now&lt;/latest&gt;\n        &lt;/search&gt;\n        &lt;option name=&quot;charting.chart&quot;&gt;pie&lt;/option&gt;\n        &lt;option name=&quot;charting.seriesColors&quot;&gt;[0xFF2D55,0xFF7A1A,0xFFB020,0x00E676]&lt;/option&gt;\n      &lt;/chart&gt;\n    &lt;/panel&gt;\n  &lt;/row&gt;\n\n  &lt;!-- ===================== EVENT LOG + COMPLIANCE ===================== --&gt;\n  &lt;row&gt;\n    &lt;panel&gt;\n      &lt;title&gt;Critical Event Log&lt;/title&gt;\n      &lt;table&gt;\n        &lt;search&gt;\n          &lt;query&gt;index=security severity=critical\n| iplocation src_ip\n| sort -_time\n| head 12\n| table _time, signature, src_ip, Country, dest_host, severity\n| rename _time as Time, signature as Event, src_ip as &quot;Source IP&quot;, Country as Origin, dest_host as Destination&lt;/query&gt;\n          &lt;earliest&gt;$time.earliest$&lt;/earliest&gt;\n          &lt;latest&gt;$time.latest$&lt;/latest&gt;\n        &lt;/search&gt;\n        &lt;option name=&quot;drilldown&quot;&gt;none&lt;/option&gt;\n        &lt;option name=&quot;count&quot;&gt;12&lt;/option&gt;\n      &lt;/table&gt;\n    &lt;/panel&gt;\n    &lt;panel&gt;\n      &lt;title&gt;Compliance Posture by Framework&lt;/title&gt;\n      &lt;chart&gt;\n        &lt;search&gt;\n          &lt;query&gt;index=compliance | stats avg(score) as score by framework | eval score=round(score,0) | sort -score&lt;/query&gt;\n          &lt;earliest&gt;-7d@d&lt;/earliest&gt;\n          &lt;latest&gt;now&lt;/latest&gt;\n        &lt;/search&gt;\n        &lt;option name=&quot;charting.chart&quot;&gt;bar&lt;/option&gt;\n        &lt;option name=&quot;charting.seriesColors&quot;&gt;[0x02C8FF]&lt;/option&gt;\n        &lt;option name=&quot;charting.legend.placement&quot;&gt;none&lt;/option&gt;\n      &lt;/chart&gt;\n    &lt;/panel&gt;\n  &lt;/row&gt;\n\n  &lt;!-- ===================== SLA + MTTR TREND ===================== --&gt;\n  &lt;row&gt;\n    &lt;panel&gt;\n      &lt;title&gt;Response SLA Performance by Priority&lt;/title&gt;\n      &lt;chart&gt;\n        &lt;search&gt;\n          &lt;query&gt;index=incidents status=closed\n| eval met=if((close_time-open_time)/3600 &amp;lt;= sla_target_hours, 1, 0)\n| stats sum(met) as met count as total by priority\n| eval sla_pct=round(met/total*100,0)\n| fields priority sla_pct\n| sort priority&lt;/query&gt;\n          &lt;earliest&gt;-7d@d&lt;/earliest&gt;\n          &lt;latest&gt;now&lt;/latest&gt;\n        &lt;/search&gt;\n        &lt;option name=&quot;charting.chart&quot;&gt;bar&lt;/option&gt;\n        &lt;option name=&quot;charting.seriesColors&quot;&gt;[0x00E676]&lt;/option&gt;\n        &lt;option name=&quot;charting.legend.placement&quot;&gt;none&lt;/option&gt;\n      &lt;/chart&gt;\n    &lt;/panel&gt;\n    &lt;panel&gt;\n      &lt;title&gt;MTTR Trend \u2014 Last 30 Days&lt;/title&gt;\n      &lt;chart&gt;\n        &lt;search&gt;\n          &lt;query&gt;index=incidents status=closed\n| eval mttr_hours=round((close_time-open_time)/3600,1)\n| timechart span=1d avg(mttr_hours) as avg_mttr by priority\n| fillnull value=0&lt;/query&gt;\n          &lt;earliest&gt;-30d@d&lt;/earliest&gt;\n          &lt;latest&gt;now&lt;/latest&gt;\n        &lt;/search&gt;\n        &lt;option name=&quot;charting.chart&quot;&gt;line&lt;/option&gt;\n        &lt;option name=&quot;charting.fieldColors&quot;&gt;{&quot;P1&quot;:0xFF2D55,&quot;P2&quot;:0xFFB020,&quot;P3&quot;:0x02C8FF}&lt;/option&gt;\n        &lt;option name=&quot;charting.legend.placement&quot;&gt;bottom&lt;/option&gt;\n        &lt;option name=&quot;charting.axisTitleY.text&quot;&gt;Hours&lt;/option&gt;\n      &lt;/chart&gt;\n    &lt;/panel&gt;\n  &lt;/row&gt;\n&lt;/form&gt;\n</pre>\n</div></body></html>";
+const DOC_VIEW = "<!DOCTYPE html><html lang=\"en\"><head><meta charset=\"UTF-8\">\n<meta name=\"viewport\" content=\"width=device-width,initial-scale=1\">\n<title>Data Sources Reference \u2014 Executive Cyber Risk Dashboard</title>\n<style>\n  :root{--mag:#FF007F;--org:#FF9000;--ink:#161B22;--muted:#4F5762}\n  *{box-sizing:border-box}\n  body{margin:0;background:#F2F5FA;color:var(--ink);\n    font-family:-apple-system,BlinkMacSystemFont,\"Segoe UI\",Inter,Arial,sans-serif;line-height:1.55}\n  .bar{position:sticky;top:0;display:flex;align-items:center;justify-content:space-between;gap:16px;\n    padding:14px 28px;background:#fff;border-bottom:2px solid var(--mag);box-shadow:0 1px 6px rgba(0,0,0,.06)}\n  .eb{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--mag);font-weight:700}\n  .ttl{font-size:15px;font-weight:600}\n  .btn{border:1px solid #d9dee6;background:#fff;color:var(--ink);font:inherit;font-size:13px;\n    padding:8px 16px;border-radius:8px;cursor:pointer}\n  .btn:hover{border-color:var(--mag)}\n  .doc{max-width:960px;margin:0 auto;padding:30px 40px 70px;background:#fff;min-height:100vh;\n    box-shadow:0 0 40px rgba(0,0,0,.05)}\n  .doc h1{font-size:26px;margin:34px 0 12px;padding-bottom:8px;border-bottom:3px solid var(--mag)}\n  .doc h1:first-child{margin-top:6px}\n  .doc h2{font-size:19px;color:var(--mag);margin:26px 0 8px}\n  .doc p{margin:10px 0}\n  .doc blockquote{margin:14px 0;padding:10px 16px;background:#F4F1F5;border-left:3px solid var(--org);color:var(--muted);border-radius:0 8px 8px 0}\n  .doc code{font-family:ui-monospace,Consolas,monospace;font-size:.88em;color:#B30059;background:#faf0f5;padding:1px 5px;border-radius:4px}\n  .doc pre{background:#0C1119;color:#D7DEE7;padding:16px 18px;border-radius:10px;overflow:auto;font-size:12.5px;line-height:1.6}\n  .doc pre code{color:inherit;background:none;padding:0}\n  .doc table{border-collapse:collapse;width:100%;margin:14px 0;font-size:13.5px}\n  .doc th{background:#10151C;color:#fff;text-align:left;padding:9px 12px;font-weight:600}\n  .doc td{border:1px solid #D9DEE6;padding:8px 12px;vertical-align:top}\n  .doc tr:nth-child(even) td{background:#F7F8FA}\n  .doc ul,.doc ol{margin:10px 0;padding-left:26px}\n  .doc li{margin:5px 0}\n</style></head><body>\n<div class=\"bar\">\n  <div><div class=\"eb\">Splunk &middot; a Cisco company</div><div class=\"ttl\">Executive Cyber Risk Dashboard &mdash; Data Sources Reference</div></div>\n  <button class=\"btn\" onclick=\"window.print()\">Print / Save as PDF</button>\n</div>\n<div class=\"doc\"><h1\nid=\"executive-cyber-risk-dashboard--data-sources-reference\">Executive\nCyber Risk Dashboard \u2014 Data Sources Reference</h1>\n<p>Companion to <code>executive-cyber-risk.xml</code> and\n<code>executive-cyber-risk-dashboard.html</code>. This document lists\neverything the dashboard needs to run against live data in Splunk:\nindexes, sourcetypes, key fields, the Common Information Model (CIM)\ndata models that normalize them, and the apps that make each panel\nwork.</p>\n<hr />\n<h2 id=\"1-prerequisites\">1. Prerequisites</h2>\n<table>\n<thead>\n<tr class=\"header\">\n<th>Requirement</th>\n<th>Why it's needed</th>\n<th>Where to get it</th>\n</tr>\n</thead>\n<tbody>\n<tr class=\"odd\">\n<td>Splunk Enterprise / Cloud 9.x+</td>\n<td>Base platform</td>\n<td>core</td>\n</tr>\n<tr class=\"even\">\n<td>Splunk Common Information Model (CIM) add-on</td>\n<td>Field normalization (<code>severity</code>, <code>src_ip</code>,\n<code>signature</code>, etc.)</td>\n<td>Splunkbase, free</td>\n</tr>\n<tr class=\"odd\">\n<td>Geospatial lookups (<code>geo_countries</code>)</td>\n<td>Powers the choropleth attack map via the <code>geom</code>\ncommand</td>\n<td>ships with Splunk core</td>\n</tr>\n<tr class=\"even\">\n<td><code>iplocation</code> / MaxMind GeoIP database</td>\n<td>Resolves <code>src_ip</code> to <code>Country</code> for the map and\norigin table</td>\n<td>ships with core; refresh the GeoIP DB monthly</td>\n</tr>\n<tr class=\"odd\">\n<td>Splunk Enterprise Security (optional but recommended)</td>\n<td>Supplies a maintained <code>risk</code> index and risk scoring</td>\n<td>Splunk ES</td>\n</tr>\n</tbody>\n</table>\n<blockquote>\n<p>The dashboard uses a <code>dark</code> theme and Simple XML version\n1.1. If you deploy on Dashboard Studio instead, the SPL below is\nunchanged \u2014 only the panel wrappers differ.</p>\n</blockquote>\n<hr />\n<h2 id=\"2-indexes-used\">2. Indexes used</h2>\n<p>The XML assumes these index names. Rename them to match your\nenvironment by editing the <code>index=</code> clause in each panel's\nsearch.</p>\n<table>\n<thead>\n<tr class=\"header\">\n<th>Index</th>\n<th>Purpose</th>\n<th>Typical retention</th>\n</tr>\n</thead>\n<tbody>\n<tr class=\"odd\">\n<td><code>security</code></td>\n<td>Normalized security alerts and detections (the core feed for most\npanels)</td>\n<td>90\u2013365 days</td>\n</tr>\n<tr class=\"even\">\n<td><code>vuln_scan</code></td>\n<td>Vulnerability scanner findings</td>\n<td>180+ days</td>\n</tr>\n<tr class=\"odd\">\n<td><code>incidents</code></td>\n<td>Incident / case records with open + close timestamps</td>\n<td>365+ days</td>\n</tr>\n<tr class=\"even\">\n<td><code>compliance</code></td>\n<td>Periodic control-assessment scores per framework</td>\n<td>365+ days</td>\n</tr>\n<tr class=\"odd\">\n<td><code>risk</code></td>\n<td>Risk-object scores (Splunk ES risk index, or a summary index you\npopulate)</td>\n<td>365+ days</td>\n</tr>\n</tbody>\n</table>\n<hr />\n<h2 id=\"3-panel-by-panel-data-requirements\">3. Panel-by-panel data\nrequirements</h2>\n<h3 id=\"key-risk-indicators-kri-row\">Key risk indicators (KRI row)</h3>\n<table>\n<thead>\n<tr class=\"header\">\n<th>Panel</th>\n<th>Index</th>\n<th>Required fields</th>\n<th>Notes</th>\n</tr>\n</thead>\n<tbody>\n<tr class=\"odd\">\n<td>Risk Score</td>\n<td><code>risk</code></td>\n<td><code>risk_score</code></td>\n<td>In Splunk ES this is the <code>risk</code> index. Otherwise populate\na summary index nightly with an aggregate 0\u2013100 score.</td>\n</tr>\n<tr class=\"even\">\n<td>Critical Alerts</td>\n<td><code>security</code></td>\n<td><code>severity</code></td>\n<td><code>severity</code> values normalized to\n<code>critical / high / medium / low / informational</code>.</td>\n</tr>\n<tr class=\"odd\">\n<td>High Alerts</td>\n<td><code>security</code></td>\n<td><code>severity</code></td>\n<td>Same source as above.</td>\n</tr>\n<tr class=\"even\">\n<td>Total Security Events</td>\n<td><code>security</code></td>\n<td>event count only</td>\n<td>Raw volume, no field dependency.</td>\n</tr>\n<tr class=\"odd\">\n<td>Open Vulnerabilities</td>\n<td><code>vuln_scan</code></td>\n<td><code>status</code>, <code>signature</code></td>\n<td><code>status=open</code>; <code>dc(signature)</code> counts distinct\nfindings.</td>\n</tr>\n<tr class=\"even\">\n<td>Avg MTTR</td>\n<td><code>incidents</code></td>\n<td><code>open_time</code>, <code>close_time</code>,\n<code>status</code></td>\n<td>Epoch seconds. MTTR =\n<code>(close_time - open_time)/3600</code>.</td>\n</tr>\n</tbody>\n</table>\n<h3 id=\"global-attack-map--top-origins\">Global attack map + top\norigins</h3>\n<table>\n<thead>\n<tr class=\"header\">\n<th>Field</th>\n<th>Source</th>\n<th>Notes</th>\n</tr>\n</thead>\n<tbody>\n<tr class=\"odd\">\n<td><code>src_ip</code></td>\n<td><code>security</code> (firewall, IDS/IPS, WAF, proxy, auth\nlogs)</td>\n<td>Must be a <strong>public/external</strong> IP for\n<code>iplocation</code> to resolve a country. Filter out RFC1918 ranges\nupstream if needed.</td>\n</tr>\n<tr class=\"even\">\n<td><code>Country</code></td>\n<td>derived by <code>iplocation src_ip</code></td>\n<td>The <code>geom geo_countries featureIdField=Country</code> command\njoins this to the world polygon lookup. Country names must match\n<code>geo_countries</code> (e.g. \"United States of America\", not\n\"USA\").</td>\n</tr>\n<tr class=\"odd\">\n<td><code>severity</code></td>\n<td><code>security</code></td>\n<td>Used to scope the map to material threats\n(<code>critical, high, medium</code>).</td>\n</tr>\n</tbody>\n</table>\n<p><strong>Map command chain:</strong>\n<code>... | iplocation src_ip | stats count by Country | geom geo_countries featureIdField=Country</code>\nThe <code>geom</code> command requires the bundled\n<code>geo_countries</code> KML lookup. If countries render blank, the\n<code>Country</code> value isn't matching the lookup's\n<code>featureId</code> \u2014 add a lookup/eval to normalize names.</p>\n<h3 id=\"threat-categories--volume--vulnerabilities\">Threat categories /\nvolume / vulnerabilities</h3>\n<table>\n<thead>\n<tr class=\"header\">\n<th>Panel</th>\n<th>Index</th>\n<th>Required fields</th>\n</tr>\n</thead>\n<tbody>\n<tr class=\"odd\">\n<td>Top Threat Categories</td>\n<td><code>security</code></td>\n<td><code>category</code> (e.g. malware, phishing, brute-force, c2,\nexfiltration, recon, web-app, ransomware)</td>\n</tr>\n<tr class=\"even\">\n<td>24-Hour Alert Volume</td>\n<td><code>security</code></td>\n<td><code>severity</code>, <code>_time</code> (drives\n<code>timechart span=1h count by severity</code>)</td>\n</tr>\n<tr class=\"odd\">\n<td>Open Vulnerabilities by Severity</td>\n<td><code>vuln_scan</code></td>\n<td><code>severity</code>, <code>signature</code>,\n<code>status</code></td>\n</tr>\n</tbody>\n</table>\n<h3 id=\"critical-event-log--compliance\">Critical event log +\ncompliance</h3>\n<table>\n<thead>\n<tr class=\"header\">\n<th>Panel</th>\n<th>Index</th>\n<th>Required fields</th>\n</tr>\n</thead>\n<tbody>\n<tr class=\"odd\">\n<td>Critical Event Log</td>\n<td><code>security</code></td>\n<td><code>_time</code>, <code>signature</code>, <code>src_ip</code>,\n<code>Country</code> (from <code>iplocation</code>),\n<code>dest_host</code>, <code>severity</code></td>\n</tr>\n<tr class=\"even\">\n<td>Compliance Posture</td>\n<td><code>compliance</code></td>\n<td><code>framework</code>, <code>score</code> (0\u2013100 per\nassessment)</td>\n</tr>\n</tbody>\n</table>\n<h3 id=\"sla-performance--mttr-trend\">SLA performance + MTTR trend</h3>\n<table>\n<thead>\n<tr class=\"header\">\n<th>Panel</th>\n<th>Index</th>\n<th>Required fields</th>\n</tr>\n</thead>\n<tbody>\n<tr class=\"odd\">\n<td>Response SLA Performance</td>\n<td><code>incidents</code></td>\n<td><code>priority</code>, <code>open_time</code>,\n<code>close_time</code>, <code>sla_target_hours</code>,\n<code>status</code></td>\n</tr>\n<tr class=\"even\">\n<td>MTTR Trend (30d)</td>\n<td><code>incidents</code></td>\n<td><code>priority</code>, <code>open_time</code>,\n<code>close_time</code>, <code>status</code>, <code>_time</code></td>\n</tr>\n</tbody>\n</table>\n<p><code>sla_target_hours</code> is the contractual target per priority\n(e.g. P1=2, P2=8, P3=48). Store it on the incident record, or replace it\nin the SPL with a static <code>case()</code> mapping.</p>\n<hr />\n<h2 id=\"4-cim-data-models-recommended-normalization-path\">4. CIM data\nmodels (recommended normalization path)</h2>\n<p>Rather than hard-coding index names, you can point the searches at\naccelerated CIM data models. Mapping:</p>\n<table>\n<thead>\n<tr class=\"header\">\n<th>Dashboard need</th>\n<th>CIM data model</th>\n<th>Notable normalized fields</th>\n</tr>\n</thead>\n<tbody>\n<tr class=\"odd\">\n<td>Security alerts, severity, categories</td>\n<td><strong>Alerts</strong> / <strong>Intrusion Detection</strong></td>\n<td><code>severity</code>, <code>signature</code>,\n<code>category</code>, <code>src</code>, <code>dest</code>,\n<code>ids_type</code></td>\n</tr>\n<tr class=\"even\">\n<td>Source IP geolocation</td>\n<td><strong>Network Traffic</strong></td>\n<td><code>src_ip</code> / <code>src</code>, <code>action</code>,\n<code>bytes_out</code></td>\n</tr>\n<tr class=\"odd\">\n<td>Vulnerabilities</td>\n<td><strong>Vulnerabilities</strong></td>\n<td><code>severity</code>, <code>signature</code>, <code>dest</code>,\n<code>cve</code>, <code>category</code></td>\n</tr>\n<tr class=\"even\">\n<td>Incidents / cases</td>\n<td><strong>Incident Management</strong> (or ES Notable)</td>\n<td><code>priority</code>, <code>status</code>, <code>owner</code>, time\nfields</td>\n</tr>\n<tr class=\"odd\">\n<td>Authentication-based attacks</td>\n<td><strong>Authentication</strong></td>\n<td><code>user</code>, <code>src</code>, <code>action</code>,\n<code>app</code></td>\n</tr>\n</tbody>\n</table>\n<p>Example CIM-style rewrite of the map search using\n<code>tstats</code>:</p>\n<pre class=\"spl\"><code>| tstats count from datamodel=Network_Traffic\n  where Network_Traffic.action=blocked by Network_Traffic.src_ip\n| rename Network_Traffic.src_ip as src_ip\n| iplocation src_ip\n| search Country=*\n| stats sum(count) as count by Country\n| geom geo_countries featureIdField=Country</code></pre>\n<hr />\n<h2 id=\"5-typical-contributing-log-sources\">5. Typical contributing log\nsources</h2>\n<table>\n<thead>\n<tr class=\"header\">\n<th>Category</th>\n<th>Example products feeding <code>security</code> /\n<code>vuln_scan</code> / <code>incidents</code></th>\n</tr>\n</thead>\n<tbody>\n<tr class=\"odd\">\n<td>Firewall / NGFW</td>\n<td>Cisco Secure Firewall, Palo Alto, Fortinet</td>\n</tr>\n<tr class=\"even\">\n<td>IDS / IPS</td>\n<td>Cisco Secure IPS (Snort), Suricata, Zeek</td>\n</tr>\n<tr class=\"odd\">\n<td>Endpoint / XDR</td>\n<td>Cisco Secure Endpoint, CrowdStrike, Microsoft Defender</td>\n</tr>\n<tr class=\"even\">\n<td>Email security</td>\n<td>Cisco Secure Email, Proofpoint</td>\n</tr>\n<tr class=\"odd\">\n<td>Identity / auth</td>\n<td>Cisco Duo, Microsoft Entra ID, Okta</td>\n</tr>\n<tr class=\"even\">\n<td>Vulnerability scanning</td>\n<td>Tenable, Qualys, Rapid7</td>\n</tr>\n<tr class=\"odd\">\n<td>Case / incident mgmt</td>\n<td>Splunk ES Notables, ServiceNow SecOps</td>\n</tr>\n<tr class=\"even\">\n<td>Threat intel enrichment</td>\n<td>Cisco Talos, Splunk Threat Intelligence Management</td>\n</tr>\n</tbody>\n</table>\n<hr />\n<h2 id=\"6-deployment-checklist\">6. Deployment checklist</h2>\n<ol type=\"1\">\n<li>Install the CIM add-on and confirm <code>severity</code>,\n<code>src_ip</code>, <code>signature</code>, <code>category</code> are\npopulated.</li>\n<li>Confirm the GeoIP database is current\n(<code>| makeresults | eval ip=\"8.8.8.8\" | iplocation ip</code> should\nreturn a country).</li>\n<li>Replace placeholder index names (<code>security</code>,\n<code>vuln_scan</code>, <code>incidents</code>, <code>compliance</code>,\n<code>risk</code>) with yours.</li>\n<li>Set <code>sla_target_hours</code> on incident records, or hard-code\ntargets in the SLA panel SPL.</li>\n<li>In Splunk Web: <strong>Dashboards \u2192 Create New Dashboard \u2192\nClassic</strong> \u2192 switch to <strong>Source</strong> view \u2192 paste\n<code>executive-cyber-risk.xml</code>.</li>\n<li>Adjust the global time picker default if 24h isn't your standard\nexecutive window.</li>\n<li>(Optional) Schedule the underlying searches and convert single\nvalues to use saved-search references for faster load.</li>\n</ol>\n<hr />\n<h2 id=\"7-notes-on-the-html-demo\">7. Notes on the HTML demo</h2>\n<p><code>executive-cyber-risk-dashboard.html</code> renders\nrepresentative sample data so the layout and the live global threat map\ncan be reviewed without a Splunk backend. To wire it to live data,\nreplace the JavaScript data arrays (<code>KRIS</code>,\n<code>ORIGINS</code>, <code>CATS</code>, <code>VULN</code>,\n<code>FRAMEWORKS</code>, <code>SLA</code>) with values delivered from\nSplunk \u2014 either via the REST API (<code>/services/search/jobs</code>), a\nscheduled CSV export, or <code>$token$</code> substitution if the HTML\nis embedded in a Splunk HTML panel. The map's world geometry loads from\nthe <code>world-atlas</code> CDN; for an air-gapped environment, vendor\nthe TopoJSON file locally and update the <code>d3.json(...)</code>\npath.</p>\n</div></body></html>";
+function openInTab(htmlDoc){
+  const w = window.open('', '_blank');
+  if(!w){ alert('Please allow pop-ups for this page to open the file in a new tab.'); return; }
+  w.document.open(); w.document.write(htmlDoc); w.document.close();
+}
+document.getElementById('dlXml').addEventListener('click', e=>{ e.preventDefault(); openInTab(XML_VIEW); });
+document.getElementById('dlDoc').addEventListener('click', e=>{ e.preventDefault(); openInTab(DOC_VIEW); });
+</script>
 
 </body>
 </html>
