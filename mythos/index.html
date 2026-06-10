@@ -1,0 +1,587 @@
+<div style="padding: 15px;">
+  <a href="../" style="color:#4ea1ff; text-decoration:none; font-size:16px;">
+    ← Back to Demo Portal
+  </a>
+</div>
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Defending in the Mythos Era · Splunk</title>
+<link rel="stylesheet" href="https://rsms.me/inter/inter.css">
+<script src="https://cdn.jsdelivr.net/npm/d3@7/dist/d3.min.js"></script>
+<style>
+:root{
+  --magenta:#FF007F; --orange:#FF9000; --cyan:#02C8FF; --blue:#0A60FF; --violet:#A24BFF;
+  --splunk-gradient:linear-gradient(135deg,#FF007F 0%,#FF9000 100%);
+  --ai-gradient:linear-gradient(135deg,#A24BFF 0%,#02C8FF 100%);
+  --bg-top:#04070B; --bg-bottom:#0B1118;
+  --text:#F2F5FA; --text-muted:#BCC4CF; --text-subtle:#6E7682;
+  --card:#10151C; --card-2:#0C1119; --border:rgba(255,255,255,.07); --border-strong:rgba(255,255,255,.12);
+  --crit:#FF2D55; --high:#FF7A1A; --med:#FFB020; --low:#00E676; --info:#02C8FF;
+  --radius:16px; --font:"Inter","Inter var",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--font);background:linear-gradient(180deg,var(--bg-top),var(--bg-bottom));color:var(--text);
+  min-height:100vh;-webkit-font-smoothing:antialiased;font-feature-settings:"ss01","cv01","cv02";position:relative;overflow-x:hidden}
+.glow{position:fixed;border-radius:50%;filter:blur(150px);pointer-events:none;z-index:0}
+.g1{top:-220px;right:-160px;width:620px;height:620px;background:var(--magenta);opacity:.28}
+.g2{top:-120px;right:240px;width:420px;height:420px;background:var(--violet);opacity:.20}
+.g3{bottom:-260px;left:-180px;width:560px;height:560px;background:var(--cyan);opacity:.16}
+.wrap{position:relative;z-index:1;max-width:1640px;margin:0 auto;padding:28px 32px 56px}
+
+header{display:flex;align-items:center;justify-content:space-between;gap:24px;flex-wrap:wrap;margin-bottom:8px}
+.brand{display:flex;align-items:center;gap:16px}
+.mark{width:46px;height:46px;border-radius:13px;display:grid;place-items:center;background:var(--splunk-gradient);box-shadow:0 0 40px rgba(255,0,127,.45)}
+.mark svg{width:24px;height:24px}
+.wordmark{line-height:1.05}
+.wordmark .w{font-size:21px;font-weight:700;letter-spacing:-.02em}
+.wordmark .c{font-size:11px;color:var(--text-subtle)}
+.title-block{flex:1;min-width:280px}
+.title-block .eyebrow{font-size:12px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--violet)}
+.title-block h1{font-size:30px;font-weight:600;letter-spacing:-.02em;margin-top:2px;line-height:1.1}
+.title-block h1 .grad{background:var(--ai-gradient);-webkit-background-clip:text;background-clip:text;color:transparent}
+.title-block .sub{font-size:13px;color:var(--text-muted);margin-top:4px}
+.head-right{display:flex;align-items:center;gap:14px;flex-wrap:wrap;justify-content:flex-end}
+.resources{display:flex;align-items:center;gap:8px}
+.pill{display:inline-flex;align-items:center;gap:7px;padding:7px 13px;border-radius:999px;font-size:12.5px;font-weight:500;border:1px solid var(--border-strong);background:rgba(255,255,255,.03)}
+a.pill-link{text-decoration:none;color:var(--text);cursor:pointer;transition:border-color .18s,background .18s,transform .12s}
+a.pill-link:hover{border-color:var(--violet);background:rgba(162,75,255,.12)}
+a.pill-link:active{transform:translateY(1px)}
+a.pill-link svg{width:14px;height:14px;flex:none}
+.live-dot{width:8px;height:8px;border-radius:50%;background:var(--low);box-shadow:0 0 0 0 rgba(0,230,118,.6);animation:pulse 2s infinite}
+@keyframes pulse{0%{box-shadow:0 0 0 0 rgba(0,230,118,.55)}70%{box-shadow:0 0 0 9px rgba(0,230,118,0)}100%{box-shadow:0 0 0 0 rgba(0,230,118,0)}}
+.clock{font-variant-numeric:tabular-nums;font-weight:600;font-size:13px}
+.tf{color:var(--text-subtle)}
+.section-label{display:flex;align-items:center;gap:10px;margin:26px 2px 14px;font-size:12px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--text-subtle)}
+.section-label::after{content:"";flex:1;height:1px;background:var(--border)}
+
+.card{background:linear-gradient(180deg,var(--card),var(--card-2));border:1px solid var(--border);border-radius:var(--radius);padding:18px 20px;position:relative;overflow:hidden}
+.card h3{font-size:13.5px;font-weight:600;display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:14px}
+.card h3 .tag{font-size:10.5px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;padding:3px 8px;border-radius:999px}
+.tag.crit{background:rgba(255,45,85,.14);color:var(--crit)}
+.tag.warn{background:rgba(255,176,32,.14);color:var(--med)}
+.tag.ok{background:rgba(0,230,118,.13);color:var(--low)}
+.tag.info{background:rgba(2,200,255,.13);color:var(--info)}
+.tag.ai{background:rgba(162,75,255,.16);color:var(--violet)}
+
+.kris{display:grid;grid-template-columns:repeat(6,1fr);gap:14px}
+.kri{padding:16px 18px}
+.kri .lab{font-size:12px;color:var(--text-muted);font-weight:500}
+.kri .val{font-size:32px;font-weight:700;letter-spacing:-.02em;margin-top:4px;line-height:1;font-variant-numeric:tabular-nums}
+.kri .unit{font-size:14px;color:var(--text-subtle);font-weight:500}
+.kri .delta{font-size:12px;margin-top:8px;display:inline-flex;align-items:center;gap:5px;font-weight:500}
+.up{color:var(--crit)} .down{color:var(--low)} .flat{color:var(--text-subtle)}
+.kri.accent-ai{border-color:rgba(162,75,255,.35)}
+.kri .barwrap{height:4px;background:rgba(255,255,255,.06);border-radius:999px;margin-top:12px;overflow:hidden}
+.kri .barwrap i{display:block;height:100%;border-radius:999px}
+.riskrow{display:flex;align-items:center;gap:14px}
+.gauge{width:74px;height:74px;flex:none}
+
+.grid{display:grid;gap:14px}
+.g-hero{grid-template-columns:1.55fr 1fr}
+.g-3{grid-template-columns:1fr 1fr 1fr}
+.g-2{grid-template-columns:1fr 1fr}
+
+.axis text{fill:var(--text-subtle);font-size:10.5px}
+.axis line,.axis path{stroke:var(--border)}
+.gridline{stroke:rgba(255,255,255,.05)}
+.chartlegend{display:flex;gap:16px;flex-wrap:wrap;font-size:11.5px;color:var(--text-muted);margin-top:8px}
+.chartlegend span{display:inline-flex;align-items:center;gap:6px}
+.chartlegend i{width:11px;height:3px;border-radius:2px;display:block}
+
+.hbars{display:flex;flex-direction:column;gap:10px}
+.hbar{display:grid;grid-template-columns:150px 1fr 42px;align-items:center;gap:10px;font-size:12.5px}
+.hbar .track{height:9px;background:rgba(255,255,255,.06);border-radius:999px;overflow:hidden}
+.hbar .track i{display:block;height:100%;border-radius:999px;background:var(--ai-gradient)}
+.hbar .n{text-align:right;font-weight:600;font-variant-numeric:tabular-nums;color:var(--text-muted)}
+
+.donutwrap{display:flex;align-items:center;gap:18px}
+.donut{width:140px;height:140px;flex:none;position:relative}
+.donut .center{position:absolute;inset:0;display:grid;place-items:center;text-align:center}
+.donut .center .big{font-size:24px;font-weight:700;line-height:1}
+.donut .center .sm{font-size:10px;color:var(--text-subtle);letter-spacing:.08em;text-transform:uppercase}
+.dlegend{display:flex;flex-direction:column;gap:9px;flex:1}
+.dlegend .dl{display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:12.5px}
+.dlegend .dl .l{display:flex;align-items:center;gap:8px}
+.dlegend .dl .sw{width:9px;height:9px;border-radius:3px}
+.dlegend .dl .v{font-weight:600;font-variant-numeric:tabular-nums}
+
+.shadow{display:flex;flex-direction:column;gap:11px}
+.shadow .s{display:grid;grid-template-columns:1fr auto;gap:4px 10px;font-size:12.5px}
+.shadow .s .ep{display:flex;align-items:center;gap:8px;font-family:ui-monospace,Menlo,monospace;font-size:11.5px;color:var(--text-muted)}
+.shadow .s .mb{font-weight:600;font-variant-numeric:tabular-nums;text-align:right}
+.shadow .s .obar{grid-column:1 / 3;height:4px;background:rgba(255,255,255,.06);border-radius:999px;overflow:hidden}
+.shadow .s .obar i{display:block;height:100%;border-radius:999px}
+.flag{font-size:9.5px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;padding:2px 6px;border-radius:5px}
+.flag.un{background:rgba(255,45,85,.16);color:var(--crit)}
+.flag.ok{background:rgba(0,230,118,.14);color:var(--low)}
+
+table{width:100%;border-collapse:collapse;font-size:12.5px}
+thead th{text-align:left;font-size:10.5px;letter-spacing:.07em;text-transform:uppercase;color:var(--text-subtle);font-weight:600;padding:0 10px 10px}
+tbody td{padding:9px 10px;border-top:1px solid var(--border);font-variant-numeric:tabular-nums}
+tbody tr:first-child td{animation:flash .8s ease}
+@keyframes flash{from{background:rgba(162,75,255,.14)}to{background:transparent}}
+.mono{font-family:ui-monospace,Menlo,monospace;font-size:11.5px;color:var(--text-muted)}
+.ov{font-size:10.5px;font-weight:600;padding:2px 7px;border-radius:6px}
+.ov.auto{background:rgba(2,200,255,.14);color:var(--cyan)}
+.ov.human{background:rgba(255,176,32,.14);color:var(--med)}
+
+.sectors{display:flex;flex-direction:column;gap:12px}
+.sector{font-size:12.5px}
+.sector .top{display:flex;justify-content:space-between;margin-bottom:6px}
+.sector .top .a{color:var(--text-subtle)}
+.sector .track{height:9px;background:rgba(255,255,255,.06);border-radius:999px;overflow:hidden}
+.sector .track i{display:block;height:100%;border-radius:999px}
+
+.frameworks{display:flex;flex-direction:column;gap:13px}
+.fw{font-size:12.5px}
+.fw .top{display:flex;justify-content:space-between;margin-bottom:6px}
+.fw .top .s{font-weight:600;font-variant-numeric:tabular-nums}
+.fw .track{height:8px;background:rgba(255,255,255,.06);border-radius:999px;position:relative;overflow:hidden}
+.fw .track i{display:block;height:100%;border-radius:999px}
+.fw .target{position:absolute;top:-2px;bottom:-2px;width:2px;background:var(--text);opacity:.55}
+
+.note{font-size:12px;color:var(--text-muted);background:rgba(162,75,255,.06);border:1px solid rgba(162,75,255,.20);border-radius:12px;padding:12px 16px;margin:18px 0;display:flex;gap:10px;align-items:flex-start}
+.note b{color:var(--violet)}
+
+footer{margin-top:32px;padding-top:18px;border-top:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;font-size:11.5px;color:var(--text-subtle)}
+footer .r{text-align:right}
+
+@media(max-width:1240px){.kris{grid-template-columns:repeat(3,1fr)}.g-hero,.g-3,.g-2{grid-template-columns:1fr}}
+@media(max-width:620px){.kris{grid-template-columns:repeat(2,1fr)}.wrap{padding:20px 16px 40px}}
+
+/* ---- drilldown filter ---- */
+.filterbar{display:none;align-items:center;gap:10px;margin:14px 2px 2px;padding:10px 14px;border-radius:12px;
+  background:rgba(162,75,255,.10);border:1px solid rgba(162,75,255,.32);font-size:13px;color:var(--text)}
+.filterbar.on{display:flex}
+.filterbar .ft{font-weight:700;color:var(--violet)}
+.filterbar .hint2{color:var(--text-subtle);font-size:12px}
+.filterbar .clear{margin-left:auto;cursor:pointer;border:1px solid var(--border-strong);background:rgba(255,255,255,.04);
+  color:var(--text);border-radius:999px;padding:5px 13px;font-size:12px;font-weight:500}
+.filterbar .clear:hover{border-color:var(--violet);background:rgba(162,75,255,.14)}
+.card.filtered{box-shadow:0 0 0 1px rgba(162,75,255,.55),0 0 22px rgba(162,75,255,.16);border-color:rgba(162,75,255,.45)}
+.hbar.clickable,.sector.clickable{cursor:pointer;transition:opacity .15s}
+.hbar.clickable:hover .track,.sector.clickable:hover .track{outline:1px solid rgba(162,75,255,.55);outline-offset:1px;border-radius:999px}
+.hbar.sel .track i{background:var(--violet)!important}
+.sector.sel{outline:1px solid rgba(162,75,255,.5);outline-offset:3px;border-radius:8px}
+.hbar.dim,.sector.dim{opacity:.4}
+.empty{font-size:12.5px;color:var(--text-subtle);padding:20px 4px;text-align:center}
+</style>
+</head>
+<body>
+<div class="glow g1"></div><div class="glow g2"></div><div class="glow g3"></div>
+
+<div class="wrap">
+  <header>
+    <div class="brand">
+      <div class="mark" title="Splunk · a Cisco company">
+        <svg viewBox="0 0 24 24" fill="none"><path d="M4 5l11 7-11 7V5z" fill="#fff"/><path d="M14 11h6v2h-6z" fill="#fff" opacity=".85"/></svg>
+      </div>
+      <div class="wordmark"><div class="w">splunk</div><div class="c">a Cisco company</div></div>
+    </div>
+    <div class="title-block">
+      <div class="eyebrow">Frontier-AI threat operations · Confidential</div>
+      <h1>Defending in the <span class="grad">Mythos</span> era</h1>
+      <div class="sub">AI-powered threats, agentic-AI assurance, and machine-speed response for critical infrastructure</div>
+    </div>
+    <div class="head-right">
+      <div class="resources">
+        <a class="pill pill-link" href="#" id="openXml" title="Open the Splunk Simple XML in a new tab">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l-6-6 6-6"/><path d="M15 6l6 6-6 6"/></svg>
+          Splunk XML
+        </a>
+        <a class="pill pill-link" href="#" id="openData" title="Open the required data sources in a new tab">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="8" ry="3"/><path d="M4 5v6c0 1.66 3.58 3 8 3s8-1.34 8-3V5"/><path d="M4 11v6c0 1.66 3.58 3 8 3s8-1.34 8-3v-6"/></svg>
+          Required data sources
+        </a>
+      </div>
+      <span class="pill"><span class="live-dot"></span> Live</span>
+      <span class="pill tf">Last 24 hours</span>
+      <span class="pill"><span class="clock" id="clock">--:--:--</span></span>
+    </div>
+  </header>
+
+  <div class="note">
+    <span>🜂</span>
+    <div><b>Mythos-era defense.</b> This board tracks both sides of the frontier-AI threat surface: machine-speed adversarial activity and assurance over the organization's own AI agents. It renders sample data for review. <b>Click any threat vector or infrastructure sector to filter the board; click it again or use Clear to reset.</b> Use the top-right links to open the <span style="color:var(--text)">Splunk Simple XML</span> (paste into Splunk to bind every panel to live searches) and the <span style="color:var(--text)">required data sources</span> — each opens in a new browser tab.</div>
+  </div>
+
+  <div class="filterbar" id="filterbar"><span id="filtertext"></span><span class="hint2">— threat-activity panels recompute; posture panels (risk index, fleet, governance, efficacy) stay board-level</span><button class="clear" id="filterclear">Clear filter</button></div>
+  <div class="section-label">Mythos-era key indicators</div>
+  <div class="kris" id="kris"></div>
+
+  <div class="section-label">Machine-speed engagement</div>
+  <div class="grid g-hero">
+    <div class="card">
+      <h3>Attack velocity vs autonomous defense — 24h <span class="tag ai">Machine speed</span></h3>
+      <svg id="engage" viewBox="0 0 700 250" preserveAspectRatio="none" style="width:100%;height:230px"></svg>
+      <div class="chartlegend" id="engage-legend"></div>
+    </div>
+    <div class="card">
+      <h3>AI threat vectors <span class="tag crit">24h</span></h3>
+      <div class="hbars" id="vectors"></div>
+    </div>
+  </div>
+
+  <div class="section-label">Agentic AI assurance &amp; exposure</div>
+  <div class="grid g-3">
+    <div class="card">
+      <h3>Agentic AI fleet <span class="tag ai">342 agents</span></h3>
+      <div class="donutwrap">
+        <div class="donut"><svg viewBox="0 0 140 140" id="fleet"></svg><div class="center"><div class="big">342</div><div class="sm">Monitored</div></div></div>
+        <div class="dlegend" id="fleet-legend"></div>
+      </div>
+    </div>
+    <div class="card">
+      <h3>Prompt injection &amp; jailbreak <span class="tag warn">24h</span></h3>
+      <svg id="inject" viewBox="0 0 460 220" preserveAspectRatio="none" style="width:100%;height:190px"></svg>
+      <div class="chartlegend" id="inject-legend"></div>
+    </div>
+    <div class="card">
+      <h3>Shadow-AI data egress <span class="tag crit">Unsanctioned</span></h3>
+      <div class="shadow" id="shadow"></div>
+    </div>
+  </div>
+
+  <div class="grid g-2" style="margin-top:14px">
+    <div class="card">
+      <h3>Autonomous response actions <span class="tag info">Live · human-in-the-loop</span></h3>
+      <table>
+        <thead><tr><th>Time</th><th>Action</th><th>Trigger</th><th>Responder</th><th>Oversight</th></tr></thead>
+        <tbody id="actions"></tbody>
+      </table>
+    </div>
+    <div class="card">
+      <h3>Critical infrastructure exposure <span class="tag warn">By sector</span></h3>
+      <div class="sectors" id="sectors"></div>
+    </div>
+  </div>
+
+  <div class="grid g-2" style="margin-top:14px">
+    <div class="card">
+      <h3>AI governance &amp; control coverage <span class="tag info">vs target</span></h3>
+      <div class="frameworks" id="frameworks"></div>
+    </div>
+    <div class="card">
+      <h3>Detection efficacy — analyst vs AI-assisted <span class="tag ok">30 days</span></h3>
+      <svg id="efficacy" viewBox="0 0 460 230" preserveAspectRatio="none" style="width:100%;height:200px"></svg>
+      <div class="chartlegend" id="efficacy-legend"></div>
+    </div>
+  </div>
+
+  <footer>
+    <span>Splunk · a Cisco company &nbsp;·&nbsp; Frontier-AI Security Operations</span>
+    <span class="r">© 2026 Cisco and/or its affiliates. All rights reserved.<br>Cisco Confidential · Demo data</span>
+  </footer>
+</div>
+
+<script>
+/* ============================================================
+   SAMPLE MODEL + DRILLDOWN  (click a vector or sector to filter)
+   ============================================================ */
+const SEV={critical:'#FF2D55',high:'#FF7A1A',medium:'#FFB020',low:'#00E676',info:'#02C8FF'};
+const AI={violet:'#A24BFF',cyan:'#02C8FF',magenta:'#FF007F',orange:'#FF9000'};
+
+/* deterministic RNG so the demo is stable across reloads */
+let _s=20260608; function rnd(){_s=(_s*1664525+1013904223)&0x7fffffff;return _s/0x7fffffff;}
+function wpick(arr,k){let t=arr.reduce((a,x)=>a+x[k],0),r=rnd()*t;for(const x of arr){if((r-=x[k])<=0)return x;}return arr[arr.length-1];}
+
+const VEC_DEF=[
+  {c:'Prompt injection',n:596},{c:'Automated AI recon',n:401},{c:'LLM-crafted phishing',n:438},
+  {c:'Deepfake social engineering',n:287},{c:'Agentic intrusion',n:241},{c:'Adversarial evasion (ML)',n:168},
+  {c:'Model extraction',n:112},{c:'Training-data poisoning',n:74},
+];
+const SEC_DEF=[
+  {s:'Energy & utilities',w:5,assets:1240,c:SEV.crit},
+  {s:'Water systems',w:2,assets:430,c:SEV.high},
+  {s:'Telecommunications',w:3,assets:890,c:SEV.high},
+  {s:'Transportation',w:2,assets:610,c:SEV.medium},
+  {s:'Financial services',w:4,assets:1520,c:SEV.medium},
+];
+const ENDPOINTS=[
+  {ep:'api.openai.com',san:false,w:5},{ep:'api.anthropic.com',san:true,w:4},
+  {ep:'generativelanguage.googleapis.com',san:false,w:3},{ep:'copilot.microsoft.com',san:true,w:2},
+  {ep:'unknown-llm-proxy.io',san:false,w:2},{ep:'huggingface.co/inference',san:false,w:1},
+];
+/* hour weights — adversarial spike 02:00–05:00 */
+const HW=Array.from({length:24},(_,h)=>1+Math.sin(h/3.2)*0.4+((h>=2&&h<=5)?(h===3?3:1.8):0));
+
+/* build a single synthetic event log; every filterable panel derives from this */
+const EVENTS=[];
+VEC_DEF.forEach(v=>{
+  for(let i=0;i<v.n;i++){
+    const sec=wpick(SEC_DEF,'w').s;
+    let h=0,r=rnd()*HW.reduce((a,x)=>a+x,0);for(let k=0;k<24;k++){if((r-=HW[k])<=0){h=k;break;}}
+    const o=rnd();const outcome=v.c==='Prompt injection'?(o<0.85?'blocked':o<0.98?'flagged':'allowed'):null;
+    const egress=(rnd()<0.092);
+    const e={vec:v.c,sec,hr:h,outcome,aiAttr:rnd()<0.554,contained:rnd()<0.87,egress};
+    if(egress){const ep=wpick(ENDPOINTS,'w');e.ep=ep.ep;e.san=ep.san;e.bytes=Math.round((40+rnd()*420)*1024*1024);}
+    EVENTS.push(e);
+  }
+});
+
+/* ---- drilldown filter state ---- */
+let filter=null; // {type:'vector'|'sector', value}
+function matched(){return filter?EVENTS.filter(e=>filter.type==='vector'?e.vec===filter.value:e.sec===filter.value):EVENTS;}
+function toggleFilter(type,value){
+  filter=(filter&&filter.type===type&&filter.value===value)?null:{type,value};
+  applyFilter();
+}
+
+/* ============================================================
+   STATIC / POSTURE PANELS (board-level, not affected by filter)
+   ============================================================ */
+function gauge(score){
+  const r=30,cx=37,cy=37,circ=2*Math.PI*r,frac=score/100;
+  const col=score>=75?SEV.crit:score>=50?SEV.high:score>=25?SEV.med:SEV.low;
+  return `<svg class="gauge" viewBox="0 0 74 74">
+    <circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="rgba(255,255,255,.08)" stroke-width="7"/>
+    <circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="${col}" stroke-width="7" stroke-linecap="round"
+      stroke-dasharray="${circ}" stroke-dashoffset="${circ*(1-frac)}" transform="rotate(-90 ${cx} ${cy})"/>
+    <text x="${cx}" y="${cy+2}" text-anchor="middle" font-size="20" font-weight="700" fill="#F2F5FA">${score}</text>
+    <text x="${cx}" y="${cy+13}" text-anchor="middle" font-size="8" fill="#6E7682">/100</text></svg>`;
+}
+const arrow=d=>d==='up'?'▲':d==='down'?'▼':'—';
+
+/* fleet donut (static) */
+(function(){
+  const FLEET=[{l:'Autonomous · healthy',n:268,c:SEV.low},{l:'Supervised',n:51,c:AI.cyan},{l:'Flagged · anomalous',n:23,c:SEV.crit}];
+  const arc=d3.arc().innerRadius(44).outerRadius(64).padAngle(.04).cornerRadius(2);
+  const pie=d3.pie().value(d=>d.n).sort(null)(FLEET);
+  d3.select('#fleet').append('g').attr('transform','translate(70,70)').selectAll('path').data(pie).enter()
+    .append('path').attr('d',arc).attr('fill',d=>d.data.c);
+  const leg=document.getElementById('fleet-legend');
+  FLEET.forEach(f=>leg.insertAdjacentHTML('beforeend',
+    `<div class="dl"><span class="l"><span class="sw" style="background:${f.c}"></span>${f.l}</span><span class="v">${f.n}</span></div>`));
+})();
+
+/* governance (static) */
+(function(){
+  const FW=[{f:'NIST AI RMF 1.0',s:78,t:85},{f:'ISO/IEC 42001',s:71,t:80},{f:'OWASP LLM Top 10',s:82,t:90},
+    {f:'MITRE ATLAS coverage',s:64,t:75},{f:'Canada CCCS / Bill C-26',s:69,t:80}];
+  const el=document.getElementById('frameworks');
+  FW.forEach(f=>{const col=f.s>=f.t?SEV.low:f.s>=f.t-10?SEV.medium:SEV.high;const d=document.createElement('div');d.className='fw';
+    d.innerHTML=`<div class="top"><span>${f.f}</span><span class="s" style="color:${col}">${f.s}%</span></div>
+      <div class="track"><i style="width:${f.s}%;background:${col}"></i><span class="target" style="left:${f.t}%"></span></div>`;el.appendChild(d);});
+})();
+
+/* efficacy lines (static) */
+(function(){
+  const days=30;
+  const series=[{k:'Analyst-only',c:SEV.medium,b:8.5,slope:.12},{k:'AI-assisted',c:AI.cyan,b:3.0,slope:.62}]
+    .map(s=>({k:s.k,c:s.c,vals:d3.range(days).map(d=>Math.max(.4,s.b*(1-d/days*s.slope)+(rnd()-.5)*s.b*0.12))}));
+  const m={t:14,r:10,b:22,l:30},w=460-m.l-m.r,hh=230-m.t-m.b;
+  const g=d3.select('#efficacy').append('g').attr('transform',`translate(${m.l},${m.t})`);
+  const x=d3.scaleLinear().domain([0,days-1]).range([0,w]);
+  const y=d3.scaleLinear().domain([0,d3.max(series,s=>d3.max(s.vals))]).nice().range([hh,0]);
+  g.append('g').attr('class','axis').call(d3.axisLeft(y).ticks(4).tickSize(-w).tickFormat(d=>d+'h')).select('.domain').remove();
+  g.append('g').attr('class','axis').attr('transform',`translate(0,${hh})`)
+    .call(d3.axisBottom(x).tickValues([0,10,20,29]).tickFormat(d=>(days-d)+'d').tickSize(0).tickPadding(8)).select('.domain').remove();
+  g.selectAll('.axis line').attr('class','gridline');
+  const line=d3.line().x((d,i)=>x(i)).y(d=>y(d)).curve(d3.curveMonotoneX);
+  series.forEach(s=>{g.append('path').datum(s.vals).attr('d',line).attr('fill','none').attr('stroke',s.c).attr('stroke-width',2);
+    g.append('circle').attr('cx',x(days-1)).attr('cy',y(s.vals[days-1])).attr('r',3).attr('fill',s.c);});
+  const leg=document.getElementById('efficacy-legend');
+  series.forEach(s=>leg.insertAdjacentHTML('beforeend',`<span><i style="background:${s.c}"></i>${s.k} MTTR</span>`));
+})();
+
+/* ============================================================
+   FILTERABLE PANELS (recompute from matched events)
+   ============================================================ */
+function renderKRIs(){
+  const m=matched(),on=!!filter;
+  const aiAttacks=m.filter(e=>e.aiAttr).length;
+  const piBlocked=m.filter(e=>e.vec==='Prompt injection'&&e.outcome==='blocked').length;
+  const shadow=m.filter(e=>e.egress).length;
+  const contain=m.length?Math.round(m.filter(e=>e.contained).length/m.length*100):0;
+  const tiles=[
+    {lab:'Mythos-era risk index',risk:true,val:72,tag:'ELEVATED',delta:'+6 vs last week',dir:'up',posture:true},
+    {lab:'AI-attributed attacks',val:aiAttacks.toLocaleString(),sub:on?'in filtered subset':null,delta:'+312 vs yesterday',dir:'up',bar:Math.min(1,aiAttacks/1300),barc:AI.violet,accent:true},
+    {lab:'Agents monitored',val:342,delta:'+18 newly enrolled',dir:'up',bar:.6,barc:AI.cyan,posture:true},
+    {lab:'Prompt injections blocked',val:piBlocked.toLocaleString(),sub:on?'in filtered subset':null,delta:'+143 vs yesterday',dir:'up',bar:Math.min(1,piBlocked/600),barc:SEV.high},
+    {lab:'Shadow-AI egress events',val:shadow.toLocaleString(),sub:on?'in filtered subset':null,delta:'–22 vs yesterday',dir:'down',bar:Math.min(1,shadow/220),barc:SEV.medium},
+    {lab:'Autonomous containment',val:contain,unit:'%',tag:'4.2s MTTR',delta:'+5pts vs last week',dir:'down',bar:contain/100,barc:SEV.low},
+  ];
+  const el=document.getElementById('kris');el.innerHTML='';
+  tiles.forEach(k=>{
+    const d=document.createElement('div');
+    d.className='card kri'+(k.accent?' accent-ai':'')+((on&&!k.posture)?' filtered':'');
+    if(k.risk){
+      d.innerHTML=`<div class="lab">${k.lab}</div><div class="riskrow">${gauge(k.val)}
+        <div><div style="font-size:11px;font-weight:600;letter-spacing:.06em;color:${k.val>=50?'#FF7A1A':'#00E676'}">${k.tag}</div>
+        <div class="delta ${k.dir}">${arrow(k.dir)} ${k.delta}</div></div></div>`;
+    } else {
+      d.innerHTML=`<div class="lab">${k.lab}</div>
+        <div class="val">${k.val}${k.unit?`<span class="unit">${k.unit}</span>`:''}</div>
+        ${k.tag?`<div style="font-size:11px;font-weight:600;color:var(--cyan);margin-top:3px">${k.tag}</div>`:''}
+        <div class="delta ${k.sub?'flat':k.dir}">${k.sub?k.sub:arrow(k.dir)+' '+k.delta}</div>
+        <div class="barwrap"><i style="width:${k.bar*100}%;background:${k.barc}"></i></div>`;
+    }
+    el.appendChild(d);
+  });
+}
+
+function renderEngage(){
+  const m=matched();
+  const data=d3.range(24).map(h=>{const atk=m.filter(e=>e.hr===h).length;return {h,atk,def:Math.max(1,Math.round(atk*0.9)+ (h%3))};});
+  const mx={t:14,r:10,b:22,l:30},w=700-mx.l-mx.r,hh=250-mx.t-mx.b;
+  const svg=d3.select('#engage');svg.selectAll('*').remove();
+  const g=svg.append('g').attr('transform',`translate(${mx.l},${mx.t})`);
+  const x=d3.scaleLinear().domain([0,23]).range([0,w]);
+  const y=d3.scaleLinear().domain([0,d3.max(data,d=>Math.max(d.atk,d.def))||1]).nice().range([hh,0]);
+  const defs=svg.append('defs');
+  [['gAtk',AI.magenta],['gDef',AI.cyan]].forEach(([id,c])=>{const lg=defs.append('linearGradient').attr('id',id).attr('x1',0).attr('x2',0).attr('y1',0).attr('y2',1);
+    lg.append('stop').attr('offset','0%').attr('stop-color',c).attr('stop-opacity',.45);lg.append('stop').attr('offset','100%').attr('stop-color',c).attr('stop-opacity',.02);});
+  g.append('g').attr('class','axis').call(d3.axisLeft(y).ticks(4).tickSize(-w)).select('.domain').remove();
+  g.append('g').attr('class','axis').attr('transform',`translate(0,${hh})`)
+    .call(d3.axisBottom(x).ticks(6).tickFormat(d=>String(d).padStart(2,'0')+':00').tickSize(0).tickPadding(8)).select('.domain').remove();
+  g.selectAll('.axis line').attr('class','gridline');
+  const area=k=>d3.area().x(d=>x(d.h)).y0(hh).y1(d=>y(d[k])).curve(d3.curveBasis);
+  const line=k=>d3.line().x(d=>x(d.h)).y(d=>y(d[k])).curve(d3.curveBasis);
+  g.append('path').datum(data).attr('d',area('atk')).attr('fill','url(#gAtk)');
+  g.append('path').datum(data).attr('d',area('def')).attr('fill','url(#gDef)');
+  g.append('path').datum(data).attr('d',line('atk')).attr('fill','none').attr('stroke',AI.magenta).attr('stroke-width',2);
+  g.append('path').datum(data).attr('d',line('def')).attr('fill','none').attr('stroke',AI.cyan).attr('stroke-width',2);
+  document.getElementById('engage-legend').innerHTML=
+    `<span><i style="background:${AI.magenta}"></i>Adversarial actions / hr</span><span><i style="background:${AI.cyan}"></i>Autonomous defensive actions / hr</span>`;
+}
+
+function renderVectors(){
+  const src=(filter&&filter.type==='sector')?EVENTS.filter(e=>e.sec===filter.value):EVENTS;
+  const counts=VEC_DEF.map(v=>({c:v.c,n:src.filter(e=>e.vec===v.c).length})).sort((a,b)=>b.n-a.n);
+  const max=Math.max(1,...counts.map(v=>v.n)),el=document.getElementById('vectors');el.innerHTML='';
+  counts.forEach(v=>{
+    const sel=filter&&filter.type==='vector'&&filter.value===v.c;
+    const dim=filter&&filter.type==='vector'&&!sel;
+    const r=document.createElement('div');r.className='hbar clickable'+(sel?' sel':'')+(dim?' dim':'');
+    r.innerHTML=`<span>${v.c}</span><div class="track"><i style="width:${v.n/max*100}%"></i></div><span class="n">${v.n}</span>`;
+    r.onclick=()=>toggleFilter('vector',v.c);el.appendChild(r);
+  });
+}
+
+function renderSectors(){
+  const src=(filter&&filter.type==='vector')?EVENTS.filter(e=>e.vec===filter.value):EVENTS;
+  const rows=SEC_DEF.map(s=>({...s,n:src.filter(e=>e.sec===s.s).length})).sort((a,b)=>b.n-a.n);
+  const max=Math.max(1,...rows.map(r=>r.n)),el=document.getElementById('sectors');el.innerHTML='';
+  rows.forEach(s=>{
+    const sel=filter&&filter.type==='sector'&&filter.value===s.s;
+    const dim=filter&&filter.type==='sector'&&!sel;
+    const d=document.createElement('div');d.className='sector clickable'+(sel?' sel':'')+(dim?' dim':'');
+    d.innerHTML=`<div class="top"><span>${s.s}</span><span class="a">${s.assets.toLocaleString()} assets · <b style="color:${s.c}">${s.n.toLocaleString()}</b></span></div>
+      <div class="track"><i style="width:${s.n/max*100}%;background:${s.c}"></i></div>`;
+    d.onclick=()=>toggleFilter('sector',s.s);el.appendChild(d);
+  });
+}
+
+function renderInjection(){
+  const m=matched().filter(e=>e.vec==='Prompt injection');
+  const svg=d3.select('#inject');svg.selectAll('*').remove();
+  const leg=document.getElementById('inject-legend');leg.innerHTML='';
+  if(!m.length){
+    svg.append('text').attr('x',230).attr('y',95).attr('text-anchor','middle').attr('fill','#6E7682').attr('font-size','12.5')
+      .text('No prompt-injection activity for this filter');
+    return;
+  }
+  const keys=['blocked','flagged','allowed'],col={blocked:SEV.low,flagged:SEV.medium,allowed:SEV.crit};
+  const data=d3.range(24).map(h=>{const sub=m.filter(e=>e.hr===h);
+    return {h,blocked:sub.filter(e=>e.outcome==='blocked').length,flagged:sub.filter(e=>e.outcome==='flagged').length,allowed:sub.filter(e=>e.outcome==='allowed').length};});
+  const mx={t:12,r:8,b:22,l:26},w=460-mx.l-mx.r,hh=220-mx.t-mx.b;
+  const g=svg.append('g').attr('transform',`translate(${mx.l},${mx.t})`);
+  const x=d3.scaleLinear().domain([0,23]).range([0,w]);
+  const stack=d3.stack().keys(keys)(data);
+  const y=d3.scaleLinear().domain([0,d3.max(stack[stack.length-1],d=>d[1])||1]).nice().range([hh,0]);
+  const area=d3.area().x(d=>x(d.data.h)).y0(d=>y(d[0])).y1(d=>y(d[1])).curve(d3.curveBasis);
+  g.selectAll('path').data(stack).enter().append('path').attr('d',area).attr('fill',d=>col[d.key]).attr('opacity',.8);
+  g.append('g').attr('class','axis').attr('transform',`translate(0,${hh})`)
+    .call(d3.axisBottom(x).ticks(5).tickFormat(d=>String(d).padStart(2,'0')).tickSize(0).tickPadding(8)).select('.domain').remove();
+  g.append('g').attr('class','axis').call(d3.axisLeft(y).ticks(4).tickSize(-w)).select('.domain').remove();
+  g.selectAll('.axis line').attr('class','gridline');
+  keys.forEach(k=>leg.insertAdjacentHTML('beforeend',`<span><i style="background:${col[k]}"></i>${k}</span>`));
+}
+
+function renderShadow(){
+  const m=matched().filter(e=>e.egress);
+  const el=document.getElementById('shadow');el.innerHTML='';
+  if(!m.length){el.innerHTML='<div class="empty">No shadow-AI egress for this filter</div>';return;}
+  const agg={};m.forEach(e=>{(agg[e.ep]=agg[e.ep]||{ep:e.ep,san:e.san,bytes:0}).bytes+=e.bytes;});
+  const rows=Object.values(agg).sort((a,b)=>b.bytes-a.bytes).slice(0,6);
+  const max=Math.max(...rows.map(r=>r.bytes));
+  rows.forEach(s=>{
+    const mb=s.bytes/1024/1024,lab=mb>=1024?(mb/1024).toFixed(1)+' GB':Math.round(mb)+' MB';
+    const r=document.createElement('div');r.className='s';
+    r.innerHTML=`<div class="ep"><span class="flag ${s.san?'ok':'un'}">${s.san?'Sanctioned':'Shadow'}</span>${s.ep}</div>
+      <div class="mb">${lab}</div><div class="obar"><i style="width:${s.bytes/max*100}%;background:${s.san?SEV.low:SEV.crit}"></i></div>`;
+    el.appendChild(r);
+  });
+}
+
+/* autonomous actions — live, drawn from matched events */
+const VEC_ACT={
+  'Prompt injection':['Blocked prompt-injection payload','Injection signature at AI gateway'],
+  'Automated AI recon':['Throttled API key','Automated recon velocity'],
+  'LLM-crafted phishing':['Held phishing campaign','LLM-crafted lure cluster'],
+  'Deepfake social engineering':['Quarantined deepfake media','Voice/video liveness failure'],
+  'Agentic intrusion':['Isolated endpoint','Agentic lateral movement'],
+  'Adversarial evasion (ML)':['Re-scored detection model','Adversarial evasion attempt'],
+  'Model extraction':['Blocked egress to external model','Model-extraction query burst'],
+  'Training-data poisoning':['Quarantined model artifact','Poisoned-data indicator'],
+};
+const RESPONDERS=['Sentinel-Agent','Egress-Guard','ML-Integrity','Rate-Sentinel','Mail-Defender'];
+const ts=d=>d.toTimeString().slice(0,8);
+function mkAction(){
+  const pool=matched();if(!pool.length)return null;
+  const e=pool[Math.floor(rnd()*pool.length)],a=VEC_ACT[e.vec];
+  return {t:ts(new Date()),act:a[0],trig:a[1]+' · '+e.sec,resp:RESPONDERS[Math.floor(rnd()*RESPONDERS.length)],ov:e.contained?'auto':'human'};
+}
+let acts=[];
+function actRow(a){return `<td class="mono">${a.t}</td><td>${a.act}</td><td>${a.trig}</td>
+  <td class="mono">${a.resp}</td><td><span class="ov ${a.ov}">${a.ov==='auto'?'Autonomous':'Human-approved'}</span></td>`;}
+function renderActs(){
+  const el=document.getElementById('actions');el.innerHTML='';
+  if(!acts.length){el.innerHTML='<tr><td colspan="5" class="empty">No response actions for this filter</td></tr>';return;}
+  acts.slice(0,8).forEach(a=>{const tr=document.createElement('tr');tr.innerHTML=actRow(a);el.appendChild(tr);});
+}
+function resetActions(){acts=[];for(let i=0;i<8;i++){const a=mkAction();if(!a)break;a.t=ts(new Date(Date.now()-i*38000));acts.push(a);}renderActs();}
+
+/* ============================================================
+   APPLY FILTER — re-render filterable panels + rings + banner
+   ============================================================ */
+const RING_IDS=['engage','vectors','inject','shadow','sectors','actions'];
+function applyFilter(){
+  renderKRIs();renderEngage();renderVectors();renderSectors();renderInjection();renderShadow();resetActions();
+  const on=!!filter;
+  RING_IDS.forEach(id=>{const c=document.getElementById(id).closest('.card');if(c)c.classList.toggle('filtered',on);});
+  const fb=document.getElementById('filterbar');
+  if(on){fb.classList.add('on');
+    document.getElementById('filtertext').innerHTML=`Filtering board · ${filter.type==='vector'?'threat vector':'sector'}: <span class="ft">${filter.value}</span>`;}
+  else fb.classList.remove('on');
+}
+document.getElementById('filterclear').onclick=()=>{filter=null;applyFilter();};
+
+/* ---- live ---- */
+function tickClock(){document.getElementById('clock').textContent=new Date().toTimeString().slice(0,8)+' UTC';}
+tickClock();setInterval(tickClock,1000);
+setInterval(()=>{const a=mkAction();if(a){acts.unshift(a);acts=acts.slice(0,8);renderActs();}},5500);
+
+applyFilter(); // initial render (no filter)
+
+</script>
+<script>
+/* Companion files open in a new browser tab. Both views are embedded so this
+   works even when the HTML is opened directly from disk (file://). */
+const XML_VIEW = "<!DOCTYPE html><html lang=\"en\"><head><meta charset=\"UTF-8\">\n<meta name=\"viewport\" content=\"width=device-width,initial-scale=1\">\n<title>Splunk Simple XML \u2014 Defending in the Mythos Era</title>\n<style>\n  :root{--mag:#FF007F;--violet:#A24BFF;--cyan:#02C8FF}\n  *{box-sizing:border-box}\n  body{margin:0;background:linear-gradient(180deg,#04070B,#0B1118);color:#F2F5FA;\n    font-family:-apple-system,BlinkMacSystemFont,\"Segoe UI\",Inter,sans-serif;min-height:100vh}\n  .bar{position:sticky;top:0;display:flex;align-items:center;justify-content:space-between;gap:16px;\n    padding:16px 28px;background:rgba(4,7,11,.85);backdrop-filter:blur(8px);border-bottom:1px solid rgba(255,255,255,.08)}\n  .ttl{font-size:15px;font-weight:600}\n  .eb{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--violet);font-weight:600}\n  .btn{border:1px solid rgba(255,255,255,.18);background:rgba(255,255,255,.03);color:#F2F5FA;\n    font:inherit;font-size:13px;padding:8px 16px;border-radius:999px;cursor:pointer}\n  .btn:hover{border-color:var(--violet);background:rgba(162,75,255,.14)}\n  .wrap{max-width:1100px;margin:0 auto;padding:24px 28px 60px}\n  .hint{font-size:13px;color:#BCC4CF;margin:4px 0 18px}\n  pre{margin:0;padding:22px;border-radius:14px;background:#0C1119;border:1px solid rgba(255,255,255,.08);\n    overflow:auto;font-family:ui-monospace,\"SF Mono\",Menlo,Consolas,monospace;font-size:12.5px;line-height:1.6;\n    color:#D7DEE7;white-space:pre;tab-size:2}\n</style></head><body>\n<div class=\"bar\">\n  <div><div class=\"eb\">Splunk &middot; a Cisco company</div><div class=\"ttl\">Defending in the Mythos Era &mdash; Simple XML</div></div>\n  <button class=\"btn\" onclick=\"(function(b){var r=document.createRange();r.selectNode(document.getElementById('xml'));var s=window.getSelection();s.removeAllRanges();s.addRange(r);try{document.execCommand('copy');b.textContent='\u2713 Copied';setTimeout(function(){b.textContent='Copy to clipboard'},1800);}catch(e){b.textContent='Press Ctrl/Cmd+C';}s.removeAllRanges();})(this)\">Copy to clipboard</button>\n</div>\n<div class=\"wrap\">\n  <p class=\"hint\">Paste into Splunk: <b>Dashboards &rarr; Create New Dashboard &rarr; Classic (Simple XML) &rarr; Edit &rarr; Source</b>, then replace the source with everything below. Click a threat-vector or sector bar to filter the board.</p>\n  <pre id=\"xml\">&lt;form theme=&quot;dark&quot; version=&quot;1.1&quot;&gt;\n  &lt;label&gt;Defending in the Mythos Era \u2014 Frontier-AI Threat Operations&lt;/label&gt;\n  &lt;description&gt;AI-powered threats, agentic-AI assurance, and machine-speed response for critical infrastructure. Click a threat vector or sector bar to filter the board.&lt;/description&gt;\n\n  &lt;!-- Drilldown tokens default to * (match all). Clicking a bar sets them;\n       clicking the same bar again resets to * (toggle). --&gt;\n  &lt;init&gt;\n    &lt;set token=&quot;vector&quot;&gt;*&lt;/set&gt;\n    &lt;set token=&quot;sector&quot;&gt;*&lt;/set&gt;\n  &lt;/init&gt;\n\n  &lt;fieldset submitButton=&quot;false&quot; autoRun=&quot;true&quot;&gt;\n    &lt;input type=&quot;time&quot; token=&quot;time&quot; searchWhenChanged=&quot;true&quot;&gt;\n      &lt;label&gt;Time range&lt;/label&gt;\n      &lt;default&gt;\n        &lt;earliest&gt;-24h@h&lt;/earliest&gt;\n        &lt;latest&gt;now&lt;/latest&gt;\n      &lt;/default&gt;\n    &lt;/input&gt;\n  &lt;/fieldset&gt;\n\n  &lt;!-- ===================== ACTIVE FILTER STATUS ===================== --&gt;\n  &lt;row&gt;\n    &lt;panel&gt;\n      &lt;html&gt;\n        &lt;div style=&quot;padding:6px 4px;font-size:13px;color:#BCC4CF&quot;&gt;\n          &lt;b style=&quot;color:#A24BFF&quot;&gt;Active drilldown&lt;/b&gt; &amp;#8212; threat vector: &lt;b&gt;$vector$&lt;/b&gt; &amp;#183; sector: &lt;b&gt;$sector$&lt;/b&gt;.\n          Click a bar in &lt;b&gt;AI Threat Vectors&lt;/b&gt; or &lt;b&gt;Critical-Infrastructure Sectors&lt;/b&gt; to filter; click the same bar again to clear.\n        &lt;/div&gt;\n      &lt;/html&gt;\n    &lt;/panel&gt;\n  &lt;/row&gt;\n\n  &lt;!-- ===================== MYTHOS-ERA KEY INDICATORS ===================== --&gt;\n  &lt;row&gt;\n    &lt;panel&gt;\n      &lt;title&gt;Mythos-Era Risk Index&lt;/title&gt;\n      &lt;single&gt;\n        &lt;search&gt;\n          &lt;query&gt;index=ai_security sourcetype=ai_risk_score | stats latest(risk_index) as score | eval score=round(score,0)&lt;/query&gt;\n          &lt;earliest&gt;$time.earliest$&lt;/earliest&gt;\n          &lt;latest&gt;$time.latest$&lt;/latest&gt;\n        &lt;/search&gt;\n        &lt;option name=&quot;rangeColors&quot;&gt;[&quot;0x00CC44&quot;,&quot;0xFFB020&quot;,&quot;0xFF7A1A&quot;,&quot;0xFF2D55&quot;]&lt;/option&gt;\n        &lt;option name=&quot;rangeValues&quot;&gt;[25,50,75]&lt;/option&gt;\n        &lt;option name=&quot;useColors&quot;&gt;1&lt;/option&gt;\n        &lt;option name=&quot;colorBy&quot;&gt;value&lt;/option&gt;\n        &lt;option name=&quot;underLabel&quot;&gt;/ 100 RISK INDEX (board-level)&lt;/option&gt;\n      &lt;/single&gt;\n    &lt;/panel&gt;\n    &lt;panel&gt;\n      &lt;title&gt;AI-Attributed Attacks&lt;/title&gt;\n      &lt;single&gt;\n        &lt;search&gt;\n          &lt;query&gt;index=ai_security ai_attributed=true attack_vector=&quot;$vector$&quot; sector=&quot;$sector$&quot; | stats count&lt;/query&gt;\n          &lt;earliest&gt;$time.earliest$&lt;/earliest&gt;\n          &lt;latest&gt;$time.latest$&lt;/latest&gt;\n        &lt;/search&gt;\n        &lt;option name=&quot;numberPrecision&quot;&gt;0&lt;/option&gt;\n      &lt;/single&gt;\n    &lt;/panel&gt;\n    &lt;panel&gt;\n      &lt;title&gt;Agents Monitored&lt;/title&gt;\n      &lt;single&gt;\n        &lt;search&gt;\n          &lt;query&gt;index=ai_agents | stats dc(agent_id) as agents&lt;/query&gt;\n          &lt;earliest&gt;$time.earliest$&lt;/earliest&gt;\n          &lt;latest&gt;$time.latest$&lt;/latest&gt;\n        &lt;/search&gt;\n        &lt;option name=&quot;numberPrecision&quot;&gt;0&lt;/option&gt;\n        &lt;option name=&quot;underLabel&quot;&gt;board-level&lt;/option&gt;\n      &lt;/single&gt;\n    &lt;/panel&gt;\n    &lt;panel&gt;\n      &lt;title&gt;Prompt Injections Blocked&lt;/title&gt;\n      &lt;single&gt;\n        &lt;search&gt;\n          &lt;query&gt;index=llm_gateway injection_detected=true action=block sector=&quot;$sector$&quot; | stats count&lt;/query&gt;\n          &lt;earliest&gt;$time.earliest$&lt;/earliest&gt;\n          &lt;latest&gt;$time.latest$&lt;/latest&gt;\n        &lt;/search&gt;\n        &lt;option name=&quot;rangeColors&quot;&gt;[&quot;0x00CC44&quot;,&quot;0xFFB020&quot;,&quot;0xFF2D55&quot;]&lt;/option&gt;\n        &lt;option name=&quot;rangeValues&quot;&gt;[200,500]&lt;/option&gt;\n        &lt;option name=&quot;useColors&quot;&gt;1&lt;/option&gt;\n        &lt;option name=&quot;colorBy&quot;&gt;value&lt;/option&gt;\n      &lt;/single&gt;\n    &lt;/panel&gt;\n    &lt;panel&gt;\n      &lt;title&gt;Shadow-AI Egress Events&lt;/title&gt;\n      &lt;single&gt;\n        &lt;search&gt;\n          &lt;query&gt;index=llm_gateway event_type=egress sanctioned=false sector=&quot;$sector$&quot; | stats count&lt;/query&gt;\n          &lt;earliest&gt;$time.earliest$&lt;/earliest&gt;\n          &lt;latest&gt;$time.latest$&lt;/latest&gt;\n        &lt;/search&gt;\n        &lt;option name=&quot;rangeColors&quot;&gt;[&quot;0x00CC44&quot;,&quot;0xFFB020&quot;,&quot;0xFF2D55&quot;]&lt;/option&gt;\n        &lt;option name=&quot;rangeValues&quot;&gt;[100,300]&lt;/option&gt;\n        &lt;option name=&quot;useColors&quot;&gt;1&lt;/option&gt;\n        &lt;option name=&quot;colorBy&quot;&gt;value&lt;/option&gt;\n      &lt;/single&gt;\n    &lt;/panel&gt;\n    &lt;panel&gt;\n      &lt;title&gt;Autonomous Containment %&lt;/title&gt;\n      &lt;single&gt;\n        &lt;search&gt;\n          &lt;query&gt;index=incidents response_type=autonomous attack_vector=&quot;$vector$&quot; sector=&quot;$sector$&quot;\n| stats count(eval(status=&quot;contained&quot;)) as contained count as total\n| eval pct=round(contained/total*100,0)\n| fields pct&lt;/query&gt;\n          &lt;earliest&gt;$time.earliest$&lt;/earliest&gt;\n          &lt;latest&gt;$time.latest$&lt;/latest&gt;\n        &lt;/search&gt;\n        &lt;option name=&quot;unit&quot;&gt;%&lt;/option&gt;\n        &lt;option name=&quot;rangeColors&quot;&gt;[&quot;0xFF2D55&quot;,&quot;0xFFB020&quot;,&quot;0x00CC44&quot;]&lt;/option&gt;\n        &lt;option name=&quot;rangeValues&quot;&gt;[60,80]&lt;/option&gt;\n        &lt;option name=&quot;useColors&quot;&gt;1&lt;/option&gt;\n        &lt;option name=&quot;colorBy&quot;&gt;value&lt;/option&gt;\n      &lt;/single&gt;\n    &lt;/panel&gt;\n  &lt;/row&gt;\n\n  &lt;!-- ===================== MACHINE-SPEED ENGAGEMENT ===================== --&gt;\n  &lt;row&gt;\n    &lt;panel&gt;\n      &lt;title&gt;Attack Velocity vs Autonomous Defense (24h) \u2014 vector: $vector$ \u00b7 sector: $sector$&lt;/title&gt;\n      &lt;chart&gt;\n        &lt;search&gt;\n          &lt;query&gt;(index=ai_security attack_vector=&quot;$vector$&quot; sector=&quot;$sector$&quot;) OR (index=incidents response_type=autonomous attack_vector=&quot;$vector$&quot; sector=&quot;$sector$&quot;)\n| eval series=if(index==&quot;ai_security&quot;,&quot;Adversarial actions&quot;,&quot;Autonomous defensive actions&quot;)\n| timechart span=1h count by series&lt;/query&gt;\n          &lt;earliest&gt;$time.earliest$&lt;/earliest&gt;\n          &lt;latest&gt;$time.latest$&lt;/latest&gt;\n        &lt;/search&gt;\n        &lt;option name=&quot;charting.chart&quot;&gt;area&lt;/option&gt;\n        &lt;option name=&quot;charting.fieldColors&quot;&gt;{&quot;Adversarial actions&quot;:0xFF007F,&quot;Autonomous defensive actions&quot;:0x02C8FF}&lt;/option&gt;\n        &lt;option name=&quot;charting.legend.placement&quot;&gt;bottom&lt;/option&gt;\n        &lt;option name=&quot;charting.axisTitleY.text&quot;&gt;Actions / hour&lt;/option&gt;\n      &lt;/chart&gt;\n    &lt;/panel&gt;\n    &lt;panel&gt;\n      &lt;title&gt;AI Threat Vectors (click to filter)&lt;/title&gt;\n      &lt;chart&gt;\n        &lt;search&gt;\n          &lt;query&gt;index=ai_security sector=&quot;$sector$&quot; | stats count by attack_vector | sort -count | head 8&lt;/query&gt;\n          &lt;earliest&gt;$time.earliest$&lt;/earliest&gt;\n          &lt;latest&gt;$time.latest$&lt;/latest&gt;\n        &lt;/search&gt;\n        &lt;option name=&quot;charting.chart&quot;&gt;bar&lt;/option&gt;\n        &lt;option name=&quot;charting.seriesColors&quot;&gt;[0xA24BFF,0x02C8FF]&lt;/option&gt;\n        &lt;option name=&quot;charting.legend.placement&quot;&gt;none&lt;/option&gt;\n        &lt;drilldown&gt;\n          &lt;condition match=&quot;&amp;quot;$vector$&amp;quot;==&amp;quot;$click.value$&amp;quot;&quot;&gt;\n            &lt;set token=&quot;vector&quot;&gt;*&lt;/set&gt;\n          &lt;/condition&gt;\n          &lt;condition&gt;\n            &lt;set token=&quot;vector&quot;&gt;$click.value$&lt;/set&gt;\n          &lt;/condition&gt;\n        &lt;/drilldown&gt;\n      &lt;/chart&gt;\n    &lt;/panel&gt;\n  &lt;/row&gt;\n\n  &lt;!-- ===================== AGENTIC ASSURANCE / EXPOSURE ===================== --&gt;\n  &lt;row&gt;\n    &lt;panel&gt;\n      &lt;title&gt;Agentic AI Fleet by Status (board-level)&lt;/title&gt;\n      &lt;chart&gt;\n        &lt;search&gt;\n          &lt;query&gt;index=ai_agents\n| stats latest(status) as status by agent_id\n| stats count by status&lt;/query&gt;\n          &lt;earliest&gt;$time.earliest$&lt;/earliest&gt;\n          &lt;latest&gt;$time.latest$&lt;/latest&gt;\n        &lt;/search&gt;\n        &lt;option name=&quot;charting.chart&quot;&gt;pie&lt;/option&gt;\n        &lt;option name=&quot;charting.fieldColors&quot;&gt;{&quot;autonomous&quot;:0x00E676,&quot;supervised&quot;:0x02C8FF,&quot;flagged&quot;:0xFF2D55}&lt;/option&gt;\n      &lt;/chart&gt;\n    &lt;/panel&gt;\n    &lt;panel&gt;\n      &lt;title&gt;Prompt Injection &amp;amp; Jailbreak by Outcome (24h) \u2014 sector: $sector$&lt;/title&gt;\n      &lt;chart&gt;\n        &lt;search&gt;\n          &lt;query&gt;index=llm_gateway (injection_detected=true OR jailbreak_detected=true) sector=&quot;$sector$&quot;\n| timechart span=1h count by action&lt;/query&gt;\n          &lt;earliest&gt;$time.earliest$&lt;/earliest&gt;\n          &lt;latest&gt;$time.latest$&lt;/latest&gt;\n        &lt;/search&gt;\n        &lt;option name=&quot;charting.chart&quot;&gt;area&lt;/option&gt;\n        &lt;option name=&quot;charting.chart.stackMode&quot;&gt;stacked&lt;/option&gt;\n        &lt;option name=&quot;charting.fieldColors&quot;&gt;{&quot;block&quot;:0x00E676,&quot;flag&quot;:0xFFB020,&quot;allow&quot;:0xFF2D55}&lt;/option&gt;\n        &lt;option name=&quot;charting.legend.placement&quot;&gt;bottom&lt;/option&gt;\n      &lt;/chart&gt;\n    &lt;/panel&gt;\n    &lt;panel&gt;\n      &lt;title&gt;Shadow-AI Data Egress by Destination \u2014 sector: $sector$&lt;/title&gt;\n      &lt;table&gt;\n        &lt;search&gt;\n          &lt;query&gt;index=llm_gateway event_type=egress sector=&quot;$sector$&quot;\n| stats sum(bytes_out) as bytes values(sanctioned) as sanctioned by destination_model\n| eval MB=round(bytes/1024/1024,0)\n| sort -bytes | head 8\n| table destination_model MB sanctioned&lt;/query&gt;\n          &lt;earliest&gt;$time.earliest$&lt;/earliest&gt;\n          &lt;latest&gt;$time.latest$&lt;/latest&gt;\n        &lt;/search&gt;\n        &lt;option name=&quot;drilldown&quot;&gt;none&lt;/option&gt;\n        &lt;option name=&quot;count&quot;&gt;8&lt;/option&gt;\n        &lt;format type=&quot;color&quot; field=&quot;MB&quot;&gt;\n          &lt;colorPalette type=&quot;minMidMax&quot; maxColor=&quot;0xFF2D55&quot; midColor=&quot;0xFFB020&quot; minColor=&quot;0x00E676&quot;&gt;&lt;/colorPalette&gt;\n        &lt;/format&gt;\n      &lt;/table&gt;\n    &lt;/panel&gt;\n  &lt;/row&gt;\n\n  &lt;!-- ===================== AUTONOMOUS RESPONSE + INFRA ===================== --&gt;\n  &lt;row&gt;\n    &lt;panel&gt;\n      &lt;title&gt;Autonomous Response Actions (Live) \u2014 vector: $vector$ \u00b7 sector: $sector$&lt;/title&gt;\n      &lt;table&gt;\n        &lt;search&gt;\n          &lt;query&gt;index=incidents response_type IN (autonomous,supervised) attack_vector=&quot;$vector$&quot; sector=&quot;$sector$&quot;\n| sort -_time | head 12\n| table _time, response_action, trigger, responder, oversight\n| rename _time as Time, response_action as Action, trigger as Trigger, responder as Responder, oversight as Oversight&lt;/query&gt;\n          &lt;earliest&gt;$time.earliest$&lt;/earliest&gt;\n          &lt;latest&gt;$time.latest$&lt;/latest&gt;\n        &lt;/search&gt;\n        &lt;option name=&quot;drilldown&quot;&gt;none&lt;/option&gt;\n        &lt;option name=&quot;count&quot;&gt;12&lt;/option&gt;\n      &lt;/table&gt;\n    &lt;/panel&gt;\n    &lt;panel&gt;\n      &lt;title&gt;Critical-Infrastructure Sectors \u2014 Attacks (click to filter) \u00b7 vector: $vector$&lt;/title&gt;\n      &lt;chart&gt;\n        &lt;search&gt;\n          &lt;query&gt;index=ai_security attack_vector=&quot;$vector$&quot;\n| stats count as attacks by sector\n| sort -attacks&lt;/query&gt;\n          &lt;earliest&gt;$time.earliest$&lt;/earliest&gt;\n          &lt;latest&gt;$time.latest$&lt;/latest&gt;\n        &lt;/search&gt;\n        &lt;option name=&quot;charting.chart&quot;&gt;bar&lt;/option&gt;\n        &lt;option name=&quot;charting.seriesColors&quot;&gt;[0xFF7A1A]&lt;/option&gt;\n        &lt;option name=&quot;charting.legend.placement&quot;&gt;none&lt;/option&gt;\n        &lt;drilldown&gt;\n          &lt;condition match=&quot;&amp;quot;$sector$&amp;quot;==&amp;quot;$click.value$&amp;quot;&quot;&gt;\n            &lt;set token=&quot;sector&quot;&gt;*&lt;/set&gt;\n          &lt;/condition&gt;\n          &lt;condition&gt;\n            &lt;set token=&quot;sector&quot;&gt;$click.value$&lt;/set&gt;\n          &lt;/condition&gt;\n        &lt;/drilldown&gt;\n      &lt;/chart&gt;\n    &lt;/panel&gt;\n  &lt;/row&gt;\n\n  &lt;!-- ===================== GOVERNANCE + EFFICACY (board-level) ===================== --&gt;\n  &lt;row&gt;\n    &lt;panel&gt;\n      &lt;title&gt;AI Governance &amp;amp; Control Coverage (board-level)&lt;/title&gt;\n      &lt;chart&gt;\n        &lt;search&gt;\n          &lt;query&gt;index=ai_governance\n| stats avg(score) as score by framework\n| eval score=round(score,0) | sort -score&lt;/query&gt;\n          &lt;earliest&gt;-7d@d&lt;/earliest&gt;\n          &lt;latest&gt;now&lt;/latest&gt;\n        &lt;/search&gt;\n        &lt;option name=&quot;charting.chart&quot;&gt;bar&lt;/option&gt;\n        &lt;option name=&quot;charting.seriesColors&quot;&gt;[0x02C8FF]&lt;/option&gt;\n        &lt;option name=&quot;charting.legend.placement&quot;&gt;none&lt;/option&gt;\n      &lt;/chart&gt;\n    &lt;/panel&gt;\n    &lt;panel&gt;\n      &lt;title&gt;Detection Efficacy \u2014 Analyst vs AI-Assisted (30d MTTR, board-level)&lt;/title&gt;\n      &lt;chart&gt;\n        &lt;search&gt;\n          &lt;query&gt;index=incidents status=closed\n| eval mttr_hours=round((close_time-open_time)/3600,1)\n| timechart span=1d avg(mttr_hours) as mttr by triage_mode\n| fillnull value=0&lt;/query&gt;\n          &lt;earliest&gt;-30d@d&lt;/earliest&gt;\n          &lt;latest&gt;now&lt;/latest&gt;\n        &lt;/search&gt;\n        &lt;option name=&quot;charting.chart&quot;&gt;line&lt;/option&gt;\n        &lt;option name=&quot;charting.fieldColors&quot;&gt;{&quot;analyst&quot;:0xFFB020,&quot;ai_assisted&quot;:0x02C8FF}&lt;/option&gt;\n        &lt;option name=&quot;charting.legend.placement&quot;&gt;bottom&lt;/option&gt;\n        &lt;option name=&quot;charting.axisTitleY.text&quot;&gt;Hours&lt;/option&gt;\n      &lt;/chart&gt;\n    &lt;/panel&gt;\n  &lt;/row&gt;\n&lt;/form&gt;\n</pre>\n</div></body></html>";
+const DATA_VIEW = "<!DOCTYPE html><html lang=\"en\"><head><meta charset=\"UTF-8\">\n<meta name=\"viewport\" content=\"width=device-width,initial-scale=1\">\n<title>Required Data Sources \u2014 Defending in the Mythos Era</title>\n<style>\n  :root{--mag:#FF007F;--violet:#A24BFF;--org:#FF9000;--ink:#161B22;--muted:#4F5762}\n  *{box-sizing:border-box}\n  body{margin:0;background:#F2F5FA;color:var(--ink);\n    font-family:-apple-system,BlinkMacSystemFont,\"Segoe UI\",Inter,Arial,sans-serif;line-height:1.55}\n  .bar{position:sticky;top:0;display:flex;align-items:center;justify-content:space-between;gap:16px;\n    padding:14px 28px;background:#fff;border-bottom:2px solid var(--violet);box-shadow:0 1px 6px rgba(0,0,0,.06)}\n  .eb{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--violet);font-weight:700}\n  .ttl{font-size:15px;font-weight:600}\n  .btn{border:1px solid #d9dee6;background:#fff;color:var(--ink);font:inherit;font-size:13px;\n    padding:8px 16px;border-radius:8px;cursor:pointer}\n  .btn:hover{border-color:var(--violet)}\n  .doc{max-width:960px;margin:0 auto;padding:30px 40px 70px;background:#fff;min-height:100vh;box-shadow:0 0 40px rgba(0,0,0,.05)}\n  .doc h1{font-size:25px;margin:34px 0 12px;padding-bottom:8px;border-bottom:3px solid var(--violet)}\n  .doc h1:first-child{margin-top:6px}\n  .doc h2{font-size:18px;color:var(--violet);margin:26px 0 8px}\n  .doc h3{font-size:15px;color:var(--mag);margin:18px 0 6px}\n  .doc p{margin:10px 0}\n  .doc blockquote{margin:14px 0;padding:10px 16px;background:#F3EFFA;border-left:3px solid var(--org);color:var(--muted);border-radius:0 8px 8px 0}\n  .doc code{font-family:ui-monospace,Consolas,monospace;font-size:.88em;color:#7A1FBF;background:#f4eefb;padding:1px 5px;border-radius:4px}\n  .doc table{border-collapse:collapse;width:100%;margin:14px 0;font-size:13.5px}\n  .doc th{background:#10151C;color:#fff;text-align:left;padding:9px 12px;font-weight:600}\n  .doc td{border:1px solid #D9DEE6;padding:8px 12px;vertical-align:top}\n  .doc tr:nth-child(even) td{background:#F7F8FA}\n  .doc ul,.doc ol{margin:10px 0;padding-left:26px}\n  .doc li{margin:5px 0}\n</style></head><body>\n<div class=\"bar\">\n  <div><div class=\"eb\">Splunk &middot; a Cisco company</div><div class=\"ttl\">Defending in the Mythos Era &mdash; Required Data Sources</div></div>\n  <button class=\"btn\" onclick=\"window.print()\">Print / Save as PDF</button>\n</div>\n<div class=\"doc\"><h1 id=\"defending-in-the-mythos-era--required-data-sources\">Defending in\nthe Mythos Era \u2014 Required Data Sources</h1>\n<p>Companion to <code>mythos-era-defense.xml</code> and\n<code>mythos-era-defense-dashboard.html</code>. This dashboard spans\nboth halves of the frontier-AI threat surface: <strong>AI-powered\nadversarial activity</strong> and <strong>assurance over the\norganization's own agentic AI</strong>. Below are the indexes, key\nfields, contributing log sources, and governance frameworks each panel\ndepends on.</p>\n<hr />\n<h2 id=\"1-prerequisites\">1. Prerequisites</h2>\n<table>\n<thead>\n<tr class=\"header\">\n<th>Requirement</th>\n<th>Why it's needed</th>\n<th>Where to get it</th>\n</tr>\n</thead>\n<tbody>\n<tr class=\"odd\">\n<td>Splunk Enterprise / Cloud 9.x+</td>\n<td>Base platform</td>\n<td>core</td>\n</tr>\n<tr class=\"even\">\n<td>Splunk Common Information Model (CIM) add-on</td>\n<td>Field normalization across security feeds</td>\n<td>Splunkbase, free</td>\n</tr>\n<tr class=\"odd\">\n<td>An AI gateway / LLM firewall feeding <code>llm_gateway</code></td>\n<td>Prompt-injection, jailbreak, and shadow-AI egress telemetry</td>\n<td>e.g. Cisco AI Defense, LLM-aware proxy/WAF</td>\n</tr>\n<tr class=\"even\">\n<td>Agent audit logging feeding <code>ai_agents</code></td>\n<td>Tool calls, actions, and status for internal AI agents</td>\n<td>MCP server logs, agent-orchestration audit trails</td>\n</tr>\n<tr class=\"odd\">\n<td>SOAR / autonomous response platform feeding\n<code>incidents</code></td>\n<td>Records autonomous + supervised containment actions</td>\n<td>Splunk SOAR or equivalent</td>\n</tr>\n</tbody>\n</table>\n<blockquote>\n<p>The dashboard uses a dark theme and Simple XML version 1.1. The SPL\nis identical if you rebuild it in Dashboard Studio \u2014 only the panel\nwrappers differ.</p>\n</blockquote>\n<hr />\n<h2 id=\"2-indexes-used\">2. Indexes used</h2>\n<p>Rename to match your environment by editing the <code>index=</code>\nclause in each panel.</p>\n<table>\n<thead>\n<tr class=\"header\">\n<th>Index</th>\n<th>Purpose</th>\n<th>Typical retention</th>\n</tr>\n</thead>\n<tbody>\n<tr class=\"odd\">\n<td><code>ai_security</code></td>\n<td>AI-attributed detections and the Mythos-era risk score\n(attack-vector classification, AI-attribution confidence)</td>\n<td>180\u2013365 days</td>\n</tr>\n<tr class=\"even\">\n<td><code>llm_gateway</code></td>\n<td>Prompt/response telemetry from the AI gateway: injection + jailbreak\ndetections, shadow-AI egress, data classification</td>\n<td>90\u2013365 days</td>\n</tr>\n<tr class=\"odd\">\n<td><code>ai_agents</code></td>\n<td>Activity and posture for internal AI agents: tool calls, actions,\nanomaly scores, status</td>\n<td>180+ days</td>\n</tr>\n<tr class=\"even\">\n<td><code>incidents</code></td>\n<td>Incident + response records, including autonomous/supervised\ncontainment actions and triage mode</td>\n<td>365+ days</td>\n</tr>\n<tr class=\"odd\">\n<td><code>ot_assets</code></td>\n<td>Critical-infrastructure asset inventory + exposure scoring by\nsector</td>\n<td>365+ days</td>\n</tr>\n<tr class=\"even\">\n<td><code>ai_governance</code></td>\n<td>Periodic control-assessment scores per AI governance framework</td>\n<td>365+ days</td>\n</tr>\n</tbody>\n</table>\n<blockquote>\n<p><strong>Drilldown enrichment:</strong> clicking a threat vector or\nsector filters the board via the <code>$vector$</code> /\n<code>$sector$</code> tokens. For this to work, <code>ai_security</code>\nand <code>incidents</code> events must be enriched with both an\n<code>attack_vector</code> field and a <code>sector</code> field (the\nlatter via an asset \u2192 sector lookup). Tokens default to <code>*</code>\n(match all); clicking the same bar again resets to <code>*</code>.\nPosture panels (risk index, agent fleet, governance, efficacy) are\nintentionally left board-level and do not filter.</p>\n</blockquote>\n<hr />\n<h2 id=\"3-panel-by-panel-data-requirements\">3. Panel-by-panel data\nrequirements</h2>\n<h3 id=\"mythos-era-key-indicators-kri-row\">Mythos-era key indicators\n(KRI row)</h3>\n<table>\n<thead>\n<tr class=\"header\">\n<th>Panel</th>\n<th>Index</th>\n<th>Required fields</th>\n</tr>\n</thead>\n<tbody>\n<tr class=\"odd\">\n<td>Mythos-Era Risk Index</td>\n<td><code>ai_security</code></td>\n<td><code>risk_index</code> (0\u2013100, sourcetype\n<code>ai_risk_score</code>)</td>\n</tr>\n<tr class=\"even\">\n<td>AI-Attributed Attacks</td>\n<td><code>ai_security</code></td>\n<td><code>ai_attributed</code> (bool)</td>\n</tr>\n<tr class=\"odd\">\n<td>Agents Monitored</td>\n<td><code>ai_agents</code></td>\n<td><code>agent_id</code></td>\n</tr>\n<tr class=\"even\">\n<td>Prompt Injections Blocked</td>\n<td><code>llm_gateway</code></td>\n<td><code>injection_detected</code> (bool), <code>action</code></td>\n</tr>\n<tr class=\"odd\">\n<td>Shadow-AI Egress Events</td>\n<td><code>llm_gateway</code></td>\n<td><code>event_type=egress</code>, <code>sanctioned</code> (bool)</td>\n</tr>\n<tr class=\"even\">\n<td>Autonomous Containment %</td>\n<td><code>incidents</code></td>\n<td><code>response_type</code>, <code>status</code></td>\n</tr>\n</tbody>\n</table>\n<h3 id=\"machine-speed-engagement\">Machine-speed engagement</h3>\n<table>\n<thead>\n<tr class=\"header\">\n<th>Field</th>\n<th>Source</th>\n<th>Notes</th>\n</tr>\n</thead>\n<tbody>\n<tr class=\"odd\">\n<td><code>index</code> / event time</td>\n<td><code>ai_security</code> + <code>incidents</code></td>\n<td>Adversarial actions vs autonomous defensive actions, bucketed hourly\nvia <code>timechart span=1h</code>.</td>\n</tr>\n<tr class=\"even\">\n<td><code>attack_vector</code></td>\n<td><code>ai_security</code></td>\n<td>Categorical: prompt_injection, llm_phishing, deepfake_se,\nagentic_intrusion, adversarial_evasion, model_extraction,\ndata_poisoning, ai_recon.</td>\n</tr>\n<tr class=\"odd\">\n<td><code>response_type</code></td>\n<td><code>incidents</code></td>\n<td><code>autonomous</code> / <code>supervised</code> /\n<code>manual</code>.</td>\n</tr>\n</tbody>\n</table>\n<h3 id=\"agentic-assurance--exposure\">Agentic assurance &amp;\nexposure</h3>\n<table>\n<thead>\n<tr class=\"header\">\n<th>Panel</th>\n<th>Index</th>\n<th>Required fields</th>\n</tr>\n</thead>\n<tbody>\n<tr class=\"odd\">\n<td>Agentic AI Fleet by Status</td>\n<td><code>ai_agents</code></td>\n<td><code>agent_id</code>, <code>status</code> (autonomous / supervised\n/ flagged), <code>anomaly_score</code></td>\n</tr>\n<tr class=\"even\">\n<td>Prompt Injection &amp; Jailbreak</td>\n<td><code>llm_gateway</code></td>\n<td><code>injection_detected</code>, <code>jailbreak_detected</code>,\n<code>action</code> (block / flag / allow), <code>_time</code></td>\n</tr>\n<tr class=\"odd\">\n<td>Shadow-AI Data Egress</td>\n<td><code>llm_gateway</code></td>\n<td><code>event_type=egress</code>, <code>destination_model</code>,\n<code>bytes_out</code>, <code>sanctioned</code>,\n<code>data_classification</code></td>\n</tr>\n</tbody>\n</table>\n<h3 id=\"autonomous-response--critical-infrastructure\">Autonomous\nresponse &amp; critical infrastructure</h3>\n<table>\n<thead>\n<tr class=\"header\">\n<th>Panel</th>\n<th>Index</th>\n<th>Required fields</th>\n</tr>\n</thead>\n<tbody>\n<tr class=\"odd\">\n<td>Autonomous Response Actions</td>\n<td><code>incidents</code></td>\n<td><code>_time</code>, <code>response_action</code>,\n<code>trigger</code>, <code>responder</code>, <code>oversight</code>\n(auto / human_approved), <code>response_type</code></td>\n</tr>\n<tr class=\"even\">\n<td>Critical Infrastructure Exposure</td>\n<td><code>ot_assets</code></td>\n<td><code>sector</code>, <code>exposure_score</code>,\n<code>asset_class</code>, <code>criticality</code></td>\n</tr>\n</tbody>\n</table>\n<h3 id=\"governance--efficacy\">Governance &amp; efficacy</h3>\n<table>\n<thead>\n<tr class=\"header\">\n<th>Panel</th>\n<th>Index</th>\n<th>Required fields</th>\n</tr>\n</thead>\n<tbody>\n<tr class=\"odd\">\n<td>AI Governance &amp; Control Coverage</td>\n<td><code>ai_governance</code></td>\n<td><code>framework</code>, <code>score</code> (0\u2013100)</td>\n</tr>\n<tr class=\"even\">\n<td>Detection Efficacy (Analyst vs AI-assisted)</td>\n<td><code>incidents</code></td>\n<td><code>open_time</code>, <code>close_time</code>,\n<code>status</code>, <code>triage_mode</code> (analyst /\nai_assisted)</td>\n</tr>\n</tbody>\n</table>\n<hr />\n<h2 id=\"4-typical-contributing-log-sources\">4. Typical contributing log\nsources</h2>\n<table>\n<thead>\n<tr class=\"header\">\n<th>Category</th>\n<th>Example products feeding the indexes</th>\n</tr>\n</thead>\n<tbody>\n<tr class=\"odd\">\n<td>AI gateway / LLM firewall</td>\n<td>Cisco AI Defense, LLM-aware proxy/WAF, prompt-filtering gateways \u2192\n<code>llm_gateway</code></td>\n</tr>\n<tr class=\"even\">\n<td>Agent orchestration / audit</td>\n<td>MCP server logs, agent runtime + tool-call audit trails \u2192\n<code>ai_agents</code></td>\n</tr>\n<tr class=\"odd\">\n<td>Deepfake / AI phishing detection</td>\n<td>Email security with AI-content detection, voice/video liveness \u2192\n<code>ai_security</code></td>\n</tr>\n<tr class=\"even\">\n<td>Adversarial-ML / model monitoring</td>\n<td>ML detection-and-response, model-integrity + drift monitors \u2192\n<code>ai_security</code>, <code>ai_agents</code></td>\n</tr>\n<tr class=\"odd\">\n<td>Endpoint / XDR</td>\n<td>Cisco Secure Endpoint, CrowdStrike, Microsoft Defender \u2192\n<code>ai_security</code>, <code>incidents</code></td>\n</tr>\n<tr class=\"even\">\n<td>OT / ICS visibility</td>\n<td>Cisco Cyber Vision, Nozomi, Claroty \u2192 <code>ot_assets</code></td>\n</tr>\n<tr class=\"odd\">\n<td>DLP / data classification</td>\n<td>Sensitive-data egress tagging for shadow-AI detection \u2192\n<code>llm_gateway</code></td>\n</tr>\n<tr class=\"even\">\n<td>SOAR / autonomous response</td>\n<td>Splunk SOAR playbooks logging actions + oversight \u2192\n<code>incidents</code></td>\n</tr>\n<tr class=\"odd\">\n<td>GRC / AI governance</td>\n<td>Control-assessment exports per framework \u2192\n<code>ai_governance</code></td>\n</tr>\n</tbody>\n</table>\n<hr />\n<h2 id=\"5-governance-frameworks-referenced\">5. Governance frameworks\nreferenced</h2>\n<p>The control-coverage panel maps to frontier-AI and\ncritical-infrastructure standards:</p>\n<ul>\n<li><strong>NIST AI Risk Management Framework (AI 100-1)</strong> \u2014\ngovern / map / measure / manage functions.</li>\n<li><strong>ISO/IEC 42001</strong> \u2014 AI management system\ncertification.</li>\n<li><strong>OWASP Top 10 for LLM Applications</strong> \u2014 prompt\ninjection, data leakage, insecure output handling, etc.</li>\n<li><strong>MITRE ATLAS</strong> \u2014 adversarial threat landscape for AI\nsystems (TTP coverage).</li>\n<li><strong>Canada CCCS guidance &amp; Bill C-26 / CCSPA</strong> \u2014\ncritical cyber systems protection for designated critical-infrastructure\nsectors.</li>\n</ul>\n<hr />\n<h2 id=\"6-deployment-checklist\">6. Deployment checklist</h2>\n<ol type=\"1\">\n<li>Stand up the AI-specific feeds first: <code>llm_gateway</code>\n(gateway/firewall) and <code>ai_agents</code> (agent audit) are what\nmake this board distinct from a classic SOC dashboard.</li>\n<li>Confirm AI-attribution tagging on detections\n(<code>ai_attributed</code>, <code>attack_vector</code>) \u2014 without it\nthe threat-vector and machine-speed panels are empty.</li>\n<li>Ensure SOAR logs each action with both <code>response_type</code>\nand <code>oversight</code> so the autonomous-vs-human split is\naccurate.</li>\n<li>Populate <code>ot_assets</code> with <code>sector</code> +\n<code>exposure_score</code> for the critical-infrastructure view (align\nsectors to your national CI taxonomy).</li>\n<li>Feed <code>ai_governance</code> from your GRC export on a scheduled\nbasis (weekly is typical).</li>\n<li>Replace placeholder index names with yours, then paste\n<code>mythos-era-defense.xml</code> into <strong>Dashboards \u2192 Create New\n\u2192 Classic \u2192 Source</strong>.</li>\n<li>Tune single-value <code>rangeValues</code> thresholds to your\nenvironment's normal baselines.</li>\n</ol>\n<hr />\n<h2 id=\"7-notes-on-the-html-demo\">7. Notes on the HTML demo</h2>\n<p><code>mythos-era-defense-dashboard.html</code> renders representative\nsample data so the layout can be reviewed without a backend. To wire it\nto live data, replace the JavaScript data arrays (<code>KRIS</code>,\n<code>VECTORS</code>, <code>FLEET</code>, <code>SHADOW</code>,\n<code>SECTORS</code>, <code>FRAMEWORKS</code>, plus the\nengagement/injection/efficacy generators) with values from Splunk via\nthe REST API (<code>/services/search/jobs</code>), a scheduled export,\nor <code>$token$</code> substitution inside a Splunk HTML panel.</p>\n</div></body></html>";
+function openInTab(htmlDoc){
+  const w = window.open('', '_blank');
+  if(!w){ alert('Please allow pop-ups for this page to open the file in a new tab.'); return; }
+  w.document.open(); w.document.write(htmlDoc); w.document.close();
+}
+document.getElementById('openXml').addEventListener('click', e=>{ e.preventDefault(); openInTab(XML_VIEW); });
+document.getElementById('openData').addEventListener('click', e=>{ e.preventDefault(); openInTab(DATA_VIEW); });
+</script>
+
+</body>
+</html>
