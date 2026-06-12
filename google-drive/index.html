@@ -1,0 +1,1194 @@
+<div style="padding: 15px;">
+  <a href="../" style="color:#4ea1ff; text-decoration:none; font-size:16px;">
+    ← Back to Demo Portal
+  </a>
+</div>
+
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Google Drive sensitive data monitor — Splunk</title>
+<style>
+  :root{
+    /* Splunk Enterprise dark theme chrome */
+    --sys:#0a0b0e;            /* system bar */
+    --appbar:#0d0f13;         /* app nav bar */
+    --canvas:#0f1115;         /* dashboard canvas */
+    --panel:#1a1d23;          /* panel background */
+    --panel-head:#15181d;     /* panel title bar */
+    --border:#2a2e37;         /* panel + control borders */
+    --border-soft:#23262e;
+    --input:#101318;          /* input control bg */
+    --text:#dfe3e8;
+    --muted:#9aa0aa;
+    --subtle:#6b7180;
+    --grid:#262a32;
+    /* Brand series colors — these match charting.seriesColors / fieldColors in the XML */
+    --magenta:#FF007F; --orange:#FF9000; --cyan:#02C8FF; --blue:#0A60FF; --purple:#8B2BFF;
+    --crit:#FF3B6B; --ok:#3FD08D;
+    --font:"Inter","Inter Variable",-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;
+    --mono:ui-monospace,"SF Mono",Menlo,Consolas,monospace;
+  }
+  *{box-sizing:border-box}
+  html{-webkit-text-size-adjust:100%}
+  body{margin:0; font-family:var(--font); background:var(--canvas); color:var(--text);
+    -webkit-font-smoothing:antialiased; font-size:14px; line-height:1.45}
+
+  /* ===== System bar (global Splunk nav) ===== */
+  .sys-bar{height:40px; background:var(--sys); display:flex; align-items:center; padding:0 14px; gap:18px; border-bottom:1px solid #000}
+  .sys-logo{font-size:18px; font-weight:600; color:#fff; letter-spacing:-0.02em; line-height:1}
+  .sys-logo .gt{color:var(--magenta)}
+  .sys-logo .ent{font-weight:300; color:var(--muted); font-size:13px; margin-left:5px}
+  .sys-menu{display:flex; gap:16px; font-size:13px; color:var(--muted)}
+  .sys-menu span{cursor:default}
+  .sys-right{margin-left:auto; display:flex; align-items:center; gap:14px; color:var(--muted)}
+  .sys-right .ic{width:16px; height:16px; stroke:var(--muted); stroke-width:1.7; fill:none; stroke-linecap:round; stroke-linejoin:round}
+  .sys-acct{display:flex; align-items:center; gap:7px; font-size:13px; color:var(--text)}
+  .avatar{width:22px; height:22px; border-radius:50%; background:linear-gradient(135deg,var(--magenta),var(--orange)); display:inline-block}
+
+  /* ===== App nav bar ===== */
+  .app-bar{height:44px; background:var(--appbar); display:flex; align-items:center; padding:0 18px; gap:26px; border-bottom:1px solid var(--border)}
+  .app-name{font-size:15px; font-weight:600; color:var(--text); display:flex; align-items:center; gap:8px}
+  .app-name .glyph{width:18px; height:18px; border-radius:4px; background:linear-gradient(135deg,var(--magenta),var(--orange)); display:inline-block}
+  .app-menu{display:flex; gap:22px; height:100%; align-items:center}
+  .app-menu a{font-size:13px; color:var(--muted); text-decoration:none; height:100%; display:flex; align-items:center; border-bottom:2px solid transparent}
+  .app-menu a:hover{color:var(--text)}
+  .app-menu a.active{color:var(--text); border-bottom-color:var(--magenta)}
+
+  /* ===== Dashboard header (title + action cluster) ===== */
+  .dash-head{padding:20px 24px 16px; display:flex; justify-content:space-between; align-items:flex-start; gap:20px; flex-wrap:wrap}
+  .dash-title h1{font-size:24px; font-weight:600; margin:0 0 5px; letter-spacing:-0.01em; color:var(--text)}
+  .dash-title p{font-size:13px; color:var(--muted); margin:0; max-width:720px}
+  .dash-actions{display:flex; align-items:center; gap:8px; flex-wrap:wrap}
+  .sbtn{display:inline-flex; align-items:center; gap:7px; height:32px; padding:0 13px; border-radius:3px;
+    font-size:13px; font-weight:500; font-family:var(--font); text-decoration:none; cursor:pointer;
+    border:1px solid var(--border); background:#181b21; color:var(--text); transition:background .15s ease, border-color .15s ease}
+  .sbtn:hover{background:#21252d; border-color:#3a3f4a}
+  .sbtn .ic{width:15px; height:15px; stroke:currentColor; stroke-width:1.8; fill:none; stroke-linecap:round; stroke-linejoin:round}
+  .sbtn .car{font-size:9px; color:var(--subtle)}
+  .sbtn-divider{width:1px; height:22px; background:var(--border); margin:0 4px}
+  .sbtn.primary{background:var(--magenta); border-color:var(--magenta); color:#fff}
+  .sbtn.primary:hover{background:#e60072}
+  .sbtn.primary .ic{stroke:#fff}
+  .sbtn.accent{border-color:#3a2030; background:#1d141a; color:#ff5fa0}
+  .sbtn.accent .ic{stroke:var(--magenta)}
+  .sbtn.accent:hover{background:#241820}
+
+  /* ===== Fieldset / input bar ===== */
+  .filter-bar{margin:0 24px; padding:14px 18px; background:#13161b; border:1px solid var(--border); border-radius:4px;
+    display:flex; gap:18px; flex-wrap:wrap; align-items:flex-end}
+  .finput{display:flex; flex-direction:column; gap:5px}
+  .finput label{font-size:12px; color:var(--muted); font-weight:500}
+  .control{height:32px; min-width:140px; background:var(--input); border:1px solid var(--border); border-radius:3px;
+    display:flex; align-items:center; gap:8px; padding:0 11px; font-size:13px; color:var(--text)}
+  .control .ic{width:14px; height:14px; stroke:var(--subtle); stroke-width:1.7; fill:none; stroke-linecap:round; stroke-linejoin:round}
+  .control .car{margin-left:auto; font-size:9px; color:var(--subtle)}
+  .control.time{border-color:#3a3f4a}
+  .ms-chip{background:#23262e; border:1px solid var(--border); border-radius:3px; padding:1px 7px; font-size:11px; color:var(--muted)}
+
+  /* ===== Canvas + panels ===== */
+  .canvas{padding:16px 24px 40px}
+  .grid{display:grid; gap:10px; margin-bottom:10px}
+  .g4{grid-template-columns:repeat(4,1fr)}
+  .g2{grid-template-columns:1fr 1fr}
+  .g-bar-pie{grid-template-columns:1.7fr 1fr}
+  .g-tbl-pie{grid-template-columns:1fr 1fr}
+  .g1{grid-template-columns:1fr}
+
+  .row-label{display:flex; align-items:center; gap:10px; margin:22px 0 4px}
+  .row-label .obj{font-size:11px; font-weight:600; letter-spacing:.1em; text-transform:uppercase; color:var(--orange)}
+  .row-label h2{font-size:15px; font-weight:600; color:var(--text); margin:0}
+  .row-label .line{flex:1; height:1px; background:var(--border)}
+  .row-label .srcs{font-size:11px; color:var(--subtle); font-family:var(--mono)}
+  .row-label .srcs code{color:var(--cyan)}
+
+  .panel{background:var(--panel); border:1px solid var(--border); border-radius:4px; min-width:0; display:flex; flex-direction:column}
+  .panel-title{display:flex; align-items:center; justify-content:space-between; padding:9px 13px; border-bottom:1px solid var(--border-soft)}
+  .panel-title .t{font-size:13px; color:#c4c9d0; font-weight:500; white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+  .panel-title .tools{display:flex; gap:9px; opacity:.5}
+  .panel-title .tools .ic{width:14px; height:14px; stroke:var(--muted); stroke-width:1.7; fill:none; stroke-linecap:round; stroke-linejoin:round}
+  .panel-body{padding:14px 14px 16px; flex:1}
+
+  /* single value */
+  .sv .num{font-size:40px; font-weight:600; line-height:1; letter-spacing:-0.02em; color:var(--text)}
+  .sv .num.mag{color:var(--magenta)} .sv .num.org{color:var(--orange)}
+  .sv .num.sm{font-size:30px}
+  .sv .cap{font-size:12px; color:var(--muted); margin-top:8px}
+  .sv .trend{font-size:12px; margin-top:5px; font-weight:500}
+  .trend.up{color:var(--crit)} .trend.down{color:var(--ok)} .trend.flat{color:var(--subtle)}
+
+  /* charts */
+  svg.viz{width:100%; display:block}
+  .ax{stroke:var(--grid); stroke-width:1}
+  .axlabel{fill:var(--subtle); font-size:10px; font-family:var(--font)}
+  .gridline{stroke:var(--grid); stroke-width:1; stroke-dasharray:0}
+  .chart-legend{display:flex; gap:16px; flex-wrap:wrap; margin-top:10px; font-size:12px; color:var(--muted)}
+  .chart-legend .li{display:flex; align-items:center; gap:6px}
+  .chart-legend .sw{width:11px; height:11px; border-radius:2px; flex-shrink:0}
+
+  .donut-wrap{display:flex; align-items:center; gap:20px}
+  .legend{display:flex; flex-direction:column; gap:8px; font-size:12.5px}
+  .legend .li{display:flex; align-items:center; gap:9px; color:var(--muted)}
+  .legend .sw{width:11px; height:11px; border-radius:2px; flex-shrink:0}
+  .legend .li b{color:var(--text); font-weight:600; margin-left:auto; font-variant-numeric:tabular-nums}
+
+  /* Splunk-style horizontal bar chart */
+  .hbars{display:flex; flex-direction:column; gap:9px; padding-top:2px}
+  .hbar{display:grid; grid-template-columns:96px 1fr 52px; align-items:center; gap:10px; font-size:12px}
+  .hbar .cat{color:var(--muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; text-align:right}
+  .hbar .track{height:16px; background:transparent; position:relative}
+  .hbar .fill{height:100%; }
+  .hbar .v{color:var(--text); font-variant-numeric:tabular-nums; text-align:left; font-size:11.5px}
+
+  /* tables — Splunk look */
+  table{width:100%; border-collapse:collapse; font-size:12.5px}
+  thead th{text-align:left; font-size:12px; color:#c4c9d0; font-weight:600; padding:7px 11px; background:#15181d;
+    border-bottom:1px solid var(--border); white-space:nowrap}
+  thead th .sort{color:var(--subtle); font-size:9px; margin-left:4px}
+  tbody td{padding:8px 11px; border-bottom:1px solid var(--border-soft); color:var(--muted); vertical-align:middle}
+  tbody tr:nth-child(even){background:rgba(255,255,255,.012)}
+  tbody tr:hover{background:rgba(2,200,255,.04)}
+  td .doc{color:var(--text)}
+  td.n{text-align:right; font-variant-numeric:tabular-nums; color:var(--text)}
+  .tag{display:inline-block; padding:1px 7px; border-radius:2px; font-size:11px; font-weight:500; white-space:nowrap}
+  .t-pci{background:rgba(255,59,107,.14); color:#ff7193} .t-pii{background:rgba(255,144,0,.14); color:var(--orange)}
+  .t-sin{background:rgba(2,200,255,.14); color:var(--cyan)} .t-phi{background:rgba(139,43,255,.16); color:#b98cff}
+  .t-label{background:rgba(63,208,141,.13); color:var(--ok)}
+  .sev{font-weight:600}
+  .sev.critical{color:var(--crit)} .sev.high{color:var(--orange)} .sev.medium{color:var(--cyan)} .sev.low{color:var(--subtle)}
+  .dir-ext{color:var(--crit); font-weight:500} .dir-int{color:var(--subtle)}
+  .extflag{color:var(--crit); font-weight:600}
+
+  .timestamp{font-size:11px; color:var(--subtle); padding:7px 13px 0}
+
+  /* ===== Deliverable docs below the Splunk frame ===== */
+  .docs{background:#0b0c0f; padding:48px 24px 64px}
+  .docs-inner{max-width:1180px; margin:0 auto}
+  .docs h2.sec{font-size:22px; font-weight:600; margin:0 0 4px; color:var(--text)}
+  .docs .sec-eye{font-size:11px; text-transform:uppercase; letter-spacing:.12em; color:var(--orange); font-weight:600}
+  .docs .sec-sub{font-size:13.5px; color:var(--muted); margin:6px 0 18px; max-width:760px}
+  .block{background:#0c0e12; border:1px solid var(--border); border-radius:6px; overflow:hidden; margin:16px 0}
+  .block-head{display:flex; align-items:center; justify-content:space-between; padding:11px 16px; background:#13161b; border-bottom:1px solid var(--border)}
+  .block-head .bt{font-size:13px; font-weight:600; color:var(--text); display:flex; align-items:center; gap:9px}
+  .block-head .bt .fn{font-family:var(--mono); font-size:12px; color:var(--cyan)}
+  .copybtn{background:var(--magenta); color:#fff; border:0; border-radius:3px; padding:7px 15px; font-size:12px;
+    font-weight:600; cursor:pointer; font-family:var(--font); transition:filter .15s ease}
+  .copybtn:hover{filter:brightness(1.08)} .copybtn.ok{background:var(--ok)}
+  pre{margin:0; padding:18px; overflow-x:auto; font-family:var(--mono); font-size:12px; line-height:1.6; color:#c9d4e0; tab-size:2}
+  .note{background:#101319; border:1px solid var(--border); border-left:3px solid var(--magenta); border-radius:6px; padding:18px 22px; margin:14px 0}
+  .note h4{margin:0 0 8px; font-size:14px; font-weight:600; color:var(--text)}
+  .note p,.note li{font-size:13.5px; color:var(--muted); margin:6px 0}
+  .note code{font-family:var(--mono); font-size:12px; color:var(--cyan); background:rgba(2,200,255,.07); padding:1px 6px; border-radius:3px}
+  .note ul{margin:8px 0 0; padding-left:20px}
+  .fieldmap{width:100%; border-collapse:collapse; font-size:12.5px; margin-top:6px}
+  .fieldmap th{text-align:left; padding:7px 10px; border-bottom:1px solid var(--border); color:var(--subtle); font-size:10.5px; text-transform:uppercase; letter-spacing:.06em}
+  .fieldmap td{padding:7px 10px; border-bottom:1px solid var(--border-soft); color:var(--muted)}
+  .fieldmap td code{font-family:var(--mono); color:var(--cyan)}
+  .pref-group{margin:20px 0 6px}
+  .pref-group .gh{font-size:12px; font-weight:600; color:var(--orange); text-transform:uppercase; letter-spacing:.09em; margin-bottom:3px}
+  .pref-group .gs{font-size:12px; color:var(--subtle); margin:0 0 12px; font-family:var(--mono)}
+  .pref-group .gs code{color:var(--cyan)}
+  .pref{border:1px solid var(--border); border-radius:6px; padding:12px 16px; margin:8px 0; background:#101319}
+  .pref .ph{display:flex; align-items:center; gap:9px; margin-bottom:6px; flex-wrap:wrap}
+  .pref .pn{font-size:13.5px; font-weight:600; color:var(--text)}
+  .pref .vt{font-size:10.5px; color:var(--muted); border:1px solid var(--border); border-radius:3px; padding:1px 7px}
+  .pref p{margin:3px 0; font-size:13px; color:var(--muted); line-height:1.5}
+  .pref p b{color:#c4c9d0; font-weight:600}
+  .brandfoot{max-width:1180px; margin:40px auto 0; padding-top:22px; border-top:1px solid var(--border);
+    display:flex; justify-content:space-between; flex-wrap:wrap; gap:10px; font-size:12px; color:var(--subtle)}
+  .brandfoot .l{color:var(--muted)}
+
+  html{scroll-behavior:smooth}
+  [id]{scroll-margin-top:16px}
+
+  @media (max-width:1000px){
+    .g4{grid-template-columns:repeat(2,1fr)} .g2,.g-bar-pie,.g-tbl-pie{grid-template-columns:1fr}
+    .sys-menu,.app-menu{display:none}
+  }
+</style>
+</head>
+<body>
+
+  <!-- ================= SPLUNK SYSTEM BAR ================= -->
+  <div class="sys-bar">
+    <span class="sys-logo">splunk<span class="gt">&gt;</span><span class="ent">enterprise</span></span>
+    <div class="sys-menu"><span>Apps ▾</span></div>
+    <div class="sys-right">
+      <svg class="ic" viewBox="0 0 24 24"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg>
+      <svg class="ic" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.6 1.6 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.6 1.6 0 0 0-2.7 1.1V21a2 2 0 0 1-4 0v-.1A1.6 1.6 0 0 0 6.6 19a1.6 1.6 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1A1.6 1.6 0 0 0 3 12.6a1.6 1.6 0 0 0-1.5-1H1a2 2 0 0 1 0-4h.1A1.6 1.6 0 0 0 3 6.6a1.6 1.6 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1A1.6 1.6 0 0 0 8 2.4h.2A1.6 1.6 0 0 0 9 1V1a2 2 0 0 1 4 0v.1A1.6 1.6 0 0 0 15 3a1.6 1.6 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.6 1.6 0 0 0 1.1 2.7H21a2 2 0 0 1 0 4h-.1a1.6 1.6 0 0 0-1.5 1z"/></svg>
+      <svg class="ic" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M9.1 9a3 3 0 0 1 5.8 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12" y2="17"/></svg>
+      <span class="sys-acct"><span class="avatar"></span> Administrator ▾</span>
+    </div>
+  </div>
+
+  <!-- ================= APP NAV ================= -->
+  <div class="app-bar">
+    <span class="app-name"><span class="glyph"></span> Google Workspace Security</span>
+    <nav class="app-menu">
+      <a href="#">Search</a>
+      <a href="#">Datasets</a>
+      <a href="#">Reports</a>
+      <a href="#">Alerts</a>
+      <a href="#" class="active">Dashboards</a>
+    </nav>
+  </div>
+
+  <!-- ================= DASHBOARD HEADER + ACTIONS ================= -->
+  <div class="dash-head">
+    <div class="dash-title">
+      <h1>Google Drive sensitive data monitor</h1>
+      <p>User access, actions on sensitive units, and where sensitive data lives — Google Workspace audit and DLP rule log events.</p>
+    </div>
+    <div class="dash-actions">
+      <a class="sbtn" href="#"><svg class="ic" viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg> Edit</a>
+      <a class="sbtn" href="#"><svg class="ic" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg> Export <span class="car">▾</span></a>
+      <span class="sbtn-divider"></span>
+      <a class="sbtn" href="#panel-reference"><svg class="ic" viewBox="0 0 24 24"><path d="M2 4h6a2 2 0 0 1 2 2v14a2.5 2.5 0 0 0-2-1H2z"/><path d="M22 4h-6a2 2 0 0 0-2 2v14a2.5 2.5 0 0 1 2-1h6z"/></svg> Panel guide</a>
+      <a class="sbtn accent" href="#data-sources"><svg class="ic" viewBox="0 0 24 24"><ellipse cx="12" cy="6" rx="8" ry="3"/><path d="M4 6v12c0 1.66 3.58 3 8 3s8-1.34 8-3V6"/><path d="M4 12c0 1.66 3.58 3 8 3s8-1.34 8-3"/></svg> Data sources</a>
+      <a class="sbtn primary" href="#simple-xml"><svg class="ic" viewBox="0 0 24 24"><polyline points="8 7 3 12 8 17"/><polyline points="16 7 21 12 16 17"/></svg> Simple XML</a>
+    </div>
+  </div>
+
+  <!-- ================= FIELDSET / INPUTS ================= -->
+  <div class="filter-bar">
+    <div class="finput"><label>Time range</label>
+      <div class="control time"><svg class="ic" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15 14"/></svg> Last 24 hours <span class="car">▾</span></div></div>
+    <div class="finput"><label>Index</label><div class="control">google_workspace <span class="car">▾</span></div></div>
+    <div class="finput"><label>Org unit</label><div class="control">All <span class="car">▾</span></div></div>
+    <div class="finput"><label>Data type (DLP detector)</label>
+      <div class="control" style="min-width:210px"><span class="ms-chip">PII</span><span class="ms-chip">PCI</span><span class="ms-chip">+2</span><span class="car">▾</span></div></div>
+    <div class="finput"><label>Sensitivity</label><div class="control">All <span class="car">▾</span></div></div>
+  </div>
+
+  <!-- ================= CANVAS ================= -->
+  <div class="canvas">
+
+    <!-- ===== OBJECTIVE 1 ===== -->
+    <div class="row-label">
+      <span class="obj">Objective 1</span><h2>Visualize user access</h2><span class="line"></span>
+      <span class="srcs"><code>gws:reports:drive</code> · <code>gws:reports:login</code></span>
+    </div>
+
+    <div class="grid g4">
+      <div class="panel"><div class="panel-title"><span class="t">Access events</span><span class="tools"><svg class="ic" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.5" y2="16.5"/></svg></span></div>
+        <div class="panel-body sv"><div class="num">48,217</div><div class="cap">view · edit · download</div><div class="trend flat">▬ ±0.4% vs previous</div></div></div>
+      <div class="panel"><div class="panel-title"><span class="t">Active users</span></div>
+        <div class="panel-body sv"><div class="num">1,304</div><div class="cap">distinct actors</div><div class="trend up">▲ 6 new this window</div></div></div>
+      <div class="panel"><div class="panel-title"><span class="t">External access events</span></div>
+        <div class="panel-body sv"><div class="num mag">213</div><div class="cap">outside the domain</div><div class="trend up">▲ 18% vs previous</div></div></div>
+      <div class="panel"><div class="panel-title"><span class="t">Failed logins</span></div>
+        <div class="panel-body sv"><div class="num">37</div><div class="cap">auth context · 11 users</div><div class="trend down">▼ 9% vs previous</div></div></div>
+    </div>
+
+    <div class="grid g-bar-pie">
+      <div class="panel"><div class="panel-title"><span class="t">Drive access by event type over time</span><span class="tools"><svg class="ic" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.5" y2="16.5"/></svg></span></div>
+        <div class="panel-body">
+          <svg class="viz" viewBox="0 0 620 200" preserveAspectRatio="none">
+            <line class="gridline" x1="40" y1="20" x2="620" y2="20"/><line class="gridline" x1="40" y1="65" x2="620" y2="65"/>
+            <line class="gridline" x1="40" y1="110" x2="620" y2="110"/><line class="gridline" x1="40" y1="155" x2="620" y2="155"/>
+            <line class="ax" x1="40" y1="175" x2="620" y2="175"/><line class="ax" x1="40" y1="20" x2="40" y2="175"/>
+            <text class="axlabel" x="6" y="24">600</text><text class="axlabel" x="14" y="113">300</text><text class="axlabel" x="22" y="178">0</text>
+            <polyline fill="none" stroke="#FF007F" stroke-width="2" points="40,150 100,138 160,110 220,122 280,84 340,96 400,58 460,78 520,50 580,68 620,46"/>
+            <polyline fill="none" stroke="#FF9000" stroke-width="2" points="40,168 100,160 160,164 220,150 280,156 340,138 400,148 460,132 520,140 580,126 620,132"/>
+            <polyline fill="none" stroke="#02C8FF" stroke-width="2" points="40,172 100,170 160,168 220,171 280,166 340,169 400,164 460,167 520,162 580,165 620,160"/>
+          </svg>
+          <div class="chart-legend">
+            <span class="li"><span class="sw" style="background:#FF007F"></span> view</span>
+            <span class="li"><span class="sw" style="background:#FF9000"></span> download</span>
+            <span class="li"><span class="sw" style="background:#02C8FF"></span> edit</span>
+          </div>
+        </div></div>
+      <div class="panel"><div class="panel-title"><span class="t">Internal vs external visibility changes</span></div>
+        <div class="panel-body"><div class="donut-wrap">
+          <svg width="120" height="120" viewBox="0 0 42 42">
+            <circle cx="21" cy="21" r="15.9" fill="none" stroke="#101318" stroke-width="7"/>
+            <circle cx="21" cy="21" r="15.9" fill="none" stroke="#6b7180" stroke-width="7" stroke-dasharray="78 22" stroke-dashoffset="25"/>
+            <circle cx="21" cy="21" r="15.9" fill="none" stroke="#FF007F" stroke-width="7" stroke-dasharray="22 78" stroke-dashoffset="-53"/>
+          </svg>
+          <div class="legend">
+            <span class="li"><span class="sw" style="background:#6b7180"></span> Internal <b>78%</b></span>
+            <span class="li"><span class="sw" style="background:#FF007F"></span> External <b>22%</b></span>
+          </div>
+        </div></div></div>
+    </div>
+
+    <div class="grid g2">
+      <div class="panel"><div class="panel-title"><span class="t">Top users by Drive activity (click to filter)</span><span class="tools"><svg class="ic" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.5" y2="16.5"/></svg></span></div>
+        <div class="panel-body" style="padding:0 0 4px">
+          <table>
+            <thead><tr><th>user <span class="sort">▾</span></th><th>org_unit</th><th class="n">activity</th><th class="n">files</th></tr></thead>
+            <tbody>
+              <tr><td class="doc">m.tremblay@</td><td>Finance</td><td class="n">1,842</td><td class="n">96</td></tr>
+              <tr><td class="doc">j.okafor@</td><td>Sales</td><td class="n">1,498</td><td class="n">120</td></tr>
+              <tr><td class="doc">s.chen@</td><td>Engineering</td><td class="n">1,256</td><td class="n">74</td></tr>
+              <tr><td class="doc">a.dubois@</td><td>Legal</td><td class="n">992</td><td class="n">61</td></tr>
+              <tr><td class="doc">r.patel@</td><td>Finance</td><td class="n">864</td><td class="n">53</td></tr>
+            </tbody>
+          </table>
+        </div></div>
+      <div class="panel"><div class="panel-title"><span class="t">Access by org unit</span></div>
+        <div class="panel-body"><div class="hbars">
+          <div class="hbar"><span class="cat">Finance</span><div class="track"><div class="fill" style="width:100%;background:#0A60FF"></div></div><span class="v">12,904</span></div>
+          <div class="hbar"><span class="cat">Engineering</span><div class="track"><div class="fill" style="width:74%;background:#0A60FF"></div></div><span class="v">9,557</span></div>
+          <div class="hbar"><span class="cat">Sales</span><div class="track"><div class="fill" style="width:61%;background:#0A60FF"></div></div><span class="v">7,880</span></div>
+          <div class="hbar"><span class="cat">Legal</span><div class="track"><div class="fill" style="width:38%;background:#0A60FF"></div></div><span class="v">4,902</span></div>
+          <div class="hbar"><span class="cat">HR</span><div class="track"><div class="fill" style="width:29%;background:#0A60FF"></div></div><span class="v">3,744</span></div>
+        </div></div></div>
+    </div>
+
+    <!-- ===== OBJECTIVE 2 ===== -->
+    <div class="row-label">
+      <span class="obj">Objective 2</span><h2>Monitor actions on sensitive units</h2><span class="line"></span>
+      <span class="srcs"><code>gws:reports:drive</code> · <code>gws:reports:token</code> · lookup <code>sensitive_docs</code></span>
+    </div>
+
+    <div class="grid g4">
+      <div class="panel"><div class="panel-title"><span class="t">Sensitive downloads</span></div>
+        <div class="panel-body sv"><div class="num mag">94</div><div class="cap">flagged docs · 41 users</div><div class="trend up">▲ 22% vs previous</div></div></div>
+      <div class="panel"><div class="panel-title"><span class="t">Sensitive external shares</span></div>
+        <div class="panel-body sv"><div class="num">12</div><div class="cap">files exposed</div><div class="trend up">▲ 3 net new</div></div></div>
+      <div class="panel"><div class="panel-title"><span class="t">Sensitive deletes / trash</span></div>
+        <div class="panel-body sv"><div class="num">7</div><div class="cap">flagged docs removed</div><div class="trend flat">▬ stable</div></div></div>
+      <div class="panel"><div class="panel-title"><span class="t">3rd-party apps with Drive access</span></div>
+        <div class="panel-body sv"><div class="num">23</div><div class="cap">OAuth grants</div><div class="trend up">▲ 2 newly authorized</div></div></div>
+    </div>
+
+    <div class="grid g1">
+      <div class="panel"><div class="panel-title"><span class="t">Risky actions on sensitive documents</span><span class="tools"><svg class="ic" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.5" y2="16.5"/></svg></span></div>
+        <div class="panel-body" style="padding:0 0 4px">
+          <table>
+            <thead><tr><th>User</th><th>Action</th><th>Document</th><th>Data type</th><th>Severity</th><th>Last seen <span class="sort">▾</span></th><th class="n">Events</th></tr></thead>
+            <tbody>
+              <tr><td>r.patel@</td><td>download</td><td class="doc">Q3 card settlement export</td><td><span class="tag t-pci">PCI</span></td><td class="sev critical">critical</td><td>06-11 09:42</td><td class="n">6</td></tr>
+              <tr><td>m.tremblay@</td><td>download</td><td class="doc">Payroll SIN master</td><td><span class="tag t-sin">SIN</span></td><td class="sev critical">critical</td><td>06-11 08:18</td><td class="n">4</td></tr>
+              <tr><td>j.okafor@</td><td>copy</td><td class="doc">Employee roster 2026</td><td><span class="tag t-pii">PII</span></td><td class="sev high">high</td><td>06-11 07:55</td><td class="n">3</td></tr>
+              <tr><td>a.dubois@</td><td>print</td><td class="doc">Underwriting — claimants</td><td><span class="tag t-phi">PHI</span></td><td class="sev high">high</td><td>06-10 22:31</td><td class="n">2</td></tr>
+              <tr><td>s.chen@</td><td>trash</td><td class="doc">KYC docs — batch 14</td><td><span class="tag t-pii">PII</span></td><td class="sev medium">medium</td><td>06-10 19:07</td><td class="n">1</td></tr>
+            </tbody>
+          </table>
+        </div></div>
+    </div>
+
+    <div class="grid g2">
+      <div class="panel"><div class="panel-title"><span class="t">Sensitive sharing &amp; visibility changes</span></div>
+        <div class="panel-body" style="padding:0 0 4px">
+          <table>
+            <thead><tr><th>User</th><th>Document</th><th>From</th><th>To</th><th>Direction</th></tr></thead>
+            <tbody>
+              <tr><td>a.dubois@</td><td class="doc">Underwriting — claimants</td><td>private</td><td>anyone-w/-link</td><td class="dir-ext">→ External</td></tr>
+              <tr><td>j.okafor@</td><td class="doc">Vendor bank details</td><td>domain</td><td>external user</td><td class="dir-ext">→ External</td></tr>
+              <tr><td>r.patel@</td><td class="doc">Q3 card settlement export</td><td>domain</td><td>external user</td><td class="dir-ext">→ External</td></tr>
+              <tr><td>k.singh@</td><td class="doc">Board pack — M&amp;A</td><td>private</td><td>domain</td><td class="dir-int">Internal</td></tr>
+            </tbody>
+          </table>
+        </div></div>
+      <div class="panel"><div class="panel-title"><span class="t">Third-party OAuth apps with Drive scope</span></div>
+        <div class="panel-body" style="padding:0 0 4px">
+          <table>
+            <thead><tr><th>App</th><th>Scope</th><th class="n">Users</th><th class="n">Events</th><th>First seen</th></tr></thead>
+            <tbody>
+              <tr><td class="doc">PDF Merger Pro</td><td>drive.readonly</td><td class="n">88</td><td class="n">1,204</td><td>2026-05-28</td></tr>
+              <tr><td class="doc">SheetSync (unverified)</td><td class="extflag">drive (full)</td><td class="n">6</td><td class="n">312</td><td>2026-06-09</td></tr>
+              <tr><td class="doc">Smallpdf</td><td>drive.file</td><td class="n">41</td><td class="n">209</td><td>2026-04-11</td></tr>
+            </tbody>
+          </table>
+        </div></div>
+    </div>
+
+    <!-- ===== OBJECTIVE 3 ===== -->
+    <div class="row-label">
+      <span class="obj">Objective 3</span><h2>Identify where sensitive information is stored</h2><span class="line"></span>
+      <span class="srcs"><code>gws:reports:rules</code> (DLP) · <code>gws:reports:drive</code></span>
+    </div>
+
+    <div class="grid g4">
+      <div class="panel"><div class="panel-title"><span class="t">DLP incidents</span></div>
+        <div class="panel-body sv"><div class="num mag">1,876</div><div class="cap">rule violations</div><div class="trend up">▲ 11% vs previous</div></div></div>
+      <div class="panel"><div class="panel-title"><span class="t">Files with sensitive data</span></div>
+        <div class="panel-body sv"><div class="num">642</div><div class="cap">distinct documents</div><div class="trend up">▲ 28 newly detected</div></div></div>
+      <div class="panel"><div class="panel-title"><span class="t">Owners holding sensitive files</span></div>
+        <div class="panel-body sv"><div class="num">158</div><div class="cap">distinct owners</div><div class="trend flat">▬ stable</div></div></div>
+      <div class="panel"><div class="panel-title"><span class="t">Top detector</span></div>
+        <div class="panel-body sv"><div class="num sm">PII</div><div class="cap">41% of all incidents</div><div class="trend up">▲ name + SIN combos</div></div></div>
+    </div>
+
+    <div class="grid g-bar-pie">
+      <div class="panel"><div class="panel-title"><span class="t">Where sensitive data lives — by org unit</span><span class="tools"><svg class="ic" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.5" y2="16.5"/></svg></span></div>
+        <div class="panel-body"><div class="hbars">
+          <div class="hbar"><span class="cat">Finance</span><div class="track"><div class="fill" style="width:100%;background:#FF007F"></div></div><span class="v">214</span></div>
+          <div class="hbar"><span class="cat">HR</span><div class="track"><div class="fill" style="width:79%;background:#FF007F"></div></div><span class="v">169</span></div>
+          <div class="hbar"><span class="cat">Legal</span><div class="track"><div class="fill" style="width:52%;background:#FF007F"></div></div><span class="v">112</span></div>
+          <div class="hbar"><span class="cat">Sales</span><div class="track"><div class="fill" style="width:34%;background:#FF007F"></div></div><span class="v">73</span></div>
+          <div class="hbar"><span class="cat">Eng</span><div class="track"><div class="fill" style="width:23%;background:#FF007F"></div></div><span class="v">49</span></div>
+          <div class="hbar"><span class="cat">Unassigned</span><div class="track"><div class="fill" style="width:12%;background:#FF007F"></div></div><span class="v">25</span></div>
+        </div></div></div>
+      <div class="panel"><div class="panel-title"><span class="t">Incidents by detector</span></div>
+        <div class="panel-body"><div class="donut-wrap">
+          <svg width="120" height="120" viewBox="0 0 42 42">
+            <circle cx="21" cy="21" r="15.9" fill="none" stroke="#101318" stroke-width="7"/>
+            <circle cx="21" cy="21" r="15.9" fill="none" stroke="#FF9000" stroke-width="7" stroke-dasharray="41 59" stroke-dashoffset="25"/>
+            <circle cx="21" cy="21" r="15.9" fill="none" stroke="#FF3B6B" stroke-width="7" stroke-dasharray="27 73" stroke-dashoffset="-16"/>
+            <circle cx="21" cy="21" r="15.9" fill="none" stroke="#02C8FF" stroke-width="7" stroke-dasharray="18 82" stroke-dashoffset="-43"/>
+            <circle cx="21" cy="21" r="15.9" fill="none" stroke="#8B2BFF" stroke-width="7" stroke-dasharray="14 86" stroke-dashoffset="-61"/>
+          </svg>
+          <div class="legend">
+            <span class="li"><span class="sw" style="background:#FF9000"></span> PII <b>41%</b></span>
+            <span class="li"><span class="sw" style="background:#FF3B6B"></span> PCI <b>27%</b></span>
+            <span class="li"><span class="sw" style="background:#02C8FF"></span> SIN / nat'l ID <b>18%</b></span>
+            <span class="li"><span class="sw" style="background:#8B2BFF"></span> PHI <b>14%</b></span>
+          </div>
+        </div></div></div>
+    </div>
+
+    <div class="grid g1">
+      <div class="panel"><div class="panel-title"><span class="t">DLP incidents over time by severity</span></div>
+        <div class="panel-body">
+          <svg class="viz" viewBox="0 0 620 190" preserveAspectRatio="none">
+            <line class="gridline" x1="40" y1="20" x2="620" y2="20"/><line class="gridline" x1="40" y1="68" x2="620" y2="68"/><line class="gridline" x1="40" y1="116" x2="620" y2="116"/>
+            <line class="ax" x1="40" y1="164" x2="620" y2="164"/><line class="ax" x1="40" y1="20" x2="40" y2="164"/>
+            <text class="axlabel" x="14" y="24">300</text><text class="axlabel" x="22" y="167">0</text>
+            <!-- stacked columns: crit (bottom) high medium low -->
+            <g>
+              <rect x="60" y="120" width="46" height="44" fill="#FF3B6B"/><rect x="60" y="96" width="46" height="24" fill="#FF9000"/><rect x="60" y="80" width="46" height="16" fill="#02C8FF"/>
+              <rect x="140" y="110" width="46" height="54" fill="#FF3B6B"/><rect x="140" y="84" width="46" height="26" fill="#FF9000"/><rect x="140" y="70" width="46" height="14" fill="#02C8FF"/>
+              <rect x="220" y="124" width="46" height="40" fill="#FF3B6B"/><rect x="220" y="100" width="46" height="24" fill="#FF9000"/><rect x="220" y="88" width="46" height="12" fill="#02C8FF"/>
+              <rect x="300" y="100" width="46" height="64" fill="#FF3B6B"/><rect x="300" y="74" width="46" height="26" fill="#FF9000"/><rect x="300" y="60" width="46" height="14" fill="#02C8FF"/>
+              <rect x="380" y="114" width="46" height="50" fill="#FF3B6B"/><rect x="380" y="90" width="46" height="24" fill="#FF9000"/><rect x="380" y="78" width="46" height="12" fill="#02C8FF"/>
+              <rect x="460" y="92" width="46" height="72" fill="#FF3B6B"/><rect x="460" y="66" width="46" height="26" fill="#FF9000"/><rect x="460" y="52" width="46" height="14" fill="#02C8FF"/>
+              <rect x="540" y="104" width="46" height="60" fill="#FF3B6B"/><rect x="540" y="80" width="46" height="24" fill="#FF9000"/><rect x="540" y="66" width="46" height="14" fill="#02C8FF"/>
+            </g>
+          </svg>
+          <div class="chart-legend">
+            <span class="li"><span class="sw" style="background:#FF3B6B"></span> critical</span>
+            <span class="li"><span class="sw" style="background:#FF9000"></span> high</span>
+            <span class="li"><span class="sw" style="background:#02C8FF"></span> medium</span>
+          </div>
+        </div></div>
+    </div>
+
+    <div class="grid g1">
+      <div class="panel"><div class="panel-title"><span class="t">Top documents triggering DLP rules (click to drill to incident detail)</span><span class="tools"><svg class="ic" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.5" y2="16.5"/></svg></span></div>
+        <div class="panel-body" style="padding:0 0 4px">
+          <table>
+            <thead><tr><th>Document</th><th>Owner</th><th>Org unit</th><th>Data types</th><th>Severity</th><th class="n">Incidents <span class="sort">▾</span></th></tr></thead>
+            <tbody>
+              <tr><td class="doc">Payroll SIN master.xlsx</td><td>m.tremblay@</td><td>Finance</td><td><span class="tag t-sin">SIN</span> <span class="tag t-pii">PII</span></td><td class="sev critical">critical</td><td class="n">184</td></tr>
+              <tr><td class="doc">Q3 card settlement export.csv</td><td>r.patel@</td><td>Finance</td><td><span class="tag t-pci">PCI</span></td><td class="sev critical">critical</td><td class="n">147</td></tr>
+              <tr><td class="doc">Underwriting — claimants.gsheet</td><td>a.dubois@</td><td>Legal</td><td><span class="tag t-phi">PHI</span> <span class="tag t-pii">PII</span></td><td class="sev high">high</td><td class="n">96</td></tr>
+              <tr><td class="doc">Employee roster 2026.gsheet</td><td>hr-shared</td><td>HR</td><td><span class="tag t-pii">PII</span></td><td class="sev high">high</td><td class="n">71</td></tr>
+              <tr><td class="doc">Vendor bank details.gsheet</td><td>j.okafor@</td><td>Sales</td><td><span class="tag t-pci">PCI</span></td><td class="sev medium">medium</td><td class="n">58</td></tr>
+            </tbody>
+          </table>
+        </div></div>
+    </div>
+
+    <div class="grid g1">
+      <div class="panel"><div class="panel-title"><span class="t">Sensitivity label distribution (Drive labels)</span></div>
+        <div class="panel-body" style="padding:0 0 4px">
+          <table>
+            <thead><tr><th>Label</th><th>Value</th><th class="n">Documents <span class="sort">▾</span></th><th class="n">Events</th></tr></thead>
+            <tbody>
+              <tr><td class="doc">Data classification</td><td><span class="tag t-pci">Restricted</span></td><td class="n">142</td><td class="n">388</td></tr>
+              <tr><td class="doc">Data classification</td><td><span class="tag t-pii">Confidential</span></td><td class="n">419</td><td class="n">902</td></tr>
+              <tr><td class="doc">Data classification</td><td><span class="tag t-label">Internal</span></td><td class="n">1,204</td><td class="n">2,517</td></tr>
+              <tr><td class="doc">Retention</td><td>7-year hold</td><td class="n">86</td><td class="n">96</td></tr>
+            </tbody>
+          </table>
+        </div></div>
+    </div>
+
+    <div class="timestamp">Sample render · panels auto-run on load (submitButton=false). Brand series colors above are forced by charting.seriesColors / fieldColors in the source.</div>
+  </div>
+
+  <!-- ================= DELIVERABLE DOCS ================= -->
+  <div class="docs">
+    <div class="docs-inner">
+
+      <div id="panel-reference">
+        <span class="sec-eye">Using the dashboard</span>
+        <h2 class="sec">Panel reference</h2>
+        <p class="sec-sub">What each panel is for, how to read it, and the action it should drive. The three objectives read left to right as an escalation path: who is active and where exposure is growing → what those users did to DLP-flagged data → where that sensitive data lives and who owns it.</p>
+      </div>
+
+      <div class="note" style="border-left-color:var(--orange)">
+        <h4>How the filters work</h4>
+        <p>The fieldset sets tokens that cascade into every panel, so the whole board re-scopes together. <b>Time range</b> sets the window. <b>Index</b> selects where Google Workspace data lands. <b>Org unit</b> (from <code>gws_users.csv</code>) scopes to one department. <b>Data type</b> narrows Objective 3 to specific DLP detectors. <b>Sensitivity</b> sets a severity floor. One interaction sits outside the fieldset: clicking a row in <b>Top users by Drive activity</b> sets a <code>user</code> token that filters the Objective 2 panels into a per-user investigation view.</p>
+      </div>
+
+      <div class="pref-group">
+        <div class="gh">Objective 1 · Visualize user access</div>
+        <div class="gs">source: <code>gws:reports:drive</code> · <code>gws:reports:login</code> · lookup <code>gws_users.csv</code></div>
+
+        <div class="pref"><div class="ph"><span class="pn">Access events</span><span class="vt">single value</span></div>
+          <p><b>Purpose:</b> a top-line pulse of Drive activity — view, edit, download, preview, print, copy.</p>
+          <p><b>Tells you:</b> overall interaction volume; a swing versus trend is the first cue something unusual is happening before you drill into who or what.</p></div>
+
+        <div class="pref"><div class="ph"><span class="pn">Active users</span><span class="vt">single value</span></div>
+          <p><b>Purpose:</b> distinct people who touched Drive in the window.</p>
+          <p><b>Tells you:</b> how broad the activity base is. Paired with Access events, it separates "a few users doing a lot" from "everyone doing a little" — a spike in events with flat user count points at one actor or an automated process.</p></div>
+
+        <div class="pref"><div class="ph"><span class="pn">External access events</span><span class="vt">single value</span></div>
+          <p><b>Purpose:</b> events where files were shared or made reachable outside the domain. Magenta because it is the likeliest risk on this row.</p>
+          <p><b>Tells you:</b> the size of the external-exposure surface right now and whether it is growing — the number a reviewer watches most closely here.</p></div>
+
+        <div class="pref"><div class="ph"><span class="pn">Failed logins</span><span class="vt">single value</span></div>
+          <p><b>Purpose:</b> authentication context — failed, challenged, and suspicious logins.</p>
+          <p><b>Tells you:</b> whether access is happening against a backdrop of credential pressure; a rise here alongside unusual Drive access is a different story than clean activity.</p></div>
+
+        <div class="pref"><div class="ph"><span class="pn">Drive access by event type over time</span><span class="vt">line chart</span></div>
+          <p><b>Purpose:</b> trends view, download, and edit hour by hour.</p>
+          <p><b>Tells you:</b> the rhythm of normal activity and the shape of any anomaly — an off-hours download spike or a burst against a flat baseline. The download line is the one to watch for exfiltration patterns.</p></div>
+
+        <div class="pref"><div class="ph"><span class="pn">Internal vs external visibility changes</span><span class="vt">pie</span></div>
+          <p><b>Purpose:</b> splits sharing/visibility-change events into internal versus external.</p>
+          <p><b>Tells you:</b> how much sharing crosses the domain boundary. A rising external slice is an early indicator of data leaving controlled hands, independent of whether files are sensitive yet.</p></div>
+
+        <div class="pref"><div class="ph"><span class="pn">Top users by Drive activity</span><span class="vt">table · click to filter</span></div>
+          <p><b>Purpose:</b> ranks the busiest users by activity and distinct files touched, with org unit.</p>
+          <p><b>Tells you:</b> who the heaviest users are and whether any touch an unusually wide file set. Clicking a row filters Objective 2 to that person — the primary pivot from "who is active" into "what did this user do to sensitive data."</p></div>
+
+        <div class="pref"><div class="ph"><span class="pn">Access by org unit</span><span class="vt">bar chart</span></div>
+          <p><b>Purpose:</b> aggregates access volume by department via the user→org-unit lookup.</p>
+          <p><b>Tells you:</b> which parts of the org generate the most activity — context for the sensitive-data panels below. Heavy Finance or Legal volume is normal; the same from an unexpected team is a question.</p></div>
+      </div>
+
+      <div class="pref-group">
+        <div class="gh">Objective 2 · Monitor actions on sensitive units</div>
+        <div class="gs">source: <code>gws:reports:drive</code> · <code>gws:reports:token</code> · joined to <code>sensitive_docs.csv</code> (DLP-scored docs only)</div>
+
+        <div class="pref"><div class="ph"><span class="pn">Sensitive downloads</span><span class="vt">single value</span></div>
+          <p><b>Purpose:</b> downloads of DLP-flagged documents. Magenta — the clearest exfiltration signal on the board.</p>
+          <p><b>Tells you:</b> how much sensitive content is leaving Drive as local copies, and by how many users. A climb here most often starts an investigation.</p></div>
+
+        <div class="pref"><div class="ph"><span class="pn">Sensitive external shares</span><span class="vt">single value</span></div>
+          <p><b>Purpose:</b> distinct sensitive documents whose visibility changed to external or anyone-with-link.</p>
+          <p><b>Tells you:</b> how many sensitive files were newly exposed outside the domain. Where downloads are "copied out," this is "left the door open" — and it often persists silently.</p></div>
+
+        <div class="pref"><div class="ph"><span class="pn">Sensitive deletes / trash</span><span class="vt">single value</span></div>
+          <p><b>Purpose:</b> delete and trash actions on flagged documents.</p>
+          <p><b>Tells you:</b> whether sensitive records are being removed — relevant to insider risk (covering tracks) and to retention obligations where deletion itself may be a violation.</p></div>
+
+        <div class="pref"><div class="ph"><span class="pn">3rd-party apps with Drive access</span><span class="vt">single value</span></div>
+          <p><b>Purpose:</b> distinct OAuth apps currently holding Drive scopes.</p>
+          <p><b>Tells you:</b> the size of the third-party / shadow-IT surface that can read Drive data — an access path that bypasses the human-actor panels entirely.</p></div>
+
+        <div class="pref"><div class="ph"><span class="pn">Risky actions on sensitive documents</span><span class="vt">table</span></div>
+          <p><b>Purpose:</b> the detail behind the single values — who did what to which sensitive document, with data type, severity, last-seen, and count.</p>
+          <p><b>Tells you:</b> the specific, triageable events. A named user, named document, PCI tag, critical severity, timestamp — enough to decide whether to escalate.</p></div>
+
+        <div class="pref"><div class="ph"><span class="pn">Sensitive sharing &amp; visibility changes</span><span class="vt">table</span></div>
+          <p><b>Purpose:</b> every sharing/visibility change on a sensitive document, with before/after scope and direction.</p>
+          <p><b>Tells you:</b> exactly how exposure changed — "private → anyone-with-link," "domain → external user" — and the Direction column lets you scan straight to the external-bound changes.</p></div>
+
+        <div class="pref"><div class="ph"><span class="pn">Third-party OAuth apps with Drive scope</span><span class="vt">table</span></div>
+          <p><b>Purpose:</b> the inventory behind the third-party tile — each app, scope, authorizing users, event volume, first-seen.</p>
+          <p><b>Tells you:</b> which apps to trust and which to question. A full-<code>drive</code> scope on an unverified app authorized two days ago is exactly the row this exists to surface.</p></div>
+      </div>
+
+      <div class="pref-group">
+        <div class="gh">Objective 3 · Identify where sensitive information is stored</div>
+        <div class="gs">source: <code>gws:reports:rules</code> (DLP rule log events) · <code>gws:reports:drive</code> (label events)</div>
+
+        <div class="pref"><div class="ph"><span class="pn">DLP incidents</span><span class="vt">single value</span></div>
+          <p><b>Purpose:</b> total DLP rule violations in the window. Magenta — the headline risk metric for this objective.</p>
+          <p><b>Tells you:</b> the overall pressure of sensitive-data detection right now and whether it is trending up.</p></div>
+
+        <div class="pref"><div class="ph"><span class="pn">Files with sensitive data</span><span class="vt">single value</span></div>
+          <p><b>Purpose:</b> distinct documents that triggered at least one DLP rule.</p>
+          <p><b>Tells you:</b> the real footprint — how many actual files hold sensitive content, regardless of how many times each was detected. The number that answers "how big is our exposure."</p></div>
+
+        <div class="pref"><div class="ph"><span class="pn">Owners holding sensitive files</span><span class="vt">single value</span></div>
+          <p><b>Purpose:</b> distinct owners of the flagged documents.</p>
+          <p><b>Tells you:</b> how concentrated ownership is. Few owners means accountability is easy to assign; many means sensitive data is spread thin and harder to govern.</p></div>
+
+        <div class="pref"><div class="ph"><span class="pn">Top detector</span><span class="vt">single value</span></div>
+          <p><b>Purpose:</b> the single most-triggered data type in the window.</p>
+          <p><b>Tells you:</b> the dominant category in play (e.g., PII), so the reviewer knows which regulatory lens to lead with before reading the breakdowns.</p></div>
+
+        <div class="pref"><div class="ph"><span class="pn">Where sensitive data lives — by org unit</span><span class="vt">bar chart</span></div>
+          <p><b>Purpose:</b> distinct sensitive files grouped by owning department.</p>
+          <p><b>Tells you:</b> which teams are the custodians of the most sensitive data — the map for prioritizing controls and access reviews. "Shared / unassigned drive" rows flag ownerless sensitive data, a finding in itself.</p></div>
+
+        <div class="pref"><div class="ph"><span class="pn">Incidents by detector</span><span class="vt">pie</span></div>
+          <p><b>Purpose:</b> the proportional mix of detector types — PII, PCI, SIN/national ID, PHI.</p>
+          <p><b>Tells you:</b> the composition of the problem at a glance. A heavy PCI or PHI slice points the conversation straight at the relevant compliance regime.</p></div>
+
+        <div class="pref"><div class="ph"><span class="pn">DLP incidents over time by severity</span><span class="vt">stacked column</span></div>
+          <p><b>Purpose:</b> daily incident volume stacked by severity.</p>
+          <p><b>Tells you:</b> whether detections are rising or falling — and whether the critical band is growing. A flat total hiding a growing critical layer is a deterioration the single values would miss.</p></div>
+
+        <div class="pref"><div class="ph"><span class="pn">Top documents triggering DLP rules</span><span class="vt">table · drill to detail</span></div>
+          <p><b>Purpose:</b> ranks the documents generating the most incidents, with owner, org unit, data types, severity.</p>
+          <p><b>Tells you:</b> the named files to remediate first; clicking a row opens the incidents in Search. The most actionable panel here — turns "we have sensitive data somewhere" into "fix these documents, owned by these people."</p></div>
+
+        <div class="pref"><div class="ph"><span class="pn">Sensitivity label distribution</span><span class="vt">table</span></div>
+          <p><b>Purpose:</b> summarizes Drive classification-label activity — which labels and values, across how many documents.</p>
+          <p><b>Tells you:</b> how the manual classification scheme is being used, complementing automated DLP. Gaps between labeled and DLP-detected documents reveal where policy and reality diverge.</p></div>
+      </div>
+
+      <div class="note">
+        <h4>Two boundaries for anyone using the board</h4>
+        <p><strong>Activity ≠ inventory.</strong> Objectives 1–2 only show files that were touched; Objective 3 reflects DLP scans at rest — so "where it lives" is complete even when "who touched it" is quiet.</p>
+        <p><strong>Snippets stay in Google.</strong> DLP events carry detector type, severity, and document identity, not the matched content. Deep snippet review stays in the Workspace security investigation tool.</p>
+      </div>
+
+      <div id="simple-xml" style="margin-top:46px">
+        <span class="sec-eye">Deploy</span>
+        <h2 class="sec">Splunk Simple XML</h2>
+        <p class="sec-sub">Dashboards → Create New Dashboard → Classic → Edit → Source. Paste and save. Built for Classic Simple XML with <code>theme="dark"</code>.</p>
+      </div>
+
+      <div class="block">
+        <div class="block-head">
+          <span class="bt">Dashboard source <span class="fn">gdrive_sensitive_data_monitor.xml</span></span>
+          <button class="copybtn" onclick="copyEl(this,'xmlSource')">Copy XML</button>
+        </div>
+        <pre id="xmlView"></pre>
+      </div>
+
+      <script type="text/plain" id="xmlSource"><form version="1.1" theme="dark">
+  <label>Google Drive sensitive data monitor</label>
+  <description>User access, actions on sensitive units, and where sensitive data lives — Google Workspace audit + DLP rule log events.</description>
+
+  <!-- =================== GLOBAL INPUTS =================== -->
+  <fieldset submitButton="false" autoRun="true">
+    <input type="time" token="tr">
+      <label>Time range</label>
+      <default><earliest>-24h@h</earliest><latest>now</latest></default>
+    </input>
+    <input type="dropdown" token="idx">
+      <label>Index</label>
+      <choice value="google_workspace">google_workspace</choice>
+      <choice value="*">All indexes</choice>
+      <default>google_workspace</default>
+      <initialValue>google_workspace</initialValue>
+    </input>
+    <input type="dropdown" token="ou">
+      <label>Org unit</label>
+      <search>
+        <query>| inputlookup gws_users.csv | stats count by org_unit | sort org_unit | eval show=org_unit, val="org_unit=\"".org_unit."\""</query>
+        <earliest>-24h@h</earliest><latest>now</latest>
+      </search>
+      <fieldForLabel>show</fieldForLabel>
+      <fieldForValue>val</fieldForValue>
+      <choice value="org_unit=*">All</choice>
+      <default>org_unit=*</default>
+      <initialValue>org_unit=*</initialValue>
+    </input>
+    <input type="multiselect" token="detector">
+      <label>Data type (DLP detector)</label>
+      <search>
+        <query>index=$idx$ sourcetype=gws:reports:rules rule_type=DLP | stats count by detector | sort detector</query>
+        <earliest>$tr.earliest$</earliest><latest>$tr.latest$</latest>
+      </search>
+      <fieldForLabel>detector</fieldForLabel>
+      <fieldForValue>detector</fieldForValue>
+      <choice value="*">All detectors</choice>
+      <default>*</default>
+      <valuePrefix>detector="</valuePrefix>
+      <valueSuffix>"</valueSuffix>
+      <delimiter> OR </delimiter>
+    </input>
+    <input type="dropdown" token="sev">
+      <label>Sensitivity</label>
+      <choice value="*">All</choice>
+      <choice value="critical">Critical</choice>
+      <choice value="high">High</choice>
+      <choice value="medium">Medium</choice>
+      <choice value="low">Low</choice>
+      <default>*</default>
+    </input>
+  </fieldset>
+
+  <!-- =================== SECTION 1: VISUALIZE USER ACCESS =================== -->
+  <row><panel><html>
+    <div style="padding:8px 4px;border-bottom:2px solid #FF007F;margin-bottom:4px">
+      <span style="color:#FF9000;font-size:11px;letter-spacing:.12em;text-transform:uppercase;font-weight:600">Objective 1</span>
+      <h2 style="color:#F2F5FA;margin:2px 0;font-size:20px">Visualize user access</h2>
+    </div>
+  </html></panel></row>
+
+  <row>
+    <panel>
+      <title>Access events</title>
+      <single>
+        <search>
+          <query>index=$idx$ sourcetype=gws:reports:drive name IN (view,edit,download,preview,print,copy)
+| lookup gws_users.csv email as user OUTPUT org_unit | search $ou$
+| stats count</query>
+          <earliest>$tr.earliest$</earliest><latest>$tr.latest$</latest>
+        </search>
+        <option name="colorBy">value</option>
+        <option name="rangeColors">["0x6E7682","0xFF9000"]</option>
+        <option name="rangeValues">[0]</option>
+        <option name="underLabel">view · edit · download</option>
+      </single>
+    </panel>
+    <panel>
+      <title>Active users</title>
+      <single>
+        <search>
+          <query>index=$idx$ sourcetype=gws:reports:drive
+| lookup gws_users.csv email as user OUTPUT org_unit | search $ou$
+| stats dc(user)</query>
+          <earliest>$tr.earliest$</earliest><latest>$tr.latest$</latest>
+        </search>
+        <option name="underLabel">distinct actors</option>
+      </single>
+    </panel>
+    <panel>
+      <title>External access events</title>
+      <single>
+        <search>
+          <query>index=$idx$ sourcetype=gws:reports:drive
+(visibility IN ("shared_externally","public_on_the_web","people_with_link") OR new_value="*external*")
+| lookup gws_users.csv email as user OUTPUT org_unit | search $ou$
+| stats count</query>
+          <earliest>$tr.earliest$</earliest><latest>$tr.latest$</latest>
+        </search>
+        <option name="colorBy">value</option>
+        <option name="rangeColors">["0x6E7682","0xFF007F"]</option>
+        <option name="rangeValues">[0]</option>
+        <option name="underLabel">outside the domain</option>
+      </single>
+    </panel>
+    <panel>
+      <title>Failed logins</title>
+      <single>
+        <search>
+          <query>index=$idx$ sourcetype=gws:reports:login name IN (login_failure,login_challenge,suspicious_login)
+| stats count</query>
+          <earliest>$tr.earliest$</earliest><latest>$tr.latest$</latest>
+        </search>
+        <option name="underLabel">auth context</option>
+      </single>
+    </panel>
+  </row>
+
+  <row>
+    <panel>
+      <title>Drive access by event type over time</title>
+      <chart>
+        <search>
+          <query>index=$idx$ sourcetype=gws:reports:drive name IN (view,edit,download,preview,print,copy)
+| lookup gws_users.csv email as user OUTPUT org_unit | search $ou$
+| timechart span=1h count by name</query>
+          <earliest>$tr.earliest$</earliest><latest>$tr.latest$</latest>
+        </search>
+        <option name="charting.chart">line</option>
+        <option name="charting.fieldColors">{"download":"0xFF9000","view":"0xFF007F","edit":"0x02C8FF"}</option>
+        <option name="charting.legend.placement">bottom</option>
+      </chart>
+    </panel>
+    <panel>
+      <title>Internal vs external visibility changes</title>
+      <chart>
+        <search>
+          <query>index=$idx$ sourcetype=gws:reports:drive name IN (change_document_visibility,change_user_access,change_document_access_scope)
+| eval scope=if(match(coalesce(new_value,visibility),"(?i)external|public|anyone|people_with_link"),"External","Internal")
+| stats count by scope</query>
+          <earliest>$tr.earliest$</earliest><latest>$tr.latest$</latest>
+        </search>
+        <option name="charting.chart">pie</option>
+        <option name="charting.seriesColors">["0xFF007F","0x6E7682"]</option>
+      </chart>
+    </panel>
+  </row>
+
+  <row>
+    <panel>
+      <title>Top users by Drive activity (click to filter)</title>
+      <table>
+        <search>
+          <query>index=$idx$ sourcetype=gws:reports:drive
+| lookup gws_users.csv email as user OUTPUT org_unit | search $ou$
+| stats count as activity dc(doc_id) as files by user org_unit
+| sort - activity | head 20</query>
+          <earliest>$tr.earliest$</earliest><latest>$tr.latest$</latest>
+        </search>
+        <option name="count">10</option>
+        <drilldown>
+          <set token="user_filter">user="$row.user$"</set>
+          <set token="user_label">$row.user$</set>
+        </drilldown>
+      </table>
+    </panel>
+    <panel>
+      <title>Access by org unit</title>
+      <chart>
+        <search>
+          <query>index=$idx$ sourcetype=gws:reports:drive
+| lookup gws_users.csv email as user OUTPUT org_unit
+| search $ou$
+| stats count by org_unit | sort - count</query>
+          <earliest>$tr.earliest$</earliest><latest>$tr.latest$</latest>
+        </search>
+        <option name="charting.chart">bar</option>
+        <option name="charting.seriesColors">["0x0A60FF"]</option>
+      </chart>
+    </panel>
+  </row>
+
+  <!-- =================== SECTION 2: ACTIONS ON SENSITIVE UNITS =================== -->
+  <row><panel><html>
+    <div style="padding:8px 4px;border-bottom:2px solid #FF007F;margin:14px 0 4px">
+      <span style="color:#FF9000;font-size:11px;letter-spacing:.12em;text-transform:uppercase;font-weight:600">Objective 2 — filtered to DLP-flagged documents $user_label$</span>
+      <h2 style="color:#F2F5FA;margin:2px 0;font-size:20px">Monitor actions on sensitive units</h2>
+    </div>
+  </html></panel></row>
+
+  <row>
+    <panel>
+      <title>Sensitive downloads</title>
+      <single>
+        <search>
+          <query>index=$idx$ sourcetype=gws:reports:drive name=download $user_filter$
+| lookup sensitive_docs.csv doc_id OUTPUT sensitivity detectors
+| where isnotnull(sensitivity) AND ("$sev$"="*" OR sensitivity="$sev$")
+| stats count</query>
+          <earliest>$tr.earliest$</earliest><latest>$tr.latest$</latest>
+        </search>
+        <option name="colorBy">value</option>
+        <option name="rangeColors">["0x6E7682","0xFF007F"]</option>
+        <option name="rangeValues">[0]</option>
+        <option name="underLabel">flagged docs</option>
+      </single>
+    </panel>
+    <panel>
+      <title>Sensitive external shares</title>
+      <single>
+        <search>
+          <query>index=$idx$ sourcetype=gws:reports:drive name IN (change_document_visibility,change_user_access) $user_filter$
+| lookup sensitive_docs.csv doc_id OUTPUT sensitivity
+| where isnotnull(sensitivity) AND match(coalesce(new_value,visibility),"(?i)external|public|anyone|people_with_link")
+| stats dc(doc_id)</query>
+          <earliest>$tr.earliest$</earliest><latest>$tr.latest$</latest>
+        </search>
+        <option name="underLabel">files exposed</option>
+      </single>
+    </panel>
+    <panel>
+      <title>Sensitive deletes / trash</title>
+      <single>
+        <search>
+          <query>index=$idx$ sourcetype=gws:reports:drive name IN (delete,trash) $user_filter$
+| lookup sensitive_docs.csv doc_id OUTPUT sensitivity
+| where isnotnull(sensitivity) | stats count</query>
+          <earliest>$tr.earliest$</earliest><latest>$tr.latest$</latest>
+        </search>
+        <option name="underLabel">flagged docs removed</option>
+      </single>
+    </panel>
+    <panel>
+      <title>3rd-party apps with Drive access</title>
+      <single>
+        <search>
+          <query>index=$idx$ sourcetype=gws:reports:token (scope="*drive*" OR api_name=drive)
+| stats dc(app_name)</query>
+          <earliest>$tr.earliest$</earliest><latest>$tr.latest$</latest>
+        </search>
+        <option name="underLabel">OAuth grants</option>
+      </single>
+    </panel>
+  </row>
+
+  <row>
+    <panel>
+      <title>Risky actions on sensitive documents</title>
+      <table>
+        <search>
+          <query>index=$idx$ sourcetype=gws:reports:drive name IN (download,copy,print,delete,trash) $user_filter$
+| lookup sensitive_docs.csv doc_id OUTPUT sensitivity detectors
+| where isnotnull(sensitivity) AND ("$sev$"="*" OR sensitivity="$sev$")
+| eval action=name
+| stats count latest(_time) as last_seen by user action doc_title detectors sensitivity
+| sort - last_seen
+| eval last_seen=strftime(last_seen,"%m-%d %H:%M")
+| rename user as User, action as Action, doc_title as Document, detectors as "Data type", sensitivity as Severity, last_seen as "Last seen", count as Events</query>
+          <earliest>$tr.earliest$</earliest><latest>$tr.latest$</latest>
+        </search>
+        <option name="count">12</option>
+        <option name="drilldown">cell</option>
+      </table>
+    </panel>
+  </row>
+
+  <row>
+    <panel>
+      <title>Sensitive sharing &amp; visibility changes</title>
+      <table>
+        <search>
+          <query>index=$idx$ sourcetype=gws:reports:drive name IN (change_document_visibility,change_user_access,change_document_access_scope) $user_filter$
+| lookup sensitive_docs.csv doc_id OUTPUT sensitivity detectors
+| where isnotnull(sensitivity)
+| eval Direction=if(match(coalesce(new_value,visibility),"(?i)external|public|anyone|people_with_link"),"&#8594; External","Internal")
+| table _time user doc_title old_value new_value Direction detectors
+| sort - _time
+| eval _time=strftime(_time,"%m-%d %H:%M")
+| rename user as User, doc_title as Document, old_value as From, new_value as To, detectors as "Data type"</query>
+          <earliest>$tr.earliest$</earliest><latest>$tr.latest$</latest>
+        </search>
+        <option name="count">10</option>
+      </table>
+    </panel>
+    <panel>
+      <title>Third-party OAuth apps with Drive scope</title>
+      <table>
+        <search>
+          <query>index=$idx$ sourcetype=gws:reports:token (scope="*drive*" OR api_name=drive)
+| stats count as events dc(user) as users values(scope) as scopes min(_time) as first_seen by app_name client_id
+| sort - users
+| eval first_seen=strftime(first_seen,"%Y-%m-%d")
+| rename app_name as App, client_id as "Client ID", scopes as Scope, users as Users, events as Events, first_seen as "First seen"</query>
+          <earliest>$tr.earliest$</earliest><latest>$tr.latest$</latest>
+        </search>
+        <option name="count">10</option>
+      </table>
+    </panel>
+  </row>
+
+  <!-- =================== SECTION 3: WHERE SENSITIVE INFO IS STORED =================== -->
+  <row><panel><html>
+    <div style="padding:8px 4px;border-bottom:2px solid #FF007F;margin:14px 0 4px">
+      <span style="color:#FF9000;font-size:11px;letter-spacing:.12em;text-transform:uppercase;font-weight:600">Objective 3</span>
+      <h2 style="color:#F2F5FA;margin:2px 0;font-size:20px">Identify where sensitive information is stored</h2>
+    </div>
+  </html></panel></row>
+
+  <row>
+    <panel>
+      <title>DLP incidents</title>
+      <single>
+        <search>
+          <query>index=$idx$ sourcetype=gws:reports:rules rule_type=DLP ($detector$)
+| lookup gws_users.csv email as owner OUTPUT org_unit | search $ou$
+| where "$sev$"="*" OR lower(severity)="$sev$"
+| stats count</query>
+          <earliest>$tr.earliest$</earliest><latest>$tr.latest$</latest>
+        </search>
+        <option name="colorBy">value</option>
+        <option name="rangeColors">["0x6E7682","0xFF007F"]</option>
+        <option name="rangeValues">[0]</option>
+        <option name="underLabel">rule violations</option>
+      </single>
+    </panel>
+    <panel>
+      <title>Files with sensitive data</title>
+      <single>
+        <search>
+          <query>index=$idx$ sourcetype=gws:reports:rules rule_type=DLP ($detector$)
+| lookup gws_users.csv email as owner OUTPUT org_unit | search $ou$
+| stats dc(doc_id)</query>
+          <earliest>$tr.earliest$</earliest><latest>$tr.latest$</latest>
+        </search>
+        <option name="underLabel">distinct documents</option>
+      </single>
+    </panel>
+    <panel>
+      <title>Owners holding sensitive files</title>
+      <single>
+        <search>
+          <query>index=$idx$ sourcetype=gws:reports:rules rule_type=DLP ($detector$)
+| stats dc(owner)</query>
+          <earliest>$tr.earliest$</earliest><latest>$tr.latest$</latest>
+        </search>
+        <option name="underLabel">distinct owners</option>
+      </single>
+    </panel>
+    <panel>
+      <title>Top detector</title>
+      <single>
+        <search>
+          <query>index=$idx$ sourcetype=gws:reports:rules rule_type=DLP ($detector$)
+| top limit=1 detector | fields detector</query>
+          <earliest>$tr.earliest$</earliest><latest>$tr.latest$</latest>
+        </search>
+        <option name="underLabel">most-triggered data type</option>
+      </single>
+    </panel>
+  </row>
+
+  <row>
+    <panel>
+      <title>Where sensitive data lives — by org unit</title>
+      <chart>
+        <search>
+          <query>index=$idx$ sourcetype=gws:reports:rules rule_type=DLP ($detector$)
+| lookup gws_users.csv email as owner OUTPUT org_unit
+| fillnull value="Shared / unassigned drive" org_unit
+| stats dc(doc_id) as files by org_unit | sort - files</query>
+          <earliest>$tr.earliest$</earliest><latest>$tr.latest$</latest>
+        </search>
+        <option name="charting.chart">bar</option>
+        <option name="charting.seriesColors">["0xFF007F"]</option>
+      </chart>
+    </panel>
+    <panel>
+      <title>Incidents by detector</title>
+      <chart>
+        <search>
+          <query>index=$idx$ sourcetype=gws:reports:rules rule_type=DLP ($detector$)
+| stats count by detector | sort - count</query>
+          <earliest>$tr.earliest$</earliest><latest>$tr.latest$</latest>
+        </search>
+        <option name="charting.chart">pie</option>
+        <option name="charting.seriesColors">["0xFF9000","0xFF3B6B","0x02C8FF","0x8B2BFF","0x6E7682"]</option>
+      </chart>
+    </panel>
+  </row>
+
+  <row>
+    <panel>
+      <title>DLP incidents over time by severity</title>
+      <chart>
+        <search>
+          <query>index=$idx$ sourcetype=gws:reports:rules rule_type=DLP ($detector$)
+| timechart span=1d count by severity</query>
+          <earliest>$tr.earliest$</earliest><latest>$tr.latest$</latest>
+        </search>
+        <option name="charting.chart">column</option>
+        <option name="charting.chart.stackMode">stacked</option>
+        <option name="charting.fieldColors">{"critical":"0xFF3B6B","high":"0xFF9000","medium":"0x02C8FF","low":"0x6E7682"}</option>
+      </chart>
+    </panel>
+  </row>
+
+  <row>
+    <panel>
+      <title>Top documents triggering DLP rules (click to drill to incident detail)</title>
+      <table>
+        <search>
+          <query>index=$idx$ sourcetype=gws:reports:rules rule_type=DLP ($detector$)
+| lookup gws_users.csv email as owner OUTPUT org_unit | search $ou$
+| where "$sev$"="*" OR lower(severity)="$sev$"
+| stats count as incidents values(detector) as detectors values(rule_name) as rules latest(severity) as severity by doc_title doc_id owner org_unit
+| sort - incidents | head 25
+| rename doc_title as Document, owner as Owner, org_unit as "Org unit", detectors as "Data types", severity as Severity, incidents as Incidents
+| fields - doc_id rules</query>
+          <earliest>$tr.earliest$</earliest><latest>$tr.latest$</latest>
+        </search>
+        <option name="count">15</option>
+        <drilldown>
+          <link target="_blank">search?q=search%20index%3D$idx$%20sourcetype%3Dgws%3Areports%3Arules%20doc_title%3D%22$row.Document$%22&amp;earliest=$tr.earliest$&amp;latest=$tr.latest$</link>
+        </drilldown>
+      </table>
+    </panel>
+  </row>
+
+  <row>
+    <panel>
+      <title>Sensitivity label distribution (Drive labels)</title>
+      <table>
+        <search>
+          <query>index=$idx$ sourcetype=gws:reports:drive name IN (label_added,label_value_changed,label_removed,change_label)
+| stats count dc(doc_id) as files by label_title label_value
+| sort - files
+| rename label_title as Label, label_value as Value, files as Documents, count as Events</query>
+          <earliest>$tr.earliest$</earliest><latest>$tr.latest$</latest>
+        </search>
+        <option name="count">10</option>
+      </table>
+    </panel>
+  </row>
+
+</form></script>
+
+      <div class="block">
+        <div class="block-head">
+          <span class="bt">Scheduled search — populates <span class="fn">sensitive_docs.csv</span></span>
+          <button class="copybtn" onclick="copyEl(this,'lookupSrc')">Copy SPL</button>
+        </div>
+        <pre id="lookupView"></pre>
+      </div>
+      <script type="text/plain" id="lookupSrc">index=google_workspace sourcetype=gws:reports:rules rule_type=DLP
+``` Roll DLP incidents up to one row per document — this is the definition of "sensitive" that Section 2 joins against ```
+| stats latest(severity) as sensitivity
+        values(detector) as detectors
+        latest(owner) as owner
+        latest(doc_title) as doc_title
+        max(_time) as last_detected
+  by doc_id
+``` Optionally union Drive-label-classified docs so manually-labelled files also count as sensitive ```
+| append
+  [ search index=google_workspace sourcetype=gws:reports:drive name IN (label_added,label_value_changed)
+      label_value IN ("Confidential","Restricted","Highly Confidential")
+    | stats latest(label_value) as sensitivity latest(doc_title) as doc_title latest(owner) as owner max(_time) as last_detected by doc_id
+    | eval detectors="drive_label" ]
+| stats latest(*) as * by doc_id
+| outputlookup sensitive_docs.csv
+``` Schedule every 1h. sensitivity values: critical|high|medium|low (DLP) or label value. ```</script>
+
+      <!-- ======= DATA SOURCES / OPERATOR NOTES ======= -->
+      <div id="data-sources" style="margin-top:46px">
+        <span class="sec-eye">Required data sources</span>
+        <h2 class="sec">What the customer must have ingested</h2>
+        <p class="sec-sub">All panels read from the Splunk Add-on for Google Workspace (Splunkbase app 5556) on a heavy forwarder, using a GCP service account with domain-wide delegation and the <code>admin.reports.audit.readonly</code> scope.</p>
+      </div>
+
+      <div class="note">
+        <h4>1 · Reports-API inputs to enable</h4>
+        <ul>
+          <li><code>gws:reports:drive</code> — Objectives 1 &amp; 2 (access events, actions, sharing, label events)</li>
+          <li><code>gws:reports:login</code> — Objective 1 auth context</li>
+          <li><code>gws:reports:token</code> — Objective 2 third-party OAuth app access</li>
+          <li><code>gws:reports:rules</code> — Objective 3 DLP rule log events. This is the <code>rules</code> applicationName in the Reports API. Confirm your add-on version exposes a <code>rules</code> input; if not, add a custom modular input or collect via the Google Workspace Data Manager. DLP requires Enterprise Standard/Plus, Frontline, Education, or Cloud Identity Premium on a Workspace license.</li>
+        </ul>
+      </div>
+
+      <div class="note">
+        <h4>2 · Validate field names against the customer's CIM mapping</h4>
+        <p>Extracted field names vary by add-on version and props/transforms. The SPL uses the names below — confirm with <code>| fieldsummary</code> on a sample and adjust if onboarding differs.</p>
+        <table class="fieldmap">
+          <thead><tr><th>Used in SPL</th><th>Meaning</th><th>Common alternates</th></tr></thead>
+          <tbody>
+            <tr><td><code>name</code></td><td>Drive event (view, download, change_document_visibility…)</td><td><code>event_name</code>, <code>event</code></td></tr>
+            <tr><td><code>user</code></td><td>Actor email (actor.email)</td><td><code>actor_email</code>, <code>actor.email</code></td></tr>
+            <tr><td><code>doc_id</code> / <code>doc_title</code> / <code>owner</code></td><td>Target document identity</td><td><code>doc_doc_id</code>, <code>doc_title</code></td></tr>
+            <tr><td><code>visibility</code> / <code>old_value</code> / <code>new_value</code></td><td>Sharing scope + change deltas</td><td><code>visibility_change</code>, <code>old_visibility</code></td></tr>
+            <tr><td><code>detector</code> / <code>rule_name</code> / <code>severity</code></td><td>DLP rule fields (rules sourcetype)</td><td><code>dlp_detector</code>, <code>triggered_detectors</code></td></tr>
+            <tr><td><code>app_name</code> / <code>client_id</code> / <code>scope</code></td><td>OAuth token fields</td><td><code>app_id</code>, <code>oauth_scope</code></td></tr>
+            <tr><td><code>label_title</code> / <code>label_value</code></td><td>Drive classification label events</td><td><code>label</code>, <code>label_field_value</code></td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="note">
+        <h4>3 · Build the two lookups</h4>
+        <p><code>sensitive_docs.csv</code> — populated by the scheduled search above (run hourly). It is the single definition of "sensitive" that Objective 2 joins against, so actions are only flagged for documents DLP has actually scored. Key on <code>doc_id</code>.</p>
+        <p><code>gws_users.csv</code> — pulled from the Directory API (the add-on's user input, or a scheduled export). Needs at minimum <code>email</code> and <code>org_unit</code>; add <code>manager</code> / <code>group</code> to extend the access panels.</p>
+      </div>
+
+      <div class="note">
+        <h4>4 · Two limits to set with the customer up front</h4>
+        <p><strong>Activity ≠ inventory.</strong> The Drive audit stream only shows files that were touched. DLP-scanned files appear in Objective 3 even if untouched, but won't generate Objective 1/2 activity until accessed.</p>
+        <p><strong>Sensitive-content snippets stay in Google.</strong> The <code>rules</code> events carry detector type, severity, and document identity — not the matched content. Deep snippet review stays in the Workspace security investigation tool under the View sensitive content privilege.</p>
+      </div>
+
+      <div class="brandfoot">
+        <span class="l">Splunk · a Cisco company</span>
+        <span>Field deliverable · Google Drive sensitive data monitoring · Classic Simple XML, theme=dark</span>
+      </div>
+
+    </div>
+  </div>
+
+<script>
+  function render(srcId, viewId){
+    var raw = document.getElementById(srcId).textContent.replace(/^\n/,'');
+    document.getElementById(viewId).textContent = raw;
+  }
+  render('xmlSource','xmlView');
+  render('lookupSrc','lookupView');
+  function copyEl(btn, id){
+    var text = document.getElementById(id).textContent.replace(/^\n/,'');
+    navigator.clipboard.writeText(text).then(function(){
+      var orig = btn.textContent; btn.textContent = 'Copied \u2713'; btn.classList.add('ok');
+      setTimeout(function(){ btn.textContent = orig; btn.classList.remove('ok'); }, 1600);
+    });
+  }
+</script>
+</body>
+</html>
