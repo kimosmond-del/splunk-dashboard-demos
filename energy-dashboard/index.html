@@ -1,0 +1,1604 @@
+<div style="padding: 15px;">
+  <a href="../" style="color:#4ea1ff; text-decoration:none; font-size:16px;">
+    ← Back to Demo Portal
+  </a>
+</div>
+
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Grid cyber-physical risk dashboard | Splunk</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+  :root{
+    --splunk-magenta:#FF007F;
+    --splunk-orange:#FF9000;
+    --cisco-blue:#02C8FF;
+    --cisco-medium-blue:#0A60FF;
+    --bg-dark-top:#04070B;
+    --bg-dark-bottom:#0B1118;
+    --magenta-300:#FF66B0;
+    --magenta-500:#FF007F;
+    --magenta-700:#B30059;
+    --orange-300:#FFB866;
+    --orange-500:#FF9000;
+    --cyan-300:#66DEFF;
+    --cyan-500:#02C8FF;
+    --blue-500:#0A60FF;
+    --neutral-80:#BCC4CF;
+    --neutral-70:#929AA4;
+    --neutral-60:#6E7682;
+    --neutral-50:#4F5762;
+    --neutral-40:#353B45;
+    --neutral-30:#232932;
+    --neutral-20:#161B22;
+    --neutral-10:#0B1118;
+    --neutral-0:#04070B;
+    --text-on-dark:#F2F5FA;
+    --text-on-dark-muted:#BCC4CF;
+    --text-on-dark-subtle:#6E7682;
+    --good:#2ECC71;
+    --warn:#FFB85C;
+    --crit:#FF4D4D;
+    --font-family:'Inter','Inter Variable',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;
+  }
+  *{box-sizing:border-box;}
+  html,body{
+    margin:0;padding:0;
+    background:linear-gradient(180deg,var(--bg-dark-top) 0%,var(--bg-dark-bottom) 100%);
+    color:var(--text-on-dark);
+    font-family:var(--font-family);
+    font-size:13px;
+    -webkit-font-smoothing:antialiased;
+  }
+  a{color:inherit;}
+  /* ---------- Splunk chrome ---------- */
+  .sys-bar{
+    height:32px;background:#000;display:flex;align-items:center;justify-content:space-between;
+    padding:0 14px;font-size:11px;color:var(--neutral-70);border-bottom:1px solid var(--neutral-20);
+  }
+  .sys-bar .brand{display:flex;align-items:center;gap:8px;color:var(--text-on-dark-muted);font-weight:600;letter-spacing:.02em;}
+  .sys-bar .brand .dot{width:7px;height:7px;border-radius:50%;background:var(--splunk-orange);box-shadow:0 0 8px var(--splunk-orange);}
+  .sys-bar .right{display:flex;gap:18px;align-items:center;}
+  .app-nav{
+    height:44px;background:var(--neutral-10);display:flex;align-items:center;gap:22px;
+    padding:0 16px;border-bottom:1px solid var(--neutral-20);font-size:13px;
+  }
+  .app-nav .app-title{font-weight:600;color:var(--text-on-dark);margin-right:10px;display:flex;align-items:center;gap:8px;}
+  .app-nav .app-title .glyph{width:18px;height:18px;border-radius:4px;background:linear-gradient(135deg,var(--splunk-magenta),var(--splunk-orange));display:inline-block;}
+  .app-nav .item{color:var(--text-on-dark-subtle);padding:4px 2px;cursor:default;}
+  .app-nav .item.active{color:var(--text-on-dark);font-weight:600;border-bottom:2px solid var(--splunk-orange);padding-bottom:13px;}
+
+  .dash-head{padding:18px 24px 0 24px;}
+  .dash-titlebar{display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:10px;}
+  .dash-titlebar h1{font-size:19px;font-weight:600;margin:0 0 3px 0;letter-spacing:-.01em;}
+  .dash-titlebar .sub{font-size:12px;color:var(--text-on-dark-subtle);}
+  .dash-actions{display:flex;gap:8px;align-items:center;}
+  .btn{
+    font-family:var(--font-family);font-size:12px;font-weight:500;color:var(--text-on-dark-muted);
+    background:var(--neutral-20);border:1px solid var(--neutral-30);border-radius:5px;padding:6px 12px;
+    cursor:pointer;display:inline-flex;align-items:center;gap:6px;
+  }
+  .btn:hover{background:var(--neutral-30);color:var(--text-on-dark);}
+  .btn-accent{
+    background:linear-gradient(135deg,var(--splunk-magenta),var(--splunk-orange));
+    color:#04070B;border:none;font-weight:600;
+  }
+  .btn-accent:hover{filter:brightness(1.08);}
+
+  /* fieldset / input bar */
+  .fieldset{
+    margin:14px 24px 0 24px;background:var(--neutral-10);border:1px solid var(--neutral-20);
+    border-radius:8px;padding:10px 14px;display:flex;gap:22px;flex-wrap:wrap;align-items:flex-end;
+  }
+  .field{display:flex;flex-direction:column;gap:5px;min-width:150px;}
+  .field label{font-size:10px;text-transform:uppercase;letter-spacing:.07em;color:var(--text-on-dark-subtle);font-weight:600;}
+  .field select, .field .pseudo-input{
+    background:var(--neutral-20);border:1px solid var(--neutral-30);color:var(--text-on-dark);
+    border-radius:5px;padding:6px 9px;font-size:12px;font-family:var(--font-family);
+  }
+  .chip-row{display:flex;gap:6px;flex-wrap:wrap;}
+  .chip{
+    font-size:11px;padding:4px 10px;border-radius:999px;background:var(--neutral-20);
+    border:1px solid var(--neutral-30);color:var(--text-on-dark-muted);cursor:default;
+  }
+  .chip.on{background:rgba(255,0,127,.16);border-color:var(--splunk-magenta);color:#fff;}
+
+  /* tabs */
+  .tabs{display:flex;gap:2px;margin:16px 24px 0 24px;border-bottom:1px solid var(--neutral-20);}
+  .tab-btn{
+    background:none;border:none;color:var(--text-on-dark-subtle);font-family:var(--font-family);
+    font-size:13px;font-weight:500;padding:10px 16px;cursor:pointer;border-bottom:2px solid transparent;
+    display:flex;align-items:center;gap:7px;
+  }
+  .tab-btn .n{background:var(--neutral-20);color:var(--text-on-dark-muted);font-size:10px;border-radius:999px;padding:1px 7px;}
+  .tab-btn.active{color:var(--text-on-dark);border-bottom-color:var(--splunk-orange);}
+  .tab-btn.active .n{background:rgba(255,144,0,.18);color:var(--orange-300);}
+  .tab-panel{display:none;padding:18px 24px 40px 24px;}
+  .tab-panel.active{display:block;}
+
+  /* KPI strip */
+  .kpi-row{display:grid;grid-template-columns:repeat(6,1fr);gap:12px;margin-bottom:16px;}
+  @media(max-width:1200px){.kpi-row{grid-template-columns:repeat(3,1fr);}}
+  .kpi{
+    background:var(--neutral-10);border:1px solid var(--neutral-20);border-radius:9px;padding:13px 14px;
+    position:relative;overflow:hidden;
+  }
+  .kpi .bar{position:absolute;top:0;left:0;right:0;height:3px;}
+  .kpi .lbl{font-size:10.5px;color:var(--text-on-dark-subtle);text-transform:uppercase;letter-spacing:.05em;font-weight:600;margin-bottom:8px;}
+  .kpi .val{font-size:26px;font-weight:600;letter-spacing:-.02em;line-height:1;}
+  .kpi .val.good{color:var(--good);}
+  .kpi .val.warn{color:var(--orange-300);}
+  .kpi .val.crit{color:var(--crit);}
+  .kpi .trend{font-size:11px;color:var(--text-on-dark-subtle);margin-top:6px;}
+  .kpi .trend.up-bad{color:var(--crit);}
+  .kpi .trend.down-good{color:var(--good);}
+
+  /* panel grid */
+  .grid{display:grid;gap:14px;}
+  .g2{grid-template-columns:1fr 1fr;}
+  .g3{grid-template-columns:1fr 1fr 1fr;}
+  .g12-7-5{grid-template-columns:7fr 5fr;}
+  .g12-5-7{grid-template-columns:5fr 7fr;}
+  .g12-4-4-4{grid-template-columns:1fr 1fr 1fr;}
+  .row{margin-bottom:14px;}
+  @media(max-width:1100px){.g2,.g3,.g12-7-5,.g12-5-7,.g12-4-4-4{grid-template-columns:1fr;}}
+
+  .panel{
+    background:var(--neutral-10);border:1px solid var(--neutral-20);border-radius:9px;
+    padding:0;overflow:hidden;
+  }
+  .panel-head{
+    display:flex;align-items:center;justify-content:space-between;padding:11px 14px 9px 14px;
+    border-bottom:1px solid var(--neutral-20);
+  }
+  .panel-head h3{font-size:12.5px;font-weight:600;margin:0;color:var(--text-on-dark);}
+  .panel-head .meta{font-size:10.5px;color:var(--text-on-dark-subtle);}
+  .panel-body{padding:12px 14px 14px 14px;}
+  .panel-foot{padding:8px 14px;border-top:1px solid var(--neutral-20);font-size:10.5px;color:var(--text-on-dark-subtle);}
+
+  svg.chart{width:100%;height:auto;display:block;}
+  .axis-text{font-size:9.5px;fill:var(--text-on-dark-subtle);font-family:var(--font-family);}
+  .grid-line{stroke:var(--neutral-30);stroke-width:1;}
+
+  table.dtable{width:100%;border-collapse:collapse;font-size:11.5px;}
+  table.dtable th{
+    text-align:left;font-size:10px;text-transform:uppercase;letter-spacing:.04em;color:var(--text-on-dark-subtle);
+    font-weight:600;padding:6px 8px;border-bottom:1px solid var(--neutral-30);
+  }
+  table.dtable td{padding:7px 8px;border-bottom:1px solid var(--neutral-20);color:var(--text-on-dark-muted);}
+  table.dtable tr:hover td{background:var(--neutral-20);color:var(--text-on-dark);}
+  .sev{display:inline-flex;align-items:center;gap:5px;font-weight:600;font-size:10.5px;}
+  .sev::before{content:'';width:7px;height:7px;border-radius:50%;}
+  .sev.crit::before{background:var(--crit);box-shadow:0 0 6px var(--crit);}
+  .sev.crit{color:#FF7373;}
+  .sev.high::before{background:var(--orange-500);}
+  .sev.high{color:var(--orange-300);}
+  .sev.med::before{background:#FFD24D;}
+  .sev.med{color:#FFD24D;}
+  .sev.low::before{background:var(--neutral-60);}
+  .sev.low{color:var(--neutral-70);}
+  .pill{font-size:10px;padding:2px 8px;border-radius:999px;font-weight:600;}
+  .pill.it{background:rgba(2,200,255,.14);color:var(--cyan-300);border:1px solid rgba(2,200,255,.3);}
+  .pill.ot{background:rgba(255,0,127,.14);color:var(--magenta-300);border:1px solid rgba(255,0,127,.3);}
+  .pill.open{background:rgba(255,77,77,.14);color:#FF7373;border:1px solid rgba(255,77,77,.3);}
+  .pill.contained{background:rgba(255,184,92,.14);color:var(--orange-300);border:1px solid rgba(255,184,92,.3);}
+  .pill.closed{background:rgba(46,204,113,.14);color:var(--good);border:1px solid rgba(46,204,113,.3);}
+
+  .legend{display:flex;gap:14px;flex-wrap:wrap;margin-top:8px;}
+  .legend .item{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--text-on-dark-muted);}
+  .legend .sw{width:10px;height:10px;border-radius:2px;}
+
+  .gauge-wrap{display:flex;flex-direction:column;align-items:center;}
+  .gauge-val{font-size:26px;font-weight:600;margin-top:-44px;}
+  .gauge-cap{font-size:10.5px;color:var(--text-on-dark-subtle);margin-top:2px;}
+
+  /* drawer */
+  .drawer-overlay{
+    position:fixed;inset:0;background:rgba(4,7,11,.7);display:none;z-index:50;
+  }
+  .drawer-overlay.open{display:block;}
+  .drawer{
+    position:fixed;top:0;right:0;bottom:0;width:min(880px,92vw);background:var(--neutral-10);
+    border-left:1px solid var(--neutral-30);z-index:51;transform:translateX(100%);
+    transition:transform .22s ease;display:flex;flex-direction:column;
+  }
+  .drawer.open{transform:translateX(0);}
+  .drawer-head{padding:16px 20px;border-bottom:1px solid var(--neutral-20);display:flex;justify-content:space-between;align-items:center;}
+  .drawer-head h2{font-size:15px;margin:0;font-weight:600;}
+  .drawer-tabs{display:flex;gap:4px;padding:10px 20px 0 20px;border-bottom:1px solid var(--neutral-20);}
+  .dtab-btn{background:none;border:none;color:var(--text-on-dark-subtle);font-family:var(--font-family);font-size:12px;
+    padding:8px 14px;cursor:pointer;border-bottom:2px solid transparent;font-weight:500;}
+  .dtab-btn.active{color:var(--text-on-dark);border-bottom-color:var(--splunk-magenta);}
+  .drawer-body{padding:16px 20px;overflow-y:auto;flex:1;}
+  .dtab-panel{display:none;}
+  .dtab-panel.active{display:block;}
+  pre.code{
+    background:#000;border:1px solid var(--neutral-30);border-radius:7px;padding:14px;font-size:11px;
+    color:#C9D6E3;overflow-x:auto;white-space:pre;line-height:1.5;font-family:'SF Mono',Consolas,Monaco,monospace;
+  }
+  .copy-btn{float:right;margin-bottom:8px;}
+  .src-table{width:100%;border-collapse:collapse;font-size:11.5px;margin-bottom:18px;}
+  .src-table th{text-align:left;color:var(--text-on-dark-subtle);font-size:10px;text-transform:uppercase;letter-spacing:.04em;padding:6px 8px;border-bottom:1px solid var(--neutral-30);}
+  .src-table td{padding:8px;border-bottom:1px solid var(--neutral-20);vertical-align:top;color:var(--text-on-dark-muted);}
+  .src-table code{color:var(--cyan-300);background:rgba(2,200,255,.08);padding:1px 5px;border-radius:3px;font-size:10.5px;}
+  .src-h{font-size:12.5px;font-weight:600;margin:18px 0 8px 0;display:flex;align-items:center;gap:8px;}
+  .src-h .dot{width:7px;height:7px;border-radius:50%;}
+  .note{font-size:11px;color:var(--text-on-dark-subtle);background:var(--neutral-20);border-left:3px solid var(--splunk-orange);padding:9px 12px;border-radius:0 5px 5px 0;margin:10px 0 18px 0;}
+
+  .foot{padding:22px 24px 30px 24px;border-top:1px solid var(--neutral-20);display:flex;justify-content:space-between;
+    font-size:11px;color:var(--text-on-dark-subtle);margin-top:10px;}
+</style>
+</head>
+<body>
+
+<div class="sys-bar">
+  <div class="brand"><span class="dot"></span> splunk&gt; enterprise security</div>
+  <div class="right">
+    <span>OTGrid&nbsp;Utility&nbsp;Co.</span>
+    <span>k.osmond</span>
+    <span>Messages</span>
+    <span>Settings</span>
+  </div>
+</div>
+<div class="app-nav">
+  <div class="app-title"><span class="glyph"></span> Grid Security &amp; Resilience</div>
+  <div class="item">Search</div>
+  <div class="item">Analytics</div>
+  <div class="item">Datasets</div>
+  <div class="item">Reports</div>
+  <div class="item">Alerts</div>
+  <div class="item active">Dashboards</div>
+</div>
+
+<div class="dash-head">
+  <div class="dash-titlebar">
+    <div>
+      <h1>Grid cyber-physical risk dashboard</h1>
+      <div class="sub">IT &amp; OT security posture across generation, transmission, and distribution &middot; illustrative sample data &middot; classic Simple XML</div>
+    </div>
+    <div class="dash-actions">
+      <button class="btn" id="btn-edit">Edit</button>
+      <button class="btn" id="btn-export">Export</button>
+      <button class="btn" onclick="openDrawer('xml')">Simple XML</button>
+      <button class="btn-accent btn" onclick="openDrawer('sources')">Data sources</button>
+    </div>
+  </div>
+</div>
+
+<div class="fieldset">
+  <div class="field">
+    <label>Time range</label>
+    <select id="f-time"><option>Last 24 hours</option><option selected>Last 7 days</option><option>Last 30 days</option><option>Quarter to date</option></select>
+  </div>
+  <div class="field">
+    <label>Balancing authority / region</label>
+    <select id="f-region"><option selected>All regions</option><option>MISO &ndash; North</option><option>PJM &ndash; East</option><option>ERCOT</option><option>WECC &ndash; Southwest</option></select>
+  </div>
+  <div class="field">
+    <label>Purdue zone</label>
+    <div class="chip-row">
+      <span class="chip on">L0&ndash;1 field</span><span class="chip on">L2 supervisory</span>
+      <span class="chip on">L3 ops DMZ</span><span class="chip">L4 enterprise IT</span>
+    </div>
+  </div>
+  <div class="field">
+    <label>Severity</label>
+    <div class="chip-row">
+      <span class="chip on">Critical</span><span class="chip on">High</span><span class="chip">Medium</span><span class="chip">Low</span>
+    </div>
+  </div>
+  <div class="field">
+    <label>Asset criticality (BES)</label>
+    <select id="f-bes"><option selected>All BES Cyber Systems</option><option>High impact</option><option>Medium impact</option><option>Low impact</option></select>
+  </div>
+</div>
+
+<div class="tabs" id="tabbar">
+  <button class="tab-btn active" data-tab="t-exec">Executive overview</button>
+  <button class="tab-btn" data-tab="t-it">IT security <span class="n">6</span></button>
+  <button class="tab-btn" data-tab="t-ot">OT / ICS security <span class="n">7</span></button>
+  <button class="tab-btn" data-tab="t-cip">NERC CIP compliance <span class="n">5</span></button>
+  <button class="tab-btn" data-tab="t-intel">Threat intel &amp; physical <span class="n">4</span></button>
+</div>
+
+<!-- TAB PANELS GO HERE -->
+<div id="tab-mount"></div>
+
+<div class="foot">
+  <span>Splunk &middot; a Cisco company</span>
+  <span>Sample dashboard &middot; all values illustrative &middot; not derived from a live environment</span>
+</div>
+
+<!-- ===================== DRAWER ===================== -->
+<div class="drawer-overlay" id="drawer-overlay" onclick="closeDrawer()"></div>
+<div class="drawer" id="drawer">
+  <div class="drawer-head">
+    <h2 id="drawer-title">Reference</h2>
+    <button class="btn" onclick="closeDrawer()">Close</button>
+  </div>
+  <div class="drawer-tabs">
+    <button class="dtab-btn active" data-dtab="d-xml" onclick="showDtab('d-xml')">Simple XML</button>
+    <button class="dtab-btn" data-dtab="d-sources" onclick="showDtab('d-sources')">Required data sources</button>
+    <button class="dtab-btn" data-dtab="d-notes" onclick="showDtab('d-notes')">Build &amp; deployment notes</button>
+  </div>
+  <div class="drawer-body">
+    <div class="dtab-panel active" id="d-xml">
+      <button class="btn copy-btn" onclick="copyXml()">Copy XML</button>
+      <pre class="code" id="xml-display"></pre>
+    </div>
+    <div class="dtab-panel" id="d-sources"><div class="src-h"><span class="dot" style="background:#02C8FF"></span>IT security data sources</div>
+<table class="src-table">
+  <tr><th>Source</th><th>Ingestion path</th><th>Index / sourcetype (example)</th><th>Feeds panels</th></tr>
+  <tr><td>Windows authentication / Active Directory</td><td>Splunk Add-on for Microsoft Windows (TA-windows) or Splunk Add-on for Microsoft Active Directory</td><td><code>index=auth sourcetype=WinEventLog:Security</code></td><td>Auth trend, identity anomalies, top accounts</td></tr>
+  <tr><td>Cloud identity (Okta / Azure AD)</td><td>Splunk Add-on for Okta Identity Cloud / Splunk Add-on for Microsoft Azure AD</td><td><code>sourcetype=okta sourcetype=azure:aad</code></td><td>Auth trend, MFA coverage KPI</td></tr>
+  <tr><td>Endpoint detection &amp; response</td><td>CrowdStrike Add-on for Splunk, or Microsoft Defender ATP Add-on (vendor-specific &mdash; substitute for your EDR)</td><td><code>index=edr sourcetype=crowdstrike:*</code></td><td>Endpoint detections, ransomware precursor table</td></tr>
+  <tr><td>Email security</td><td>Splunk Add-on for Microsoft 365 Defender, or Proofpoint TAP Add-on</td><td><code>index=email_security sourcetype=ms:o365:defender</code></td><td>Phishing trend, KPI</td></tr>
+  <tr><td>Vulnerability scanner</td><td>Tenable Add-on for Splunk (TA-tenable), Qualys Technology Add-On, or Rapid7 InsightVM Add-on</td><td><code>index=vuln_mgmt sourcetype=tenable:sc:vuln</code></td><td>IT vulnerability severity panel</td></tr>
+  <tr><td>UEBA / identity anomaly</td><td>Splunk UBA (if licensed) or equivalent identity analytics export</td><td><code>index=ueba</code></td><td>Identity anomaly table</td></tr>
+</table>
+
+<div class="src-h"><span class="dot" style="background:#FF007F"></span>OT / ICS data sources</div>
+<div class="note">OT visibility apps (Claroty, Dragos, Nozomi Networks) are third-party Splunkbase apps, not Splunk-built. Confirm current app names, supported versions, and licensing directly with the vendor and Splunkbase before deployment &mdash; this list reflects how each platform is commonly described, not a specific verified release.</div>
+<table class="src-table">
+  <tr><th>Source</th><th>Ingestion path</th><th>Index / sourcetype (example)</th><th>Feeds panels</th></tr>
+  <tr><td>OT asset inventory &amp; passive network monitoring</td><td>OT visibility platform (e.g. Claroty, Dragos, or Nozomi Networks) &mdash; vendor Splunk app or syslog/CEF export</td><td><code>index=ot_asset_inventory</code></td><td>Asset inventory by Purdue level, rogue device detections, KPI tiles</td></tr>
+  <tr><td>OT network protocol traffic &amp; anomalies</td><td>Same OT visibility platform &mdash; protocol decode (Modbus, DNP3, IEC 61850, OPC-UA)</td><td><code>index=ot_network sourcetype=ics:protocol:session / ics:protocol:anomaly</code></td><td>Protocol mix, anomaly trend</td></tr>
+  <tr><td>OT firewall / industrial DMZ</td><td>Vendor firewall TA (e.g. Palo Alto, Fortinet, Cisco Firepower) scoped to OT zones</td><td><code>index=ot_firewall</code></td><td>IT-OT boundary crossing panel</td></tr>
+  <tr><td>Unidirectional gateway / data diode</td><td>Vendor-specific log export (e.g. Waterfall Security) via syslog or file monitor</td><td><code>index=data_diode</code></td><td>IT-OT boundary crossing panel</td></tr>
+  <tr><td>Engineering workstation &amp; controller configuration changes</td><td>OT visibility platform change-detection feature, or EWS file integrity monitoring</td><td><code>index=ot_config_changes</code></td><td>Configuration change table</td></tr>
+  <tr><td>SCADA / EMS / historian health</td><td>Vendor historian or EMS health export (e.g. OSIsoft PI, native SCADA diagnostics) via DB Connect or file monitor</td><td><code>index=scada_health</code></td><td>System availability table</td></tr>
+  <tr><td>ICS-CERT / CISA advisories</td><td>Scheduled pull of CISA ICS advisories mapped to deployed vendor/product via lookup</td><td><code>inputlookup ics_cert_advisories</code></td><td>Advisory-to-asset match table, KPI</td></tr>
+</table>
+
+<div class="src-h"><span class="dot" style="background:#FF9000"></span>NERC CIP compliance data sources</div>
+<table class="src-table">
+  <tr><th>Source</th><th>Ingestion path</th><th>Index / lookup (example)</th><th>Feeds panels</th></tr>
+  <tr><td>Patch management system</td><td>SCCM/Intune, WSUS, or OT patch tooling export</td><td><code>index=patch_mgmt</code></td><td>CIP-007 patch status</td></tr>
+  <tr><td>Configuration baseline / change management</td><td>CMDB or configuration management tooling (e.g. ServiceNow CMDB, internal baseline tool)</td><td><code>index=config_baseline</code></td><td>CIP-010 deviation trend</td></tr>
+  <tr><td>Remote access / jump host logs</td><td>Privileged access management or jump host gateway logs</td><td><code>index=esp_access</code></td><td>CIP-005 ESP access table</td></tr>
+  <tr><td>Personnel risk assessment &amp; training records</td><td>HR/GRC system export (e.g. ServiceNow GRC, internal training tracker)</td><td><code>inputlookup cip004_personnel_status.csv</code></td><td>CIP-004 panel</td></tr>
+  <tr><td>Control status by NERC CIP standard</td><td>GRC platform export mapping each control to pass/fail status</td><td><code>inputlookup nerc_cip_controls.csv</code></td><td>Compliance score KPI, scorecard</td></tr>
+</table>
+<div class="note">Splunk surfaces and correlates evidence for these controls; it does not independently attest to NERC CIP compliance. The source of truth for audit purposes remains the formal compliance program and its system of record.</div>
+
+<div class="src-h"><span class="dot" style="background:#FFD24D"></span>Threat intelligence &amp; physical security data sources</div>
+<table class="src-table">
+  <tr><th>Source</th><th>Ingestion path</th><th>Index / lookup (example)</th><th>Feeds panels</th></tr>
+  <tr><td>Sector-specific threat intelligence</td><td>E-ISAC / OT-ISAC member feed, or commercial threat intel platform, normalized into a lookup via Splunk Enterprise Security threat intelligence framework</td><td><code>inputlookup threat_intel_iocs</code></td><td>IOC match table, KPI</td></tr>
+  <tr><td>Physical access control / intrusion detection</td><td>Physical security management system export (e.g. Lenel, Genetec) via syslog or CSV</td><td><code>index=physical_security sourcetype=access_control:alarm</code></td><td>Perimeter alarm trend, cyber-physical correlation</td></tr>
+  <tr><td>Incident management</td><td>ITSM/SOAR platform (e.g. ServiceNow SecOps, internal ticketing) via REST API or DB Connect</td><td><code>index=incident_mgmt</code></td><td>Incident board, MTTC KPI</td></tr>
+</table>
+
+<div class="src-h"><span class="dot" style="background:#929AA4"></span>Reference lookups to build</div>
+<table class="src-table">
+  <tr><th>Lookup</th><th>Purpose</th><th>Suggested refresh</th></tr>
+  <tr><td><code>ics_cert_advisories.csv</code></td><td>Vendor/product/CVE/CVSS/KEV mapping pulled from CISA ICS advisories</td><td>Daily scheduled search</td></tr>
+  <tr><td><code>nerc_cip_controls.csv</code></td><td>Per-control pass/fail status by CIP standard, sourced from GRC platform</td><td>Daily or on GRC update</td></tr>
+  <tr><td><code>cip004_personnel_status.csv</code></td><td>Personnel training/PRA status by BES Cyber System role</td><td>Daily</td></tr>
+  <tr><td><code>threat_intel_iocs.csv</code></td><td>Normalized IOC feed scoped to energy-sector indicators</td><td>Hourly via TI framework</td></tr>
+</table>
+</div>
+    <div class="dtab-panel" id="d-notes"><div class="src-h"><span class="dot" style="background:#FF007F"></span>What this is</div>
+<p style="color:var(--text-on-dark-muted);font-size:12.5px;line-height:1.6;">
+A self-contained prototype of a Splunk dashboard for an energy company's IT and OT security operations, built so it can be reviewed without a live Splunk instance. The Simple XML tab contains the matching, pasteable Splunk source &mdash; the rendered panels here and the SPL in the XML are aligned one-to-one, though chart values on this page are deterministic illustrative sample data, not live search results.
+</p>
+
+<div class="src-h"><span class="dot" style="background:#02C8FF"></span>Before deploying</div>
+<table class="src-table">
+  <tr><td style="width:26px;">1</td><td>Replace every <code>index=</code>, <code>sourcetype=</code>, and lookup name with the names actually used in your environment. The ones here are descriptive placeholders.</td></tr>
+  <tr><td>2</td><td>Confirm OT visibility platform integration (Claroty / Dragos / Nozomi or equivalent) before relying on asset inventory, protocol, or rogue-device panels &mdash; coverage and field names vary by vendor and deployment mode.</td></tr>
+  <tr><td>3</td><td>Build the four reference lookups (ICS-CERT advisories, NERC CIP controls, CIP-004 personnel status, threat intel IOCs) via scheduled searches or scripted inputs before the compliance and threat-intel panels will populate.</td></tr>
+  <tr><td>4</td><td>Validate field-level access controls: OT asset and ESP-access data is sensitive. Apply role-based access controls (RBAC) in Splunk so this dashboard, and the underlying indexes, are scoped to authorized security and operations staff.</td></tr>
+  <tr><td>5</td><td>Tune KPI thresholds (the colored range values on single-value panels) to your organization's actual SLAs and risk appetite &mdash; the values here are placeholders.</td></tr>
+</table>
+
+<div class="src-h"><span class="dot" style="background:#FF9000"></span>Design notes</div>
+<p style="color:var(--text-on-dark-muted);font-size:12.5px;line-height:1.6;">
+Built in Splunk's dark theme with classic Simple XML (not Dashboard Studio) for maximum portability across Splunk Enterprise and Splunk Cloud versions. Panels are grouped into five tabs &mdash; Executive overview, IT security, OT/ICS security, NERC CIP compliance, and Threat intel &amp; physical &mdash; so an account team can navigate by audience: a CISO or board member typically lives in the first tab, while SOC analysts and OT engineers work the detail tabs. Charts are hand-rolled vanilla SVG with no external chart library or CDN dependency, so the file travels as a single HTML document.
+</p>
+<p style="color:var(--text-on-dark-muted);font-size:12.5px;line-height:1.6;">
+Canadian-market note: if adapting this for a Canadian utility, the CIP compliance tab maps cleanly onto OSFI B-13 (for financially regulated entities with OT exposure) or applicable provincial reliability standards, and Bill C-26/CCSPA reporting obligations can sit alongside the incident board as a parallel compliance lane.
+</p>
+</div>
+  </div>
+</div>
+
+<script type="text/plain" id="src-xml"><form version="1.1" theme="dark">
+  <label>Grid cyber-physical risk dashboard</label>
+  <description>IT and OT security posture across generation, transmission, and distribution. Requires Splunk Enterprise 8.x/9.x or Splunk Cloud, plus the OT/IT data sources documented separately. Replace illustrative indexes/sourcetypes with your environment's actual names before deploying.</description>
+
+  <fieldset submitButton="true" autoRun="true">
+    <input type="time" token="time_tok">
+      <label>Time range</label>
+      <default>
+        <earliest>-7d@h</earliest>
+        <latest>now</latest>
+      </default>
+    </input>
+    <input type="dropdown" token="region_tok">
+      <label>Balancing authority / region</label>
+      <choice value="*">All regions</choice>
+      <choice value="MISO">MISO - North</choice>
+      <choice value="PJM">PJM - East</choice>
+      <choice value="ERCOT">ERCOT</choice>
+      <choice value="WECC">WECC - Southwest</choice>
+      <default>*</default>
+    </input>
+    <input type="multiselect" token="zone_tok">
+      <label>Purdue zone</label>
+      <choice value="L0">L0-1 field</choice>
+      <choice value="L2">L2 supervisory</choice>
+      <choice value="L3">L3 ops DMZ</choice>
+      <choice value="L4">L4 enterprise IT</choice>
+      <default>L0,L2,L3,L4</default>
+      <delimiter>,</delimiter>
+    </input>
+    <input type="multiselect" token="sev_tok">
+      <label>Severity</label>
+      <choice value="critical">Critical</choice>
+      <choice value="high">High</choice>
+      <choice value="medium">Medium</choice>
+      <choice value="low">Low</choice>
+      <default>critical,high,medium,low</default>
+      <delimiter>,</delimiter>
+    </input>
+    <input type="dropdown" token="bes_tok">
+      <label>Asset criticality (BES)</label>
+      <choice value="*">All BES Cyber Systems</choice>
+      <choice value="high">High impact</choice>
+      <choice value="medium">Medium impact</choice>
+      <choice value="low">Low impact</choice>
+      <default>*</default>
+    </input>
+  </fieldset>
+
+  <!-- ============================================================
+       ROW 1 — EXECUTIVE KPI STRIP
+       ============================================================ -->
+  <row>
+    <panel>
+      <title>NERC CIP compliance score</title>
+      <single>
+        <search>
+          <query>| inputlookup nerc_cip_controls.csv
+| stats avg(eval(if(status="pass",100,0))) as compliance_pct</query>
+          <earliest>$time_tok.earliest$</earliest>
+          <latest>$time_tok.latest$</latest>
+        </search>
+        <option name="numberPrecision">0.0</option>
+        <option name="unit">%</option>
+        <option name="colorMode">block</option>
+        <option name="rangeColors">["0xDC4E41","0xF8BE34","0x65A637"]</option>
+        <option name="rangeValues">[80,90]</option>
+      </single>
+    </panel>
+    <panel>
+      <title>Critical OT/ICS alerts</title>
+      <single>
+        <search>
+          <query>index=ot_network OR index=ot_asset_inventory severity=critical
+| search bes_impact=$bes_tok$
+| stats count</query>
+          <earliest>-24h@h</earliest>
+          <latest>now</latest>
+        </search>
+        <option name="colorMode">block</option>
+        <option name="rangeColors">["0x65A637","0xF8BE34","0xDC4E41"]</option>
+        <option name="rangeValues">[1,5]</option>
+      </single>
+    </panel>
+    <panel>
+      <title>IT-OT boundary violations</title>
+      <single>
+        <search>
+          <query>index=ot_firewall OR index=data_diode action=deny direction=it_to_ot
+| stats count</query>
+          <earliest>$time_tok.earliest$</earliest>
+          <latest>$time_tok.latest$</latest>
+        </search>
+        <option name="colorMode">block</option>
+        <option name="rangeColors">["0x65A637","0xF8BE34","0xDC4E41"]</option>
+        <option name="rangeValues">[5,15]</option>
+      </single>
+    </panel>
+    <panel>
+      <title>Active security incidents</title>
+      <single>
+        <search>
+          <query>index=incident_mgmt status!=closed
+| stats count</query>
+          <earliest>$time_tok.earliest$</earliest>
+          <latest>$time_tok.latest$</latest>
+        </search>
+      </single>
+    </panel>
+    <panel>
+      <title>Mean time to contain (OT)</title>
+      <single>
+        <search>
+          <query>index=incident_mgmt environment=OT status=closed
+| eval ttc_min=(closed_time-created_time)/60
+| stats avg(ttc_min) as mttc</query>
+          <earliest>$time_tok.earliest$</earliest>
+          <latest>$time_tok.latest$</latest>
+        </search>
+        <option name="unit">min</option>
+        <option name="numberPrecision">0</option>
+      </single>
+    </panel>
+    <panel>
+      <title>Critical CVEs - OT-adjacent assets</title>
+      <single>
+        <search>
+          <query>| inputlookup ics_cert_advisories
+| join asset_id [ search index=ot_asset_inventory ]
+| where cvss&gt;=9.0
+| stats dc(cve_id) as cnt</query>
+          <earliest>$time_tok.earliest$</earliest>
+          <latest>$time_tok.latest$</latest>
+        </search>
+      </single>
+    </panel>
+  </row>
+
+  <!-- ============================================================
+       ROW 2 — COMPOSITE RISK TREND + INCIDENT BOARD
+       ============================================================ -->
+  <row>
+    <panel>
+      <title>IT vs OT composite risk score - trend</title>
+      <chart>
+        <search>
+          <query>index=it_risk_score OR index=ot_risk_score
+| eval environment=if(index="it_risk_score","IT","OT")
+| timechart span=1d avg(risk_score) by environment</query>
+          <earliest>$time_tok.earliest$</earliest>
+          <latest>$time_tok.latest$</latest>
+        </search>
+        <option name="charting.chart">line</option>
+        <option name="charting.fieldColors">{"IT":0x02C8FF,"OT":0xFF007F}</option>
+        <option name="charting.axisTitleY.text">Composite risk index (0-100)</option>
+        <option name="charting.legend.placement">bottom</option>
+      </chart>
+    </panel>
+    <panel>
+      <title>Open incident board</title>
+      <table>
+        <search>
+          <query>index=incident_mgmt status!=closed region=$region_tok$ severity IN ($sev_tok$)
+| table incident_id, environment, summary, severity, status, age_minutes
+| sort -severity</query>
+          <earliest>$time_tok.earliest$</earliest>
+          <latest>$time_tok.latest$</latest>
+        </search>
+        <option name="drilldown">none</option>
+        <option name="count">10</option>
+      </table>
+    </panel>
+  </row>
+
+  <!-- ============================================================
+       ROW 3 — ALERT DISTRIBUTION
+       ============================================================ -->
+  <row>
+    <panel>
+      <title>Alerts by Purdue zone &amp; severity</title>
+      <chart>
+        <search>
+          <query>index=it_alerts OR index=ot_network OR index=ot_asset_inventory zone IN ($zone_tok$) severity IN ($sev_tok$)
+| chart count by zone, severity</query>
+          <earliest>$time_tok.earliest$</earliest>
+          <latest>$time_tok.latest$</latest>
+        </search>
+        <option name="charting.chart">column</option>
+        <option name="charting.chart.stackMode">stacked</option>
+        <option name="charting.fieldColors">{"critical":0xDC4E41,"high":0xF8893B,"medium":0xF8BE34,"low":0x8FA1AC}</option>
+      </chart>
+    </panel>
+    <panel>
+      <title>Top affected Purdue zones</title>
+      <chart>
+        <search>
+          <query>index=it_alerts OR index=ot_network zone IN ($zone_tok$)
+| stats count by zone
+| sort -count
+| head 6</query>
+          <earliest>$time_tok.earliest$</earliest>
+          <latest>$time_tok.latest$</latest>
+        </search>
+        <option name="charting.chart">bar</option>
+        <option name="charting.fieldColors">{"count":0xFF007F}</option>
+      </chart>
+    </panel>
+    <panel>
+      <title>Events by balancing authority region</title>
+      <chart>
+        <search>
+          <query>index=it_alerts OR index=ot_network region=$region_tok$
+| stats count by region
+| sort -count</query>
+          <earliest>$time_tok.earliest$</earliest>
+          <latest>$time_tok.latest$</latest>
+        </search>
+        <option name="charting.chart">bar</option>
+        <option name="charting.fieldColors">{"count":0x02C8FF}</option>
+      </chart>
+    </panel>
+  </row>
+
+  <!-- ============================================================
+       ROW 4 — IT SECURITY
+       ============================================================ -->
+  <row>
+    <panel>
+      <title>IT - authentication trend (success vs failure)</title>
+      <chart>
+        <search>
+          <query>index=auth (sourcetype=WinEventLog:Security OR sourcetype=okta OR sourcetype=azure:aad)
+| eval action=if(match(action,"success|4624"),"success","failure")
+| timechart span=4h count by action</query>
+          <earliest>$time_tok.earliest$</earliest>
+          <latest>$time_tok.latest$</latest>
+        </search>
+        <option name="charting.chart">line</option>
+        <option name="charting.fieldColors">{"success":0x65A637,"failure":0xDC4E41}</option>
+      </chart>
+    </panel>
+    <panel>
+      <title>IT - email threat trend</title>
+      <chart>
+        <search>
+          <query>index=email_security (sourcetype=ms:o365:defender OR sourcetype=proofpoint)
+| timechart span=1d count(eval(disposition="flagged")) as flagged, count(eval(disposition="blocked")) as blocked</query>
+          <earliest>$time_tok.earliest$</earliest>
+          <latest>$time_tok.latest$</latest>
+        </search>
+        <option name="charting.chart">line</option>
+        <option name="charting.fieldColors">{"flagged":0xF8893B,"blocked":0x02C8FF}</option>
+      </chart>
+    </panel>
+  </row>
+  <row>
+    <panel>
+      <title>IT - endpoint detections by category</title>
+      <chart>
+        <search>
+          <query>index=edr sourcetype IN (crowdstrike:*, defender:atp:*)
+| stats count by detection_category</query>
+          <earliest>-24h@h</earliest>
+          <latest>now</latest>
+        </search>
+        <option name="charting.chart">pie</option>
+      </chart>
+    </panel>
+    <panel>
+      <title>IT - vulnerability severity distribution</title>
+      <chart>
+        <search>
+          <query>index=vuln_mgmt sourcetype IN (tenable:sc:vuln, qualys:vuln, rapid7:vuln) status=open
+| stats count by severity
+| eval order=case(severity="critical",1,severity="high",2,severity="medium",3,severity="low",4)
+| sort order</query>
+          <earliest>$time_tok.earliest$</earliest>
+          <latest>$time_tok.latest$</latest>
+        </search>
+        <option name="charting.chart">column</option>
+        <option name="charting.fieldColors">{"count":0xDC4E41}</option>
+      </chart>
+    </panel>
+    <panel>
+      <title>IT - top targeted / privileged accounts</title>
+      <table>
+        <search>
+          <query>index=auth OR index=edr severity IN ($sev_tok$)
+| stats count by user
+| sort -count
+| head 10</query>
+          <earliest>$time_tok.earliest$</earliest>
+          <latest>$time_tok.latest$</latest>
+        </search>
+      </table>
+    </panel>
+  </row>
+  <row>
+    <panel>
+      <title>IT - identity anomaly detections</title>
+      <table>
+        <search>
+          <query>index=ueba OR (index=auth anomaly=true)
+| table _time, user, detection, severity
+| sort -_time
+| head 20</query>
+          <earliest>$time_tok.earliest$</earliest>
+          <latest>$time_tok.latest$</latest>
+        </search>
+      </table>
+    </panel>
+    <panel>
+      <title>IT - ransomware precursor indicators</title>
+      <table>
+        <search>
+          <query>index=edr (signature="vssadmin*delete*" OR signature="*shadow_copy_delete*" OR description="*backup_deleted*" OR description="*mass_file_rename*")
+| table _time, host, signature, severity
+| sort -_time</query>
+          <earliest>$time_tok.earliest$</earliest>
+          <latest>$time_tok.latest$</latest>
+        </search>
+      </table>
+    </panel>
+  </row>
+
+  <!-- ============================================================
+       ROW 5 — OT / ICS SECURITY
+       ============================================================ -->
+  <row>
+    <panel>
+      <title>OT - ICS asset inventory by Purdue level</title>
+      <chart>
+        <search>
+          <query>index=ot_asset_inventory zone IN ($zone_tok$)
+| chart dc(asset_id) by purdue_level, managed_status</query>
+          <earliest>$time_tok.earliest$</earliest>
+          <latest>$time_tok.latest$</latest>
+        </search>
+        <option name="charting.chart">column</option>
+        <option name="charting.chart.stackMode">stacked</option>
+        <option name="charting.fieldColors">{"managed":0x02C8FF,"unmanaged":0xF8893B}</option>
+      </chart>
+    </panel>
+    <panel>
+      <title>OT - network protocol traffic mix</title>
+      <chart>
+        <search>
+          <query>index=ot_network sourcetype=ics:protocol:session
+| stats count by protocol</query>
+          <earliest>-24h@h</earliest>
+          <latest>now</latest>
+        </search>
+        <option name="charting.chart">pie</option>
+      </chart>
+    </panel>
+  </row>
+  <row>
+    <panel>
+      <title>OT - protocol anomaly trend</title>
+      <chart>
+        <search>
+          <query>index=ot_network sourcetype=ics:protocol:anomaly
+| timechart span=1d count by anomaly_type</query>
+          <earliest>$time_tok.earliest$</earliest>
+          <latest>$time_tok.latest$</latest>
+        </search>
+        <option name="charting.chart">line</option>
+        <option name="charting.fieldColors">{"unauthorized_function_code":0xDC4E41,"malformed_packet":0xF8893B}</option>
+      </chart>
+    </panel>
+    <panel>
+      <title>OT - IT/OT boundary crossing attempts</title>
+      <chart>
+        <search>
+          <query>index=ot_firewall OR index=data_diode
+| timechart span=1d count(eval(action="deny")) as denied, count(eval(action="allow")) as allowed</query>
+          <earliest>$time_tok.earliest$</earliest>
+          <latest>$time_tok.latest$</latest>
+        </search>
+        <option name="charting.chart">line</option>
+        <option name="charting.fieldColors">{"denied":0xDC4E41,"allowed":0x65A637}</option>
+      </chart>
+    </panel>
+  </row>
+  <row>
+    <panel>
+      <title>OT - PLC/RTU/engineering workstation configuration changes</title>
+      <table>
+        <search>
+          <query>index=ot_config_changes
+| table _time, asset_id, change_description, authorization_status
+| sort -_time</query>
+          <earliest>$time_tok.earliest$</earliest>
+          <latest>$time_tok.latest$</latest>
+        </search>
+      </table>
+    </panel>
+    <panel>
+      <title>OT - rogue / unauthorized device detections</title>
+      <table>
+        <search>
+          <query>index=ot_asset_inventory asset_status=unrecognized
+| table _time, zone, mac_fingerprint, response_action
+| sort -_time</query>
+          <earliest>-30d@d</earliest>
+          <latest>now</latest>
+        </search>
+      </table>
+    </panel>
+  </row>
+  <row>
+    <panel>
+      <title>OT - ICS-CERT/CISA advisory matches against deployed assets</title>
+      <table>
+        <search>
+          <query>| inputlookup ics_cert_advisories
+| join type=inner cve_id [ search index=ot_asset_inventory | stats count by cve_id, asset_id ]
+| stats dc(asset_id) as affected_assets, max(cvss) as cvss, max(kev_flag) as kev by vendor_product, advisory_id
+| sort -cvss</query>
+          <earliest>$time_tok.earliest$</earliest>
+          <latest>$time_tok.latest$</latest>
+        </search>
+      </table>
+    </panel>
+  </row>
+
+  <!-- ============================================================
+       ROW 6 — NERC CIP COMPLIANCE
+       ============================================================ -->
+  <row>
+    <panel>
+      <title>CIP-007 - patch management status by BES Cyber System</title>
+      <chart>
+        <search>
+          <query>index=patch_mgmt bes_impact=$bes_tok$
+| chart count by bes_cyber_system, sla_status</query>
+          <earliest>$time_tok.earliest$</earliest>
+          <latest>$time_tok.latest$</latest>
+        </search>
+        <option name="charting.chart">column</option>
+        <option name="charting.chart.stackMode">stacked100</option>
+        <option name="charting.fieldColors">{"within_sla":0x65A637,"past_sla":0xDC4E41}</option>
+      </chart>
+    </panel>
+    <panel>
+      <title>CIP-010 - baseline configuration deviations (30d)</title>
+      <chart>
+        <search>
+          <query>index=config_baseline action=deviation
+| timechart span=1d count</query>
+          <earliest>-30d@d</earliest>
+          <latest>now</latest>
+        </search>
+        <option name="charting.chart">area</option>
+        <option name="charting.fieldColors">{"count":0xF8893B}</option>
+      </chart>
+    </panel>
+  </row>
+  <row>
+    <panel>
+      <title>CIP-005 - Electronic Security Perimeter remote access sessions</title>
+      <table>
+        <search>
+          <query>index=esp_access
+| table _time, user, esp_zone, method, justification_status, duration_min
+| sort -_time</query>
+          <earliest>$time_tok.earliest$</earliest>
+          <latest>$time_tok.latest$</latest>
+        </search>
+      </table>
+    </panel>
+    <panel>
+      <title>CIP-004 - personnel risk assessment &amp; training status</title>
+      <chart>
+        <search>
+          <query>| inputlookup cip004_personnel_status.csv
+| stats count by status</query>
+          <earliest>$time_tok.earliest$</earliest>
+          <latest>$time_tok.latest$</latest>
+        </search>
+        <option name="charting.chart">pie</option>
+        <option name="charting.fieldColors">{"current":0x65A637,"expiring":0xF8BE34,"overdue":0xDC4E41}</option>
+      </chart>
+    </panel>
+  </row>
+  <row>
+    <panel>
+      <title>NERC CIP standards compliance scorecard</title>
+      <chart>
+        <search>
+          <query>| inputlookup nerc_cip_controls.csv
+| stats avg(eval(if(status="pass",100,0))) as pct by cip_standard
+| sort cip_standard</query>
+          <earliest>$time_tok.earliest$</earliest>
+          <latest>$time_tok.latest$</latest>
+        </search>
+        <option name="charting.chart">column</option>
+        <option name="charting.fieldColors">{"pct":0xF8893B}</option>
+        <option name="charting.axisY.maximumNumber">100</option>
+      </chart>
+    </panel>
+  </row>
+
+  <!-- ============================================================
+       ROW 7 — THREAT INTEL & PHYSICAL SECURITY
+       ============================================================ -->
+  <row>
+    <panel>
+      <title>Threat intelligence indicator matches (grid/ICS-relevant feeds)</title>
+      <table>
+        <search>
+          <query>| inputlookup threat_intel_iocs
+| search sector=energy
+| join type=inner indicator [ search index=it_endpoint OR index=ot_network | rename matched_indicator as indicator ]
+| table _time, indicator_type, threat_cluster, matched_asset, severity
+| sort -_time</query>
+          <earliest>$time_tok.earliest$</earliest>
+          <latest>$time_tok.latest$</latest>
+        </search>
+      </table>
+    </panel>
+  </row>
+  <row>
+    <panel>
+      <title>Substation &amp; facility perimeter intrusion alarms</title>
+      <chart>
+        <search>
+          <query>index=physical_security sourcetype=access_control:alarm
+| timechart span=1d count by alarm_type</query>
+          <earliest>$time_tok.earliest$</earliest>
+          <latest>$time_tok.latest$</latest>
+        </search>
+        <option name="charting.chart">line</option>
+        <option name="charting.fieldColors">{"perimeter_sensor":0xDC4E41,"badge_anomaly":0xF8893B}</option>
+      </chart>
+    </panel>
+    <panel>
+      <title>SCADA / EMS system availability (30d)</title>
+      <table>
+        <search>
+          <query>index=scada_health
+| stats sum(downtime_sec) as downtime, count(eval(status="incident")) as incidents, max(outage_duration_sec) as longest_outage by system
+| eval uptime_pct=round(100*(1-downtime/2592000),2)
+| table system, uptime_pct, incidents, longest_outage</query>
+          <earliest>-30d@d</earliest>
+          <latest>now</latest>
+        </search>
+      </table>
+    </panel>
+  </row>
+  <row>
+    <panel>
+      <title>Cyber-physical correlation alerts</title>
+      <table>
+        <search>
+          <query>index=ot_network OR index=physical_security OR index=scada_health
+| transaction asset_id maxspan=15m
+| where eventcount&gt;1
+| table _time, asset_id, cyber_event, physical_signal, duration, severity
+| sort -_time</query>
+          <earliest>-30d@d</earliest>
+          <latest>now</latest>
+        </search>
+      </table>
+    </panel>
+  </row>
+
+</form>
+</script>
+
+<script>
+/* ===================== chart engine (vanilla SVG, no libs) ===================== */
+const NS='http://www.w3.org/2000/svg';
+function el(tag,attrs){const e=document.createElementNS(NS,tag);for(const k in attrs)e.setAttribute(k,attrs[k]);return e;}
+function fmtAxis(n){return n>=1000?(n/1000).toFixed(n%1000===0?0:1)+'k':n;}
+
+function lineChart(svg,series,opt){
+  // series: [{name,color,points:[y...]}], opt:{labels,w,h,padL,padB,yMax}
+  const w=opt.w||560,h=opt.h||190,padL=opt.padL||34,padR=14,padT=14,padB=opt.padB||22;
+  svg.setAttribute('viewBox',`0 0 ${w} ${h}`);
+  const plotW=w-padL-padR, plotH=h-padT-padB;
+  const n=opt.labels.length;
+  const yMax=opt.yMax||Math.max(...series.flatMap(s=>s.points))*1.15;
+  for(let i=0;i<=4;i++){
+    const y=padT+plotH-(i/4)*plotH;
+    svg.appendChild(el('line',{x1:padL,x2:w-padR,y1:y,y2:y,class:'grid-line'}));
+    const t=el('text',{x:padL-6,y:y+3,'text-anchor':'end',class:'axis-text'});
+    t.textContent=fmtAxis(Math.round((i/4)*yMax));svg.appendChild(t);
+  }
+  const step=plotW/(n-1);
+  opt.labels.forEach((lab,i)=>{
+    if(i%opt.skip!==0 && i!==n-1)return;
+    const t=el('text',{x:padL+i*step,y:h-4,'text-anchor':'middle',class:'axis-text'});
+    t.textContent=lab;svg.appendChild(t);
+  });
+  series.forEach(s=>{
+    let d='';
+    s.points.forEach((v,i)=>{
+      const x=padL+i*step, y=padT+plotH-(v/yMax)*plotH;
+      d+=(i===0?'M':'L')+x.toFixed(1)+','+y.toFixed(1)+' ';
+    });
+    if(s.fill){
+      const dArea=d+`L${(padL+(n-1)*step).toFixed(1)},${(padT+plotH).toFixed(1)} L${padL},${(padT+plotH).toFixed(1)} Z`;
+      const fillEl=el('path',{d:dArea,fill:s.color,opacity:0.12,stroke:'none'});
+      svg.appendChild(fillEl);
+    }
+    svg.appendChild(el('path',{d,fill:'none',stroke:s.color,'stroke-width':2,'stroke-linejoin':'round','stroke-linecap':'round'}));
+    s.points.forEach((v,i)=>{
+      const x=padL+i*step, y=padT+plotH-(v/yMax)*plotH;
+      svg.appendChild(el('circle',{cx:x,cy:y,r:2.1,fill:s.color}));
+    });
+  });
+}
+
+function barChart(svg,data,opt){
+  // data:[{label,values:[v...]}], opt:{colors,w,h,stacked,yMax}
+  const w=opt.w||560,h=opt.h||190,padL=opt.padL||34,padR=14,padT=14,padB=24;
+  svg.setAttribute('viewBox',`0 0 ${w} ${h}`);
+  const plotW=w-padL-padR, plotH=h-padT-padB;
+  const n=data.length;
+  const totals=data.map(d=>opt.stacked?d.values.reduce((a,b)=>a+b,0):Math.max(...d.values));
+  const yMax=opt.yMax||Math.max(...totals)*1.2;
+  for(let i=0;i<=4;i++){
+    const y=padT+plotH-(i/4)*plotH;
+    svg.appendChild(el('line',{x1:padL,x2:w-padR,y1:y,y2:y,class:'grid-line'}));
+    const t=el('text',{x:padL-6,y:y+3,'text-anchor':'end',class:'axis-text'});
+    t.textContent=fmtAxis(Math.round((i/4)*yMax));svg.appendChild(t);
+  }
+  const slot=plotW/n, bw=opt.bw||slot*0.5;
+  data.forEach((d,i)=>{
+    const cx=padL+i*slot+slot/2;
+    let yCursor=padT+plotH;
+    d.values.forEach((v,vi)=>{
+      const bh=(v/yMax)*plotH;
+      const x=opt.stacked? cx-bw/2 : cx-bw/2+vi*(bw/d.values.length);
+      const bwi=opt.stacked?bw:bw/d.values.length-1.5;
+      const y=opt.stacked? yCursor-bh : padT+plotH-bh;
+      svg.appendChild(el('rect',{x,y,width:bwi,height:bh,fill:opt.colors[vi],rx:1.5}));
+      if(opt.stacked)yCursor-=bh;
+    });
+    const t=el('text',{x:cx,y:h-6,'text-anchor':'middle',class:'axis-text'});
+    t.textContent=d.label;svg.appendChild(t);
+  });
+}
+
+function hBarChart(svg,data,opt){
+  // data:[{label,value}]
+  const w=opt.w||560,rowH=opt.rowH||22,padL=opt.padL||120,padR=46,padT=6;
+  const n=data.length, h=padT*2+rowH*n;
+  svg.setAttribute('viewBox',`0 0 ${w} ${h}`);
+  const plotW=w-padL-padR;
+  const max=opt.max||Math.max(...data.map(d=>d.value))*1.15;
+  data.forEach((d,i)=>{
+    const y=padT+i*rowH;
+    const bw=(d.value/max)*plotW;
+    const lbl=el('text',{x:padL-8,y:y+rowH/2+4,'text-anchor':'end',class:'axis-text'});
+    lbl.textContent=d.label;svg.appendChild(lbl);
+    svg.appendChild(el('rect',{x:padL,y:y+4,width:plotW,height:rowH-10,fill:'var(--neutral-30)'.replace('var(--neutral-30)','#232932'),rx:2}));
+    svg.appendChild(el('rect',{x:padL,y:y+4,width:Math.max(bw,2),height:rowH-10,fill:d.color||'#FF007F',rx:2}));
+    const vt=el('text',{x:padL+bw+6,y:y+rowH/2+4,class:'axis-text'});
+    vt.setAttribute('fill','#F2F5FA');
+    vt.textContent=d.value;svg.appendChild(vt);
+  });
+}
+
+function donut(svg,data,opt){
+  // data:[{label,value,color}]
+  const size=opt.size||190, r=size*0.36, r2=r*0.62, cx=size/2,cy=size/2;
+  svg.setAttribute('viewBox',`0 0 ${size} ${size}`);
+  const total=data.reduce((a,b)=>a+b.value,0);
+  let ang=-Math.PI/2;
+  data.forEach(d=>{
+    const frac=d.value/total, a2=ang+frac*Math.PI*2;
+    const x1=cx+r*Math.cos(ang), y1=cy+r*Math.sin(ang);
+    const x2=cx+r*Math.cos(a2), y2=cy+r*Math.sin(a2);
+    const xi1=cx+r2*Math.cos(a2), yi1=cy+r2*Math.sin(a2);
+    const xi2=cx+r2*Math.cos(ang), yi2=cy+r2*Math.sin(ang);
+    const large=frac>0.5?1:0;
+    const d_=`M${x1},${y1} A${r},${r} 0 ${large} 1 ${x2},${y2} L${xi1},${yi1} A${r2},${r2} 0 ${large} 0 ${xi2},${yi2} Z`;
+    svg.appendChild(el('path',{d:d_,fill:d.color}));
+    ang=a2;
+  });
+  const ct=el('text',{x:cx,y:cy-2,'text-anchor':'middle','font-size':'19','font-weight':'600',fill:'#F2F5FA'});
+  ct.textContent=total;svg.appendChild(ct);
+  const cl=el('text',{x:cx,y:cy+14,'text-anchor':'middle','font-size':'9',fill:'#6E7682'});
+  cl.textContent=opt.centerLabel||'total';svg.appendChild(cl);
+}
+
+function gauge(svg,value,max,opt){
+  const w=opt.w||190,h=110,cx=w/2,cy=98,r=80;
+  svg.setAttribute('viewBox',`0 0 ${w} ${h}`);
+  const frac=value/max;
+  const a0=Math.PI, a1=Math.PI-frac*Math.PI;
+  const x0=cx+r*Math.cos(a0), y0=cy+r*Math.sin(a0);
+  const x1=cx+r*Math.cos(a1), y1=cy+r*Math.sin(a1);
+  svg.appendChild(el('path',{d:`M${cx-r},${cy} A${r},${r} 0 0 1 ${cx+r},${cy}`,fill:'none',stroke:'#232932','stroke-width':14,'stroke-linecap':'round'}));
+  const large=frac>0.5?1:0;
+  const color=opt.color||'#FF9000';
+  svg.appendChild(el('path',{d:`M${x0},${y0} A${r},${r} 0 ${large} 1 ${x1},${y1}`,fill:'none',stroke:color,'stroke-width':14,'stroke-linecap':'round'}));
+}
+</script>
+<script>
+/* ===================== TAB CONTENT ===================== */
+document.getElementById('tab-mount').innerHTML = `
+
+<!-- ============ EXECUTIVE OVERVIEW ============ -->
+<div class="tab-panel active" id="t-exec">
+  <div class="kpi-row">
+    <div class="kpi"><div class="bar" style="background:#2ECC71"></div><div class="lbl">NERC CIP compliance score</div><div class="val good">94.2%</div><div class="trend down-good">&#9650; 1.1 pts vs last qtr</div></div>
+    <div class="kpi"><div class="bar" style="background:#FF4D4D"></div><div class="lbl">Critical OT/ICS alerts (24h)</div><div class="val crit">3</div><div class="trend up-bad">&#9650; 1 vs prior day</div></div>
+    <div class="kpi"><div class="bar" style="background:#FF9000"></div><div class="lbl">IT&ndash;OT boundary violations (7d)</div><div class="val warn">12</div><div class="trend">&#9660; 4 vs prior week</div></div>
+    <div class="kpi"><div class="bar" style="background:#02C8FF"></div><div class="lbl">Active security incidents</div><div class="val">5</div><div class="trend">2 OT &middot; 3 IT</div></div>
+    <div class="kpi"><div class="bar" style="background:#FF9000"></div><div class="lbl">Mean time to contain (OT)</div><div class="val warn">38 min</div><div class="trend down-good">&#9660; 6 min vs target</div></div>
+    <div class="kpi"><div class="bar" style="background:#FF4D4D"></div><div class="lbl">Critical CVEs &ndash; OT-adjacent assets</div><div class="val crit">9</div><div class="trend">unpatched &gt; 30 days</div></div>
+  </div>
+
+  <div class="row grid g12-7-5">
+    <div class="panel">
+      <div class="panel-head"><h3>IT vs OT composite risk score &mdash; 7 day trend</h3><span class="meta">index l.b. internal model, 0&ndash;100</span></div>
+      <div class="panel-body">
+        <svg class="chart" id="svg-exec-trend"></svg>
+        <div class="legend">
+          <div class="item"><span class="sw" style="background:#02C8FF"></span>IT environment</div>
+          <div class="item"><span class="sw" style="background:#FF007F"></span>OT / ICS environment</div>
+        </div>
+      </div>
+      <div class="panel-foot">index=it_risk_score OR index=ot_risk_score | timechart span=1d avg(risk_score) by environment</div>
+    </div>
+    <div class="panel">
+      <div class="panel-head"><h3>Open incident board</h3><span class="meta">5 active</span></div>
+      <div class="panel-body">
+        <table class="dtable">
+          <tr><th>ID</th><th>Env</th><th>Summary</th><th>Sev</th><th>Status</th><th>Age</th></tr>
+          <tr><td>INC-4471</td><td><span class="pill ot">OT</span></td><td>Unauthorized Modbus write attempt &mdash; Substation 14 RTU</td><td><span class="sev crit">Critical</span></td><td><span class="pill open">Open</span></td><td>2h 10m</td></tr>
+          <tr><td>INC-4468</td><td><span class="pill it">IT</span></td><td>Privileged account anomalous login &mdash; OT engineering domain</td><td><span class="sev crit">Critical</span></td><td><span class="pill contained">Contained</span></td><td>5h 40m</td></tr>
+          <tr><td>INC-4465</td><td><span class="pill ot">OT</span></td><td>Rogue device on Level 2 supervisory VLAN &mdash; Plant 3</td><td><span class="sev high">High</span></td><td><span class="pill open">Open</span></td><td>11h 02m</td></tr>
+          <tr><td>INC-4461</td><td><span class="pill it">IT</span></td><td>Phishing campaign targeting SCADA vendor support staff</td><td><span class="sev high">High</span></td><td><span class="pill contained">Contained</span></td><td>1d 3h</td></tr>
+          <tr><td>INC-4459</td><td><span class="pill it">IT</span></td><td>Data diode policy exception &mdash; expired change window</td><td><span class="sev med">Medium</span></td><td><span class="pill open">Open</span></td><td>2d 1h</td></tr>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <div class="row grid g3">
+    <div class="panel">
+      <div class="panel-head"><h3>Alerts by environment &amp; severity</h3><span class="meta">7d</span></div>
+      <div class="panel-body"><svg class="chart" id="svg-exec-stack"></svg>
+        <div class="legend"><div class="item"><span class="sw" style="background:#FF4D4D"></span>Critical</div><div class="item"><span class="sw" style="background:#FF9000"></span>High</div><div class="item"><span class="sw" style="background:#FFD24D"></span>Medium</div></div>
+      </div>
+    </div>
+    <div class="panel">
+      <div class="panel-head"><h3>Top affected Purdue zones</h3><span class="meta">event count, 7d</span></div>
+      <div class="panel-body"><svg class="chart" id="svg-exec-zones"></svg></div>
+    </div>
+    <div class="panel">
+      <div class="panel-head"><h3>Events by balancing authority region</h3><span class="meta">7d</span></div>
+      <div class="panel-body"><svg class="chart" id="svg-exec-region"></svg></div>
+    </div>
+  </div>
+
+  <div class="row grid g2">
+    <div class="panel">
+      <div class="panel-head"><h3>NERC CIP standard compliance breakdown</h3><span class="meta">% controls passing, current</span></div>
+      <div class="panel-body"><svg class="chart" id="svg-exec-cip"></svg></div>
+    </div>
+    <div class="panel">
+      <div class="panel-head"><h3>Cross-environment summary</h3><span class="meta">rolling 7d</span></div>
+      <div class="panel-body">
+        <table class="dtable">
+          <tr><th>Metric</th><th>IT</th><th>OT</th></tr>
+          <tr><td>Assets monitored</td><td>14,820</td><td>3,140</td></tr>
+          <tr><td>New critical findings</td><td>6</td><td>9</td></tr>
+          <tr><td>Mean time to detect</td><td>9 min</td><td>14 min</td></tr>
+          <tr><td>Mean time to contain</td><td>52 min</td><td>38 min</td></tr>
+          <tr><td>Coverage by EDR / OT-visibility sensor</td><td>97.8%</td><td>91.4%</td></tr>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============ IT SECURITY ============ -->
+<div class="tab-panel" id="t-it">
+  <div class="kpi-row">
+    <div class="kpi"><div class="bar" style="background:#02C8FF"></div><div class="lbl">Phishing emails blocked (7d)</div><div class="val">412</div><div class="trend">of 437 flagged</div></div>
+    <div class="kpi"><div class="bar" style="background:#FF9000"></div><div class="lbl">Failed authentications (24h)</div><div class="val warn">2,184</div><div class="trend up-bad">&#9650; 9% vs baseline</div></div>
+    <div class="kpi"><div class="bar" style="background:#FF4D4D"></div><div class="lbl">Privileged account anomalies</div><div class="val crit">4</div><div class="trend">2 touch OT domain</div></div>
+    <div class="kpi"><div class="bar" style="background:#FFD24D"></div><div class="lbl">Endpoint detections (24h)</div><div class="val">37</div><div class="trend">31 auto-remediated</div></div>
+    <div class="kpi"><div class="bar" style="background:#FF4D4D"></div><div class="lbl">Open critical IT CVEs</div><div class="val crit">21</div><div class="trend">SLA: 14 days</div></div>
+    <div class="kpi"><div class="bar" style="background:#2ECC71"></div><div class="lbl">MFA coverage &mdash; privileged roles</div><div class="val good">99.1%</div><div class="trend down-good">&#9650; 0.4 pts</div></div>
+  </div>
+
+  <div class="row grid g2">
+    <div class="panel">
+      <div class="panel-head"><h3>Authentication trend &mdash; success vs failure</h3><span class="meta">7d, hourly</span></div>
+      <div class="panel-body"><svg class="chart" id="svg-it-auth"></svg>
+        <div class="legend"><div class="item"><span class="sw" style="background:#2ECC71"></span>Success</div><div class="item"><span class="sw" style="background:#FF4D4D"></span>Failure</div></div>
+      </div>
+      <div class="panel-foot">index=auth (sourcetype=WinEventLog:Security OR sourcetype=okta) | timechart span=4h count by action</div>
+    </div>
+    <div class="panel">
+      <div class="panel-head"><h3>Email threat trend</h3><span class="meta">received vs blocked, 7d</span></div>
+      <div class="panel-body"><svg class="chart" id="svg-it-phish"></svg>
+        <div class="legend"><div class="item"><span class="sw" style="background:#FF9000"></span>Flagged</div><div class="item"><span class="sw" style="background:#02C8FF"></span>Blocked</div></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="row grid g3">
+    <div class="panel">
+      <div class="panel-head"><h3>Endpoint detections by category</h3><span class="meta">24h</span></div>
+      <div class="panel-body" style="display:flex;justify-content:center;"><svg class="chart" id="svg-it-endpoint" style="max-width:190px;"></svg></div>
+      <div class="panel-foot" style="display:flex;gap:10px;flex-wrap:wrap;justify-content:center;">
+        <span class="legend item"><span class="sw" style="background:#FF007F;display:inline-block;width:9px;height:9px;border-radius:2px;"></span> Malware</span>
+        <span class="legend item"><span class="sw" style="background:#FF9000;display:inline-block;width:9px;height:9px;border-radius:2px;"></span> LOLBin</span>
+        <span class="legend item"><span class="sw" style="background:#02C8FF;display:inline-block;width:9px;height:9px;border-radius:2px;"></span> Credential access</span>
+        <span class="legend item"><span class="sw" style="background:#6E7682;display:inline-block;width:9px;height:9px;border-radius:2px;"></span> Policy violation</span>
+      </div>
+    </div>
+    <div class="panel">
+      <div class="panel-head"><h3>IT vulnerability severity distribution</h3><span class="meta">open findings</span></div>
+      <div class="panel-body"><svg class="chart" id="svg-it-vuln"></svg></div>
+    </div>
+    <div class="panel">
+      <div class="panel-head"><h3>Top targeted / privileged accounts</h3><span class="meta">7d</span></div>
+      <div class="panel-body">
+        <table class="dtable">
+          <tr><th>Account</th><th>Role</th><th>Events</th></tr>
+          <tr><td>svc-scada-bridge</td><td>OT integration service account</td><td>48</td></tr>
+          <tr><td>r.alvarez</td><td>Transmission ops engineer</td><td>33</td></tr>
+          <tr><td>svc-historian-etl</td><td>Historian sync service account</td><td>27</td></tr>
+          <tr><td>k.weng</td><td>Network engineering, IT/OT DMZ</td><td>19</td></tr>
+          <tr><td>vendor-itron-remote</td><td>Third-party vendor remote access</td><td>16</td></tr>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <div class="row grid g2">
+    <div class="panel">
+      <div class="panel-head"><h3>Identity anomaly detections</h3><span class="meta">7d</span></div>
+      <div class="panel-body">
+        <table class="dtable">
+          <tr><th>Time</th><th>Account</th><th>Detection</th><th>Sev</th></tr>
+          <tr><td>06-29 02:14</td><td>vendor-itron-remote</td><td>Impossible travel: VPN egress 2 regions, 11 min apart</td><td><span class="sev high">High</span></td></tr>
+          <tr><td>06-28 23:41</td><td>svc-scada-bridge</td><td>Service account interactive logon (atypical)</td><td><span class="sev crit">Critical</span></td></tr>
+          <tr><td>06-28 19:02</td><td>k.weng</td><td>Privilege escalation outside approved change window</td><td><span class="sev high">High</span></td></tr>
+          <tr><td>06-27 04:55</td><td>r.alvarez</td><td>First-time access to OT engineering workstation</td><td><span class="sev med">Medium</span></td></tr>
+        </table>
+      </div>
+    </div>
+    <div class="panel">
+      <div class="panel-head"><h3>IT &ndash; ransomware precursor indicators</h3><span class="meta">7d, illustrative heuristics</span></div>
+      <div class="panel-body">
+        <table class="dtable">
+          <tr><th>Host</th><th>Indicator</th><th>Count</th><th>Sev</th></tr>
+          <tr><td>WKS-FIN-0231</td><td>Shadow copy deletion attempt (vssadmin)</td><td>1</td><td><span class="sev crit">Critical</span></td></tr>
+          <tr><td>SRV-FILE-04</td><td>Mass file rename / entropy spike</td><td>3</td><td><span class="sev high">High</span></td></tr>
+          <tr><td>WKS-ENG-0118</td><td>Disabled endpoint protection service</td><td>1</td><td><span class="sev high">High</span></td></tr>
+          <tr><td>SRV-BACKUP-02</td><td>Off-schedule backup deletion job</td><td>1</td><td><span class="sev crit">Critical</span></td></tr>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============ OT / ICS SECURITY ============ -->
+<div class="tab-panel" id="t-ot">
+  <div class="kpi-row">
+    <div class="kpi"><div class="bar" style="background:#02C8FF"></div><div class="lbl">ICS assets monitored</div><div class="val">3,140</div><div class="trend">91.4% sensor coverage</div></div>
+    <div class="kpi"><div class="bar" style="background:#FF4D4D"></div><div class="lbl">Rogue / unauthorized OT devices</div><div class="val crit">2</div><div class="trend">Level 2, Plant 3</div></div>
+    <div class="kpi"><div class="bar" style="background:#FF9000"></div><div class="lbl">OT protocol anomalies (24h)</div><div class="val warn">17</div><div class="trend up-bad">&#9650; 5 vs prior day</div></div>
+    <div class="kpi"><div class="bar" style="background:#FFD24D"></div><div class="lbl">Engineering workstation config changes</div><div class="val">6</div><div class="trend">4 approved, 2 unverified</div></div>
+    <div class="kpi"><div class="bar" style="background:#FF4D4D"></div><div class="lbl">Assets w/ open ICS-CERT advisory</div><div class="val crit">14</div><div class="trend">3 KEV-listed</div></div>
+    <div class="kpi"><div class="bar" style="background:#02C8FF"></div><div class="lbl">IT&rarr;OT boundary denies (24h)</div><div class="val">61</div><div class="trend">data diode + firewall</div></div>
+  </div>
+
+  <div class="row grid g2">
+    <div class="panel">
+      <div class="panel-head"><h3>ICS asset inventory by Purdue level</h3><span class="meta">managed vs unmanaged</span></div>
+      <div class="panel-body"><svg class="chart" id="svg-ot-purdue"></svg>
+        <div class="legend"><div class="item"><span class="sw" style="background:#02C8FF"></span>Managed / sensor visibility</div><div class="item"><span class="sw" style="background:#FF9000"></span>Unmanaged / no sensor</div></div>
+      </div>
+      <div class="panel-foot">index=ot_asset_inventory | stats dc(asset_id) by purdue_level, managed_status</div>
+    </div>
+    <div class="panel">
+      <div class="panel-head"><h3>OT network protocol traffic mix</h3><span class="meta">24h, by session count</span></div>
+      <div class="panel-body" style="display:flex;justify-content:center;"><svg class="chart" id="svg-ot-protocol" style="max-width:190px;"></svg></div>
+      <div class="panel-foot" style="display:flex;gap:10px;flex-wrap:wrap;justify-content:center;">
+        <span class="legend item"><span class="sw" style="background:#FF007F;display:inline-block;width:9px;height:9px;border-radius:2px;"></span> Modbus/TCP</span>
+        <span class="legend item"><span class="sw" style="background:#FF9000;display:inline-block;width:9px;height:9px;border-radius:2px;"></span> DNP3</span>
+        <span class="legend item"><span class="sw" style="background:#02C8FF;display:inline-block;width:9px;height:9px;border-radius:2px;"></span> IEC 61850 (GOOSE/MMS)</span>
+        <span class="legend item"><span class="sw" style="background:#6E7682;display:inline-block;width:9px;height:9px;border-radius:2px;"></span> OPC-UA / other</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="row grid g2">
+    <div class="panel">
+      <div class="panel-head"><h3>OT protocol anomaly trend</h3><span class="meta">malformed / unauthorized function codes, 7d</span></div>
+      <div class="panel-body"><svg class="chart" id="svg-ot-anomaly"></svg></div>
+      <div class="panel-foot">index=ot_network sourcetype=ics:protocol:anomaly | timechart span=1d count by anomaly_type</div>
+    </div>
+    <div class="panel">
+      <div class="panel-head"><h3>IT &ndash; OT boundary crossing attempts</h3><span class="meta">data diode + OT firewall, 7d</span></div>
+      <div class="panel-body"><svg class="chart" id="svg-ot-boundary"></svg>
+        <div class="legend"><div class="item"><span class="sw" style="background:#FF4D4D"></span>Denied</div><div class="item"><span class="sw" style="background:#2ECC71"></span>Allowed (approved change)</div></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="row grid g2">
+    <div class="panel">
+      <div class="panel-head"><h3>PLC / RTU / engineering workstation configuration changes</h3><span class="meta">7d</span></div>
+      <div class="panel-body">
+        <table class="dtable">
+          <tr><th>Time</th><th>Asset</th><th>Change</th><th>Authorized?</th></tr>
+          <tr><td>06-29 11:02</td><td>RTU-SUB14-03</td><td>Logic download &mdash; ladder program revision</td><td><span class="sev crit">Unverified</span></td></tr>
+          <tr><td>06-28 16:40</td><td>EWS-PLANT3-02</td><td>Firmware update applied, v4.2.1 &rarr; v4.3.0</td><td><span class="sev low">Approved CR-2291</span></td></tr>
+          <tr><td>06-27 09:15</td><td>PLC-GEN02-11</td><td>I/O point mapping changed</td><td><span class="sev low">Approved CR-2284</span></td></tr>
+          <tr><td>06-26 22:08</td><td>RTU-SUB07-01</td><td>Remote configuration session, outside maintenance window</td><td><span class="sev crit">Unverified</span></td></tr>
+        </table>
+      </div>
+    </div>
+    <div class="panel">
+      <div class="panel-head"><h3>Rogue / unauthorized device detections</h3><span class="meta">OT network, 30d</span></div>
+      <div class="panel-body">
+        <table class="dtable">
+          <tr><th>Time</th><th>Zone</th><th>MAC / vendor fingerprint</th><th>Action</th></tr>
+          <tr><td>06-29 03:21</td><td>L2 supervisory, Plant 3</td><td>Unrecognized vendor OUI, no asset record</td><td><span class="pill open">Investigating</span></td></tr>
+          <tr><td>06-24 14:55</td><td>L2 supervisory, Plant 3</td><td>Laptop joined engineering VLAN, no work order</td><td><span class="pill contained">Isolated</span></td></tr>
+          <tr><td>06-18 08:02</td><td>L3 ops DMZ</td><td>Vendor diagnostic tool, expired access window</td><td><span class="pill closed">Resolved</span></td></tr>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <div class="row">
+    <div class="panel">
+      <div class="panel-head"><h3>ICS-CERT / CISA advisory matches against deployed asset inventory</h3><span class="meta">illustrative &mdash; advisory titles abbreviated</span></div>
+      <div class="panel-body">
+        <table class="dtable">
+          <tr><th>Vendor / product</th><th>Advisory</th><th>CVSS</th><th>KEV?</th><th>Affected assets</th><th>Sev</th></tr>
+          <tr><td>Substation RTU platform (vendor A)</td><td>ICSA-26-xxx-01</td><td>9.8</td><td>Yes</td><td>4</td><td><span class="sev crit">Critical</span></td></tr>
+          <tr><td>HMI / SCADA client (vendor B)</td><td>ICSA-26-xxx-04</td><td>8.1</td><td>No</td><td>11</td><td><span class="sev high">High</span></td></tr>
+          <tr><td>Protective relay firmware (vendor C)</td><td>ICSA-26-xxx-07</td><td>7.5</td><td>No</td><td>6</td><td><span class="sev high">High</span></td></tr>
+          <tr><td>Engineering workstation OS (vendor D)</td><td>ICSA-26-xxx-09</td><td>6.4</td><td>No</td><td>9</td><td><span class="sev med">Medium</span></td></tr>
+        </table>
+      </div>
+      <div class="panel-foot">lookup ics_cert_advisories cve OUTPUT product, cvss, kev_flag | join asset_id [search index=ot_asset_inventory]</div>
+    </div>
+  </div>
+</div>
+
+<!-- ============ NERC CIP COMPLIANCE ============ -->
+<div class="tab-panel" id="t-cip">
+  <div class="row grid g2">
+    <div class="panel">
+      <div class="panel-head"><h3>CIP-007 &mdash; patch management status</h3><span class="meta">by BES Cyber System group</span></div>
+      <div class="panel-body"><svg class="chart" id="svg-cip-007"></svg>
+        <div class="legend"><div class="item"><span class="sw" style="background:#2ECC71"></span>Within patch SLA</div><div class="item"><span class="sw" style="background:#FF4D4D"></span>Past SLA</div></div>
+      </div>
+      <div class="panel-foot">index=patch_mgmt | stats count by bes_cyber_system, sla_status</div>
+    </div>
+    <div class="panel">
+      <div class="panel-head"><h3>CIP-010 &mdash; baseline configuration deviations</h3><span class="meta">30d trend</span></div>
+      <div class="panel-body"><svg class="chart" id="svg-cip-010"></svg></div>
+      <div class="panel-foot">index=config_baseline action=deviation | timechart span=1d count</div>
+    </div>
+  </div>
+
+  <div class="row grid g2">
+    <div class="panel">
+      <div class="panel-head"><h3>CIP-005 &mdash; Electronic Security Perimeter remote access</h3><span class="meta">active &amp; recent sessions</span></div>
+      <div class="panel-body">
+        <table class="dtable">
+          <tr><th>User / vendor</th><th>ESP</th><th>Method</th><th>Justification on file?</th><th>Duration</th></tr>
+          <tr><td>vendor-itron-remote</td><td>ESP &mdash; Substation 14</td><td>Jump host + MFA</td><td><span class="pill closed">Yes</span></td><td>42 min</td></tr>
+          <tr><td>r.alvarez</td><td>ESP &mdash; Plant 3 control network</td><td>Jump host + MFA</td><td><span class="pill closed">Yes</span></td><td>1h 10m</td></tr>
+          <tr><td>vendor-ge-support</td><td>ESP &mdash; Generation Unit 2</td><td>Vendor VPN</td><td><span class="pill open">Pending review</span></td><td>22 min</td></tr>
+        </table>
+      </div>
+      <div class="panel-foot">index=esp_access | table user, esp_zone, method, justification_status, duration</div>
+    </div>
+    <div class="panel">
+      <div class="panel-head"><h3>CIP-004 &mdash; personnel risk assessment &amp; training status</h3><span class="meta">BES Cyber System personnel</span></div>
+      <div class="panel-body" style="display:flex;justify-content:center;"><svg class="chart" id="svg-cip-004" style="max-width:190px;"></svg></div>
+      <div class="panel-foot" style="display:flex;gap:10px;flex-wrap:wrap;justify-content:center;">
+        <span class="legend item"><span class="sw" style="background:#2ECC71;display:inline-block;width:9px;height:9px;border-radius:2px;"></span> Current</span>
+        <span class="legend item"><span class="sw" style="background:#FFD24D;display:inline-block;width:9px;height:9px;border-radius:2px;"></span> Expiring &lt; 30d</span>
+        <span class="legend item"><span class="sw" style="background:#FF4D4D;display:inline-block;width:9px;height:9px;border-radius:2px;"></span> Overdue</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="row">
+    <div class="panel">
+      <div class="panel-head"><h3>NERC CIP standards compliance scorecard</h3><span class="meta">% controls passing &mdash; internal GRC mapping</span></div>
+      <div class="panel-body"><svg class="chart" id="svg-cip-scorecard" style="height:230px;"></svg></div>
+      <div class="panel-foot">| inputlookup nerc_cip_controls.csv | stats avg(eval(if(status="pass",100,0))) as pct by cip_standard</div>
+    </div>
+  </div>
+  <div class="note">CIP control status shown here reflects internal control mapping (e.g. ServiceNow GRC or equivalent) ingested into Splunk &mdash; Splunk surfaces and correlates the evidence, it does not independently attest to CIP compliance. This dashboard is a monitoring aid, not a substitute for the formal compliance program.</div>
+</div>
+
+<!-- ============ THREAT INTEL & PHYSICAL ============ -->
+<div class="tab-panel" id="t-intel">
+  <div class="kpi-row">
+    <div class="kpi"><div class="bar" style="background:#FF9000"></div><div class="lbl">IOC matches against grid-targeting clusters</div><div class="val warn">2</div><div class="trend">7d, illustrative feed</div></div>
+    <div class="kpi"><div class="bar" style="background:#FF4D4D"></div><div class="lbl">Substation perimeter alarms (24h)</div><div class="val crit">3</div><div class="trend">1 unresolved</div></div>
+    <div class="kpi"><div class="bar" style="background:#2ECC71"></div><div class="lbl">SCADA / EMS availability (30d)</div><div class="val good">99.96%</div><div class="trend">target 99.95%</div></div>
+    <div class="kpi"><div class="bar" style="background:#FF9000"></div><div class="lbl">Cyber-physical correlation alerts</div><div class="val warn">1</div><div class="trend">7d</div></div>
+  </div>
+
+  <div class="row">
+    <div class="panel">
+      <div class="panel-head"><h3>Threat intelligence indicator matches</h3><span class="meta">grid / ICS-relevant feeds &mdash; illustrative, generically labeled</span></div>
+      <div class="panel-body">
+        <table class="dtable">
+          <tr><th>Time</th><th>Indicator type</th><th>Cluster (generic)</th><th>Matched asset</th><th>Sev</th></tr>
+          <tr><td>06-28 17:44</td><td>Living-off-the-land technique pattern</td><td>ICS-targeting cluster, pattern A</td><td>EWS-PLANT3-02</td><td><span class="sev high">High</span></td></tr>
+          <tr><td>06-25 06:11</td><td>C2 domain (E-ISAC / OT-ISAC shared feed)</td><td>Grid-sector targeting cluster, pattern B</td><td>WKS-ENG-0118</td><td><span class="sev med">Medium</span></td></tr>
+        </table>
+      </div>
+      <div class="panel-foot">| inputlookup threat_intel_iocs | search sector=energy | join asset [search index=it_endpoint OR index=ot_network]</div>
+    </div>
+  </div>
+
+  <div class="row grid g2">
+    <div class="panel">
+      <div class="panel-head"><h3>Substation &amp; facility perimeter intrusion alarms</h3><span class="meta">7d trend</span></div>
+      <div class="panel-body"><svg class="chart" id="svg-intel-physical"></svg></div>
+      <div class="panel-foot">index=physical_security sourcetype=access_control:alarm | timechart span=1d count by alarm_type</div>
+    </div>
+    <div class="panel">
+      <div class="panel-head"><h3>SCADA / EMS system availability</h3><span class="meta">30d, by system</span></div>
+      <div class="panel-body">
+        <table class="dtable">
+          <tr><th>System</th><th>Uptime</th><th>Incidents</th><th>Longest outage</th></tr>
+          <tr><td>EMS &mdash; primary control center</td><td><span class="sev low" style="color:#2ECC71;">99.99%</span></td><td>0</td><td>&mdash;</td></tr>
+          <tr><td>SCADA &mdash; transmission</td><td><span class="sev low" style="color:#2ECC71;">99.97%</span></td><td>1</td><td>14 min (failover)</td></tr>
+          <tr><td>SCADA &mdash; distribution</td><td><span class="sev med">99.91%</span></td><td>2</td><td>38 min</td></tr>
+          <tr><td>Historian cluster</td><td><span class="sev low" style="color:#2ECC71;">99.98%</span></td><td>1</td><td>9 min</td></tr>
+        </table>
+      </div>
+      <div class="panel-foot">index=scada_health | stats sum(downtime_sec) by system | eval uptime_pct=round(100*(1-downtime_sec/2592000),2)</div>
+    </div>
+  </div>
+
+  <div class="row">
+    <div class="panel">
+      <div class="panel-head"><h3>Cyber-physical correlation alerts</h3><span class="meta">cyber event coinciding with operational / physical anomaly, 30d</span></div>
+      <div class="panel-body">
+        <table class="dtable">
+          <tr><th>Time</th><th>Cyber event</th><th>Physical / operational signal</th><th>Window</th><th>Sev</th></tr>
+          <tr><td>06-22 02:08</td><td>RTU-SUB07-01 remote config session (unverified)</td><td>Badge log shows no on-site personnel; breaker status flapped 2x</td><td>9 min</td><td><span class="sev crit">Critical</span></td></tr>
+        </table>
+      </div>
+      <div class="panel-foot">index=ot_network OR index=physical_security OR index=scada_health | transaction asset_id maxspan=15m | where event_types&gt;1</div>
+    </div>
+  </div>
+</div>
+`;
+
+/* ===================== render charts ===================== */
+function renderAll(){
+  lineChart(document.getElementById('svg-exec-trend'),
+    [{name:'IT',color:'#02C8FF',points:[41,39,44,46,43,48,45]},
+     {name:'OT',color:'#FF007F',points:[33,35,31,38,42,40,37]}],
+    {labels:['6/23','6/24','6/25','6/26','6/27','6/28','6/29'],skip:1,yMax:60});
+
+  barChart(document.getElementById('svg-exec-stack'),
+    [{label:'L0-1',values:[2,4,3]},{label:'L2',values:[1,6,5]},{label:'L3 DMZ',values:[0,3,4]},{label:'L4 IT',values:[1,5,9]}],
+    {colors:['#FF4D4D','#FF9000','#FFD24D'],stacked:true,yMax:20});
+
+  hBarChart(document.getElementById('svg-exec-zones'),
+    [{label:'L2 supervisory',value:24,color:'#FF007F'},
+     {label:'L4 enterprise IT',value:19,color:'#02C8FF'},
+     {label:'L3 ops DMZ',value:14,color:'#FF9000'},
+     {label:'L0-1 field',value:8,color:'#FF007F'}],{w:400});
+
+  hBarChart(document.getElementById('svg-exec-region'),
+    [{label:'PJM - East',value:31,color:'#02C8FF'},
+     {label:'MISO - North',value:22,color:'#02C8FF'},
+     {label:'WECC - SW',value:14,color:'#02C8FF'},
+     {label:'ERCOT',value:9,color:'#02C8FF'}],{w:400});
+
+  barChart(document.getElementById('svg-exec-cip'),
+    [{label:'CIP-002',values:[98]},{label:'CIP-004',values:[91]},{label:'CIP-005',values:[96]},
+     {label:'CIP-007',values:[89]},{label:'CIP-008',values:[100]},{label:'CIP-009',values:[97]},{label:'CIP-010',values:[93]},{label:'CIP-011',values:[95]}],
+    {colors:['#FF9000'],yMax:100});
+
+  lineChart(document.getElementById('svg-it-auth'),
+    [{name:'Success',color:'#2ECC71',points:[820,790,860,910,870,640,710,880,905,860,820,790,640,610],fill:true},
+     {name:'Failure',color:'#FF4D4D',points:[120,140,110,160,150,210,190,130,125,140,180,260,310,290]}],
+    {labels:['','','','','','','12h','','','','','','','now'],skip:13,yMax:1000});
+
+  lineChart(document.getElementById('svg-it-phish'),
+    [{name:'Flagged',color:'#FF9000',points:[58,71,64,80,52,69,43]},
+     {name:'Blocked',color:'#02C8FF',points:[55,68,60,76,49,65,40],fill:true}],
+    {labels:['6/23','6/24','6/25','6/26','6/27','6/28','6/29'],skip:1,yMax:100});
+
+  donut(document.getElementById('svg-it-endpoint'),
+    [{label:'Malware',value:9,color:'#FF007F'},{label:'LOLBin',value:14,color:'#FF9000'},
+     {label:'Credential access',value:7,color:'#02C8FF'},{label:'Policy violation',value:7,color:'#6E7682'}],{centerLabel:'24h'});
+
+  barChart(document.getElementById('svg-it-vuln'),
+    [{label:'Critical',values:[21]},{label:'High',values:[58]},{label:'Medium',values:[134]},{label:'Low',values:[201]}],
+    {colors:['#FF4D4D'],yMax:240});
+  document.querySelectorAll('#svg-it-vuln rect').forEach((r,i)=>{const c=['#FF4D4D','#FF9000','#FFD24D','#6E7682'][i];if(c)r.setAttribute('fill',c);});
+
+  barChart(document.getElementById('svg-ot-purdue'),
+    [{label:'L0-1 field',values:[1180,210]},{label:'L2 supervisory',values:[640,95]},{label:'L3 ops DMZ',values:[420,40]},{label:'L3.5 / L4',values:[505,50]}],
+    {colors:['#02C8FF','#FF9000'],stacked:true,yMax:2000});
+
+  donut(document.getElementById('svg-ot-protocol'),
+    [{label:'Modbus/TCP',value:46,color:'#FF007F'},{label:'DNP3',value:28,color:'#FF9000'},
+     {label:'IEC 61850',value:18,color:'#02C8FF'},{label:'OPC-UA/other',value:8,color:'#6E7682'}],{centerLabel:'% of sessions'});
+
+  lineChart(document.getElementById('svg-ot-anomaly'),
+    [{name:'Unauthorized fn code',color:'#FF4D4D',points:[4,6,3,8,5,9,7]},
+     {name:'Malformed packet',color:'#FF9000',points:[2,3,4,2,5,3,4]}],
+    {labels:['6/23','6/24','6/25','6/26','6/27','6/28','6/29'],skip:1,yMax:14});
+
+  lineChart(document.getElementById('svg-ot-boundary'),
+    [{name:'Denied',color:'#FF4D4D',points:[58,61,49,70,55,64,61],fill:true},
+     {name:'Allowed',color:'#2ECC71',points:[12,9,14,8,11,10,9]}],
+    {labels:['6/23','6/24','6/25','6/26','6/27','6/28','6/29'],skip:1,yMax:90});
+
+  barChart(document.getElementById('svg-cip-007'),
+    [{label:'High impact',values:[96,4]},{label:'Medium impact',values:[88,12]},{label:'Low impact',values:[91,9]}],
+    {colors:['#2ECC71','#FF4D4D'],stacked:true,yMax:100});
+
+  lineChart(document.getElementById('svg-cip-010'),
+    [{name:'Deviations',color:'#FF9000',points:[2,3,1,4,2,5,3,2,1,3,2,4,2,3,1,2,3,2,4,1,2,3,1,2,3,1,2,1,2,1],fill:true}],
+    {labels:Array.from({length:30},(_,i)=>i%7===0?('d'+(i+1)):''),skip:7,yMax:7});
+
+  donut(document.getElementById('svg-cip-004'),
+    [{label:'Current',value:312,color:'#2ECC71'},{label:'Expiring',value:18,color:'#FFD24D'},{label:'Overdue',value:4,color:'#FF4D4D'}],{centerLabel:'personnel'});
+
+  barChart(document.getElementById('svg-cip-scorecard'),
+    [{label:'CIP-002',values:[98]},{label:'CIP-003',values:[94]},{label:'CIP-004',values:[91]},{label:'CIP-005',values:[96]},
+     {label:'CIP-006',values:[99]},{label:'CIP-007',values:[89]},{label:'CIP-008',values:[100]},{label:'CIP-009',values:[97]},
+     {label:'CIP-010',values:[93]},{label:'CIP-011',values:[95]}],
+    {colors:['#FF9000'],yMax:100,h:230});
+
+  lineChart(document.getElementById('svg-intel-physical'),
+    [{name:'Perimeter sensor',color:'#FF4D4D',points:[1,0,2,1,3,1,2]},
+     {name:'Badge/access anomaly',color:'#FF9000',points:[2,1,1,3,1,2,1]}],
+    {labels:['6/23','6/24','6/25','6/26','6/27','6/28','6/29'],skip:1,yMax:6});
+}
+renderAll();
+
+/* ===================== tabs ===================== */
+document.querySelectorAll('.tab-btn').forEach(btn=>{
+  btn.addEventListener('click',()=>{
+    document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+    document.querySelectorAll('.tab-panel').forEach(p=>p.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById(btn.dataset.tab).classList.add('active');
+  });
+});
+
+/* ===================== chips (cosmetic toggles) ===================== */
+document.querySelectorAll('.chip').forEach(c=>{
+  c.addEventListener('click',()=>c.classList.toggle('on'));
+});
+
+/* ===================== drawer ===================== */
+function openDrawer(which){
+  document.getElementById('drawer-overlay').classList.add('open');
+  document.getElementById('drawer').classList.add('open');
+  showDtab(which==='sources'?'d-sources':'d-xml');
+}
+function closeDrawer(){
+  document.getElementById('drawer-overlay').classList.remove('open');
+  document.getElementById('drawer').classList.remove('open');
+}
+function showDtab(id){
+  document.querySelectorAll('.dtab-panel').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.dtab-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  document.querySelector('.dtab-btn[data-dtab="'+id+'"]').classList.add('active');
+}
+document.getElementById('xml-display').textContent = document.getElementById('src-xml').textContent.trim();
+function copyXml(){
+  const txt=document.getElementById('xml-display').textContent;
+  navigator.clipboard && navigator.clipboard.writeText(txt);
+  const b=event.target; const orig=b.textContent; b.textContent='Copied'; setTimeout(()=>b.textContent=orig,1200);
+}
+document.getElementById('btn-edit').addEventListener('click',()=>alert('In a live Splunk instance, Edit opens Dashboard Studio / Simple XML editor for this view.'));
+document.getElementById('btn-export').addEventListener('click',()=>alert('Export would offer PDF or Simple XML source export from a live Splunk instance.'));
+</script>
+
+</body>
+</html>
