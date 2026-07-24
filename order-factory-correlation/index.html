@@ -1,0 +1,701 @@
+<div style="padding: 15px;">
+  <a href="../" style="color:#4ea1ff; text-decoration:none; font-size:16px;">
+    ← Back to Demo Portal
+  </a>
+</div>
+
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Order-to-Factory Correlation — Splunk</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Roboto+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg-app: #0B0C0E;
+    --bg-topbar: #0A0A0A;
+    --bg-subbar: #131519;
+    --bg-panel: #1B1E23;
+    --bg-panel-head: #20242A;
+    --border: #2B2F36;
+    --border-soft: #23262C;
+    --text: #E8EAED;
+    --text-muted: #9AA1AC;
+    --text-subtle: #656C77;
+    --accent-blue: #3FA7E1;
+    --accent-cyan: #22C3DD;
+    --accent-amber: #F2B827;
+    --accent-green: #65A637;
+    --accent-red: #D6563C;
+    --link: #3FA7E1;
+    --font: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif;
+    --mono: 'Roboto Mono', 'Courier New', monospace;
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  html,body{ background:var(--bg-app); color:var(--text); font-family:var(--font); font-size:14px; }
+  body{ min-height:100vh; }
+  a{ color:var(--link); text-decoration:none; }
+
+  /* ---------- Global top bar ---------- */
+  .topbar{
+    height:44px; background:var(--bg-topbar); display:flex; align-items:center;
+    padding:0 16px; border-bottom:1px solid var(--border); gap:22px;
+  }
+  .splunk-mark{ display:flex; align-items:center; gap:2px; font-weight:700; font-size:16px; color:#fff; letter-spacing:-.01em; }
+  .splunk-mark .chev{ color:var(--accent-amber); font-weight:700; }
+  .topnav{ display:flex; gap:20px; }
+  .topnav a{ color:var(--text-muted); font-size:13px; font-weight:500; padding:6px 2px; border-bottom:2px solid transparent; }
+  .topnav a.active{ color:#fff; border-bottom-color:var(--accent-amber); }
+  .topbar .spacer{ flex:1; }
+  .topbar-right{ display:flex; align-items:center; gap:16px; color:var(--text-muted); font-size:13px; }
+  .avatar{
+    width:26px; height:26px; border-radius:50%; background:linear-gradient(135deg,#3FA7E1,#22C3DD);
+    display:flex; align-items:center; justify-content:center; font-size:11px; font-weight:700; color:#04070B;
+  }
+
+  /* ---------- Sub header (breadcrumb + title + toolbar) ---------- */
+  .subbar{ background:var(--bg-subbar); border-bottom:1px solid var(--border); padding:14px 24px 12px; }
+  .breadcrumb{ font-size:12px; color:var(--text-subtle); margin-bottom:6px; }
+  .breadcrumb a{ color:var(--text-subtle); }
+  .breadcrumb .sep{ margin:0 6px; }
+  .subbar-row{ display:flex; align-items:flex-end; justify-content:space-between; flex-wrap:wrap; gap:10px; }
+  .subbar-title{ display:flex; align-items:center; gap:10px; }
+  h1{ font-size:20px; font-weight:600; color:#fff; }
+  .badge-live{
+    display:inline-flex; align-items:center; gap:6px; font-size:11px; font-weight:600; color:var(--accent-green);
+    background:rgba(101,166,55,0.12); border:1px solid rgba(101,166,55,0.35); padding:3px 9px; border-radius:20px;
+  }
+  .badge-live .dot{ width:6px; height:6px; border-radius:50%; background:var(--accent-green); box-shadow:0 0 6px var(--accent-green); }
+  .dash-desc{ font-size:12.5px; color:var(--text-muted); margin-top:4px; max-width:820px; line-height:1.4; }
+
+  .toolbar{ display:flex; gap:8px; }
+  .btn{
+    display:inline-flex; align-items:center; gap:6px; font-size:12.5px; font-weight:500; color:var(--text);
+    background:#20242A; border:1px solid var(--border); padding:7px 12px; border-radius:5px; cursor:pointer;
+  }
+  .btn:hover{ background:#262B32; }
+  .btn-primary{ background:var(--accent-blue); border-color:var(--accent-blue); color:#04121C; font-weight:600; }
+  .btn-primary:hover{ background:#57B4EA; }
+  .btn svg{ width:14px; height:14px; }
+
+  /* ---------- Filters bar ---------- */
+  .filters{ display:flex; align-items:center; gap:10px; padding:12px 24px; background:var(--bg-subbar); border-bottom:1px solid var(--border); flex-wrap:wrap; }
+  .filter{
+    display:flex; align-items:center; gap:8px; background:#191C21; border:1px solid var(--border); border-radius:5px; padding:6px 10px;
+  }
+  .filter label{ font-size:11px; color:var(--text-subtle); text-transform:uppercase; letter-spacing:.05em; }
+  .filter select, .filter .val{ background:transparent; border:none; color:var(--text); font-size:12.5px; font-family:var(--font); outline:none; }
+  .filter select{ cursor:pointer; }
+  .filter select option{ background:#191C21; }
+  .submit-btn{
+    background:var(--accent-blue); color:#04121C; font-weight:600; font-size:12.5px; padding:7px 16px;
+    border:none; border-radius:5px; cursor:pointer;
+  }
+
+  /* ---------- Main grid ---------- */
+  main{ padding:20px 24px 60px; }
+  .grid{ display:grid; grid-template-columns:repeat(12,1fr); gap:16px; }
+  .panel{
+    background:var(--bg-panel); border:1px solid var(--border-soft); border-radius:6px; overflow:hidden;
+    display:flex; flex-direction:column;
+  }
+  .col-12{ grid-column:span 12; }
+  .col-6{ grid-column:span 6; }
+  .col-4{ grid-column:span 4; }
+  .col-8{ grid-column:span 8; }
+  @media (max-width:1100px){ .col-6,.col-4,.col-8{ grid-column:span 12; } }
+
+  .panel-head{
+    display:flex; align-items:center; justify-content:space-between; padding:11px 14px;
+    background:var(--bg-panel-head); border-bottom:1px solid var(--border-soft);
+  }
+  .panel-title{ font-size:13px; font-weight:600; color:var(--text); }
+  .panel-meta{ font-size:10.5px; color:var(--text-subtle); font-family:var(--mono); }
+  .panel-body{ padding:14px; flex:1; }
+  .legend{ display:flex; gap:16px; padding:0 14px 10px; font-size:11.5px; color:var(--text-muted); }
+  .legend span{ display:inline-flex; align-items:center; gap:6px; }
+  .legend .sw{ width:10px; height:3px; border-radius:2px; }
+
+  svg text{ font-family:var(--font); }
+  .axis-line{ stroke:var(--border); stroke-width:1; }
+  .grid-line{ stroke:var(--border-soft); stroke-width:1; stroke-dasharray:2,3; }
+  .tick-label{ fill:var(--text-subtle); font-size:9.5px; }
+
+  /* tables */
+  table{ width:100%; border-collapse:collapse; font-size:12.5px; }
+  th{ text-align:left; color:var(--text-subtle); font-weight:600; font-size:10.5px; text-transform:uppercase; letter-spacing:.04em;
+      padding:8px 10px; border-bottom:1px solid var(--border); }
+  td{ padding:9px 10px; border-bottom:1px solid var(--border-soft); color:var(--text); }
+  tr:hover td{ background:rgba(255,255,255,0.02); }
+  td.num{ font-family:var(--mono); text-align:right; }
+  .pill{ display:inline-block; padding:2px 9px; border-radius:12px; font-size:11px; font-weight:600; font-family:var(--mono); }
+  .pill-green{ background:rgba(101,166,55,0.16); color:#8FD65E; }
+  .pill-amber{ background:rgba(242,184,39,0.16); color:#F6CB5B; }
+  .pill-red{ background:rgba(214,86,60,0.18); color:#F0806B; }
+  .sku-flag{ color:var(--text-subtle); font-size:11px; }
+
+  /* gauges */
+  .gauge-row{ display:flex; justify-content:space-around; align-items:flex-end; flex-wrap:wrap; gap:8px; }
+  .gauge{ display:flex; flex-direction:column; align-items:center; gap:6px; }
+  .gauge-value{ font-size:20px; font-weight:700; font-family:var(--mono); }
+  .gauge-label{ font-size:11px; color:var(--text-muted); }
+
+  footer{ padding:14px 24px 30px; color:var(--text-subtle); font-size:11px; display:flex; justify-content:space-between; }
+
+  /* ---------- Source drawer ---------- */
+  .overlay{
+    position:fixed; inset:0; background:rgba(0,0,0,0.55); opacity:0; pointer-events:none; transition:opacity .2s ease; z-index:40;
+  }
+  .overlay.open{ opacity:1; pointer-events:auto; }
+  .drawer{
+    position:fixed; top:0; right:-620px; width:600px; max-width:92vw; height:100vh; background:#101317;
+    border-left:1px solid var(--border); z-index:50; transition:right .25s ease; display:flex; flex-direction:column;
+    box-shadow:-8px 0 30px rgba(0,0,0,0.4);
+  }
+  .drawer.open{ right:0; }
+  .drawer-head{
+    display:flex; align-items:center; justify-content:space-between; padding:14px 18px;
+    border-bottom:1px solid var(--border); background:var(--bg-subbar);
+  }
+  .drawer-head h3{ font-size:14px; font-weight:600; color:#fff; }
+  .drawer-head .sub{ font-size:11px; color:var(--text-subtle); margin-top:2px; }
+  .drawer-close{ background:none; border:none; color:var(--text-muted); font-size:20px; cursor:pointer; line-height:1; padding:4px; }
+  .drawer-close:hover{ color:#fff; }
+  .drawer-body{ flex:1; overflow:auto; padding:16px 18px; }
+  .drawer-body pre{
+    font-family:var(--mono); font-size:11.5px; line-height:1.6; color:#C7D6D9; white-space:pre-wrap; word-break:break-word;
+  }
+  .drawer-body .tag{ color:#7FB2E8; }
+  .drawer-body .attr{ color:#F2B827; }
+  .drawer-body .val{ color:#8FD65E; }
+  .drawer-body .cmt{ color:#656C77; font-style:italic; }
+  .drawer-foot{ padding:12px 18px; border-top:1px solid var(--border); display:flex; justify-content:flex-end; gap:8px; }
+  .copy-btn{
+    background:var(--accent-blue); color:#04121C; font-weight:600; font-size:12px; border:none; border-radius:5px;
+    padding:8px 14px; cursor:pointer;
+  }
+</style>
+</head>
+<body>
+
+  <div class="topbar">
+    <div class="splunk-mark">splunk<span class="chev">&gt;</span></div>
+    <nav class="topnav">
+      <a>Search</a>
+      <a>Analytics</a>
+      <a>Datasets</a>
+      <a>Reports</a>
+      <a>Alerts</a>
+      <a class="active">Dashboards</a>
+    </nav>
+    <div class="spacer"></div>
+    <div class="topbar-right">
+      <span>Soda Co Production</span>
+      <div class="avatar">KO</div>
+    </div>
+  </div>
+
+  <div class="subbar">
+    <div class="breadcrumb"><a>Apps</a><span class="sep">/</span><a>Search &amp; Reporting</a><span class="sep">/</span><a>Dashboards</a></div>
+    <div class="subbar-row">
+      <div>
+        <div class="subbar-title">
+          <h1>Order-to-Factory Correlation</h1>
+          <span class="badge-live"><span class="dot"></span>Live</span>
+        </div>
+        <div class="dash-desc">Correlates order demand against real-time production, downtime, and quality signals so operations can fine-tune output before backlog becomes an SLA problem.</div>
+      </div>
+      <div class="toolbar">
+        <button class="btn" id="sourceBtn">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 4L2 12l6 8"/><path d="M16 4l6 8-6 8"/></svg>
+          Source
+        </button>
+        <button class="btn">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="M7 10l5 5 5-5"/><path d="M4 20h16"/></svg>
+          Export
+        </button>
+        <button class="btn btn-primary">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 013 3L7 19l-4 1 1-4z"/></svg>
+          Edit
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div class="filters">
+    <div class="filter">
+      <label>Time range</label>
+      <span class="val">Last 24 hours</span>
+    </div>
+    <div class="filter">
+      <label>Plant</label>
+      <select id="plantSelect">
+        <option>All plants</option>
+        <option>Plant 1 — Atlanta</option>
+        <option>Plant 2 — Denver</option>
+        <option selected>Plant 3 — Columbus</option>
+      </select>
+    </div>
+    <div class="filter">
+      <label>SKU</label>
+      <select>
+        <option selected>All SKUs</option>
+        <option>Cola 12oz Can</option>
+        <option>Cola 2L</option>
+        <option>Diet Cola 12oz Can</option>
+        <option>Citrus Soda 12oz Can</option>
+        <option>Root Beer 2L</option>
+        <option>Zero Sugar Cola 12oz Can</option>
+      </select>
+    </div>
+    <button class="submit-btn">Submit</button>
+  </div>
+
+  <main>
+    <div class="grid">
+
+      <!-- Panel 1: Orders received vs units produced -->
+      <div class="panel col-12">
+        <div class="panel-head">
+          <span class="panel-title">Orders received vs. units produced</span>
+          <span class="panel-meta">timechart span=1h</span>
+        </div>
+        <div class="legend">
+          <span><span class="sw" style="background:var(--accent-cyan);"></span>Orders received</span>
+          <span><span class="sw" style="background:var(--accent-amber);"></span>Units produced</span>
+        </div>
+        <div class="panel-body"><svg id="chart1" width="100%" height="220" viewBox="0 0 1120 220"></svg></div>
+      </div>
+
+      <!-- Panel 2: Line OEE gauges -->
+      <div class="panel col-4">
+        <div class="panel-head">
+          <span class="panel-title">Line OEE (latest reading)</span>
+          <span class="panel-meta">fillerGauge</span>
+        </div>
+        <div class="panel-body">
+          <div class="gauge-row" id="gauges"></div>
+        </div>
+      </div>
+
+      <!-- Panel 3: Downtime vs fulfillment -->
+      <div class="panel col-8">
+        <div class="panel-head">
+          <span class="panel-title">Downtime minutes vs. orders fulfilled</span>
+          <span class="panel-meta">timechart span=1h</span>
+        </div>
+        <div class="legend">
+          <span><span class="sw" style="background:var(--accent-red);"></span>Downtime minutes</span>
+          <span><span class="sw" style="background:var(--accent-green);"></span>Orders fulfilled</span>
+        </div>
+        <div class="panel-body"><svg id="chart2" width="100%" height="200" viewBox="0 0 760 200"></svg></div>
+      </div>
+
+      <!-- Panel 4: Backlog by SKU -->
+      <div class="panel col-6">
+        <div class="panel-head">
+          <span class="panel-title">Backlog by SKU vs. plant capacity</span>
+          <span class="panel-meta">stats + join</span>
+        </div>
+        <div class="panel-body" style="padding:0;">
+          <table>
+            <thead><tr><th>SKU</th><th style="text-align:right;">Backlog units</th><th style="text-align:right;">Capacity/hr</th><th style="text-align:right;">Hours to clear</th></tr></thead>
+            <tbody>
+              <tr><td>Citrus Soda 12oz Can <span class="sku-flag">Line 3</span></td><td class="num">31,500</td><td class="num">2,100</td><td class="num"><span class="pill pill-red">15.0</span></td></tr>
+              <tr><td>Cola 12oz Can</td><td class="num">48,200</td><td class="num">3,200</td><td class="num"><span class="pill pill-red">15.1</span></td></tr>
+              <tr><td>Root Beer 2L</td><td class="num">14,200</td><td class="num">1,050</td><td class="num"><span class="pill pill-amber">13.5</span></td></tr>
+              <tr><td>Diet Cola 12oz Can <span class="sku-flag">Line 3</span></td><td class="num">22,800</td><td class="num">2,800</td><td class="num"><span class="pill pill-amber">8.1</span></td></tr>
+              <tr><td>Cola 2L</td><td class="num">6,100</td><td class="num">1,400</td><td class="num"><span class="pill pill-green">4.4</span></td></tr>
+              <tr><td>Zero Sugar Cola 12oz Can</td><td class="num">9,600</td><td class="num">2,400</td><td class="num"><span class="pill pill-green">4.0</span></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Panel 5: Delayed orders -->
+      <div class="panel col-6">
+        <div class="panel-head">
+          <span class="panel-title">Delayed orders correlated to line faults</span>
+          <span class="panel-meta">join type=left</span>
+        </div>
+        <div class="panel-body" style="padding:0;">
+          <table>
+            <thead><tr><th>Order</th><th>SKU</th><th>Line</th><th style="text-align:right;">Faults</th><th>Last fault</th></tr></thead>
+            <tbody>
+              <tr><td>ORD-88291</td><td>Citrus Soda 12oz</td><td>Plant 3 · Line 3</td><td class="num"><span class="pill pill-red">7</span></td><td>FILL_PRESSURE_LOW</td></tr>
+              <tr><td>ORD-88322</td><td>Diet Cola 12oz</td><td>Plant 3 · Line 3</td><td class="num"><span class="pill pill-red">7</span></td><td>FILL_PRESSURE_LOW</td></tr>
+              <tr><td>ORD-88317</td><td>Root Beer 2L</td><td>Plant 2 · Line 4</td><td class="num"><span class="pill pill-amber">5</span></td><td>LABEL_MISALIGN</td></tr>
+              <tr><td>ORD-88304</td><td>Cola 12oz Can</td><td>Plant 1 · Line 1</td><td class="num"><span class="pill pill-amber">2</span></td><td>CAPPER_JAM</td></tr>
+              <tr><td>ORD-88329</td><td>Cola 2L</td><td>Plant 1 · Line 2</td><td class="num"><span class="pill pill-green">0</span></td><td>—</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Panel 6: Demand by region -->
+      <div class="panel col-6">
+        <div class="panel-head">
+          <span class="panel-title">Demand by region</span>
+          <span class="panel-meta">stats sum by region</span>
+        </div>
+        <div class="panel-body"><svg id="chart3" width="100%" height="210" viewBox="0 0 540 210"></svg></div>
+      </div>
+
+      <!-- Panel 7: Active anomalies -->
+      <div class="panel col-6">
+        <div class="panel-head">
+          <span class="panel-title">Active production anomalies (last 24h)</span>
+          <span class="panel-meta">stats count by fault_code</span>
+        </div>
+        <div class="panel-body" style="padding:0;">
+          <table>
+            <thead><tr><th>Plant</th><th>Line</th><th>Fault code</th><th style="text-align:right;">Count</th></tr></thead>
+            <tbody>
+              <tr><td>Plant 3 — Columbus</td><td>Line 3</td><td>FILL_PRESSURE_LOW</td><td class="num"><span class="pill pill-red">7</span></td></tr>
+              <tr><td>Plant 2 — Denver</td><td>Line 4</td><td>LABEL_MISALIGN</td><td class="num"><span class="pill pill-amber">5</span></td></tr>
+              <tr><td>Plant 1 — Atlanta</td><td>Line 1</td><td>CAPPER_JAM</td><td class="num"><span class="pill pill-amber">4</span></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+    </div>
+  </main>
+
+  <footer>
+    <span>Order-to-Factory Correlation &middot; demo data, not connected to a live index</span>
+    <span>Splunk &middot; a Cisco company</span>
+  </footer>
+
+  <!-- Source drawer -->
+  <div class="overlay" id="overlay"></div>
+  <div class="drawer" id="drawer">
+    <div class="drawer-head">
+      <div>
+        <h3>Dashboard source</h3>
+        <div class="sub">order-to-factory-correlation.xml &middot; Simple XML</div>
+      </div>
+      <button class="drawer-close" id="drawerClose">&times;</button>
+    </div>
+    <div class="drawer-body">
+      <pre id="xmlSource"></pre>
+    </div>
+    <div class="drawer-foot">
+      <button class="copy-btn" id="copyBtn">Copy XML</button>
+    </div>
+  </div>
+
+<script>
+// ---------------------------------------------------------------
+// Sample data (demo only — mirrors the field names in the Simple XML)
+// ---------------------------------------------------------------
+const hours = Array.from({length:24}, (_,i)=>i);
+
+const ordersReceived = [820,780,760,700,690,710,900,1350,1600,1720,1680,1640,1700,1660,1580,1520,1610,1700,1580,1420,1180,1020,940,860];
+const unitsProduced   = [800,790,770,760,750,780,1000,1400,1650,1700,1300, 900, 750, 720, 780,1450,1680,1720,1600,1450,1200,1050, 960, 900];
+
+const downtimeMinutes = [2,1,0,0,3,2,4,6,8,10,34,42,38,20,9,4,2,1,0,2,3,1,0,1];
+const ordersFulfilled = [40,38,36,35,34,36,52,70,88,92,54,28,20,24,40,80,92,96,90,82,70,60,52,44];
+
+function buildLineChart(svgId, seriesA, seriesB, colorA, colorB, opts={}){
+  const svg = document.getElementById(svgId);
+  const W = opts.width || svg.viewBox.baseVal.width;
+  const H = opts.height || svg.viewBox.baseVal.height;
+  const padL = 34, padR = 12, padT = 12, padB = 24;
+  const plotW = W - padL - padR, plotH = H - padT - padB;
+  const n = seriesA.length;
+  const allVals = seriesA.concat(seriesB);
+  const maxV = Math.max(...allVals) * 1.12;
+  const x = i => padL + (i/(n-1)) * plotW;
+  const y = v => padT + plotH - (v/maxV) * plotH;
+
+  let svgNS = "http://www.w3.org/2000/svg";
+  function el(tag, attrs){
+    const e = document.createElementNS(svgNS, tag);
+    for(const k in attrs) e.setAttribute(k, attrs[k]);
+    return e;
+  }
+
+  // gridlines
+  for(let g=0; g<=4; g++){
+    const gy = padT + (plotH/4)*g;
+    svg.appendChild(el('line',{x1:padL,y1:gy,x2:W-padR,y2:gy,class:'grid-line'}));
+    const val = Math.round(maxV - (maxV/4)*g);
+    const t = el('text',{x:4,y:gy+3,class:'tick-label'}); t.textContent = val;
+    svg.appendChild(t);
+  }
+  // x axis ticks every 4 hours
+  for(let i=0;i<n;i+=4){
+    const t = el('text',{x:x(i),y:H-6,class:'tick-label','text-anchor':'middle'});
+    t.textContent = i+':00';
+    svg.appendChild(t);
+  }
+  svg.appendChild(el('line',{x1:padL,y1:padT+plotH,x2:W-padR,y2:padT+plotH,class:'axis-line'}));
+
+  function path(series, color, fill){
+    let d = series.map((v,i)=> (i===0?'M':'L') + x(i).toFixed(1) + ',' + y(v).toFixed(1)).join(' ');
+    if(fill){
+      const dArea = d + ` L${x(n-1).toFixed(1)},${(padT+plotH).toFixed(1)} L${x(0).toFixed(1)},${(padT+plotH).toFixed(1)} Z`;
+      const areaEl = el('path',{d:dArea, fill:color, opacity:0.08});
+      svg.appendChild(areaEl);
+    }
+    const p = el('path',{d, fill:'none', stroke:color, 'stroke-width':2.2, 'stroke-linejoin':'round', 'stroke-linecap':'round'});
+    svg.appendChild(p);
+    series.forEach((v,i)=>{
+      svg.appendChild(el('circle',{cx:x(i),cy:y(v),r:2.4,fill:color}));
+    });
+  }
+  path(seriesA, colorA, true);
+  path(seriesB, colorB, false);
+}
+
+buildLineChart('chart1', ordersReceived, unitsProduced, '#22C3DD', '#F2B827');
+buildLineChart('chart2', downtimeMinutes, ordersFulfilled, '#D6563C', '#65A637');
+
+// ---------------- Gauges ----------------
+const lines = [
+  {label:'Line 1 (Atlanta)', value:84},
+  {label:'Line 2 (Atlanta)', value:91},
+  {label:'Line 3 (Columbus)', value:62},
+  {label:'Line 4 (Denver)', value:88},
+];
+function gaugeColor(v){ return v>=80 ? '#65A637' : (v>=50 ? '#F2B827' : '#D6563C'); }
+
+const gaugeContainer = document.getElementById('gauges');
+lines.forEach(ln=>{
+  const size = 96, stroke=9, r=(size-stroke)/2, c=Math.PI*r; // half circle length
+  const pct = Math.min(Math.max(ln.value,0),100)/100;
+  const dash = c * pct;
+  const color = gaugeColor(ln.value);
+  const wrap = document.createElement('div');
+  wrap.className = 'gauge';
+  wrap.innerHTML = `
+    <svg width="${size}" height="${size/2+10}" viewBox="0 0 ${size} ${size/2+10}">
+      <path d="M ${stroke/2} ${size/2} A ${r} ${r} 0 0 1 ${size-stroke/2} ${size/2}" fill="none" stroke="#2B2F36" stroke-width="${stroke}" stroke-linecap="round"/>
+      <path d="M ${stroke/2} ${size/2} A ${r} ${r} 0 0 1 ${size-stroke/2} ${size/2}" fill="none" stroke="${color}" stroke-width="${stroke}" stroke-linecap="round"
+            stroke-dasharray="${dash.toFixed(1)} ${c.toFixed(1)}"/>
+    </svg>
+    <div class="gauge-value" style="color:${color};">${ln.value}%</div>
+    <div class="gauge-label">${ln.label}</div>
+  `;
+  gaugeContainer.appendChild(wrap);
+});
+
+// ---------------- Bar chart: demand by region ----------------
+(function(){
+  const data = [
+    {region:'Southeast', value:42000},
+    {region:'Midwest', value:35500},
+    {region:'Northeast', value:28900},
+    {region:'West', value:24100},
+    {region:'Southwest', value:19800},
+  ];
+  const svg = document.getElementById('chart3');
+  const W = 540, H = 210, padL=100, padR=50, padT=10, padB=10;
+  const rowH = (H-padT-padB)/data.length;
+  const maxV = Math.max(...data.map(d=>d.value)) * 1.1;
+  const svgNS = "http://www.w3.org/2000/svg";
+  function el(tag, attrs){ const e=document.createElementNS(svgNS,tag); for(const k in attrs) e.setAttribute(k,attrs[k]); return e; }
+  data.forEach((d,i)=>{
+    const y = padT + i*rowH + rowH*0.22;
+    const barH = rowH*0.56;
+    const barW = (d.value/maxV) * (W-padL-padR);
+    svg.appendChild(el('text',{x:padL-10,y:y+barH/2+4,'text-anchor':'end',class:'tick-label',style:'font-size:11.5px;fill:#C7CDD6;'})).textContent = d.region;
+    svg.appendChild(el('rect',{x:padL,y:y,width:barW,height:barH,rx:3,fill:'#3FA7E1'}));
+    const lbl = el('text',{x:padL+barW+8,y:y+barH/2+4,class:'tick-label',style:'font-size:11px;fill:#E8EAED;'});
+    lbl.textContent = d.value.toLocaleString();
+    svg.appendChild(lbl);
+  });
+})();
+
+// ---------------- Source drawer ----------------
+const xmlRaw = `<form version="1.1" theme="dark">
+  <label>Order-to-Factory Correlation</label>
+  <description>Correlates order demand against real-time production, downtime, and quality signals so operations can fine-tune output.</description>
+
+  <fieldset submitButton="false" autoRun="true">
+    <input type="time" token="time_tok">
+      <label>Time range</label>
+      <default><earliest>-24h@h</earliest><latest>now</latest></default>
+    </input>
+    <input type="dropdown" token="plant_tok">
+      <label>Plant</label>
+      <choice value="*">All plants</choice>
+      <fieldForLabel>plant</fieldForLabel>
+      <fieldForValue>plant</fieldForValue>
+      <search>
+        <query>index=production sourcetype=mes:production | stats count by plant</query>
+        <earliest>-7d@h</earliest><latest>now</latest>
+      </search>
+      <default>*</default>
+    </input>
+    <input type="dropdown" token="sku_tok">
+      <label>SKU</label>
+      <choice value="*">All SKUs</choice>
+      <fieldForLabel>sku</fieldForLabel>
+      <fieldForValue>sku</fieldForValue>
+      <search>
+        <query>index=orders sourcetype=erp:orders | stats count by sku</query>
+        <earliest>-7d@h</earliest><latest>now</latest>
+      </search>
+      <default>*</default>
+    </input>
+  </fieldset>
+
+  <row>
+    <panel>
+      <title>Orders received vs. units produced</title>
+      <chart>
+        <search>
+          <query>
+            (index=orders sourcetype=erp:orders plant=$plant_tok$ sku=$sku_tok$)
+            OR (index=production sourcetype=mes:production plant=$plant_tok$ sku=$sku_tok$)
+            | eval metric=if(sourcetype="erp:orders","Orders received","Units produced")
+            | eval qty=coalesce(order_qty, units_produced)
+            | timechart span=1h sum(qty) as qty by metric
+          </query>
+          <earliest>$time_tok.earliest$</earliest>
+          <latest>$time_tok.latest$</latest>
+        </search>
+        <option name="charting.chart">line</option>
+        <option name="charting.axisTitleY.text">Units</option>
+      </chart>
+    </panel>
+  </row>
+
+  <row>
+    <panel>
+      <title>Line OEE (latest reading)</title>
+      <chart>
+        <search>
+          <query>
+            index=production sourcetype=mes:production plant=$plant_tok$
+            | stats latest(oee) as OEE by line
+            | eval OEE=round(OEE,1)
+          </query>
+          <earliest>$time_tok.earliest$</earliest>
+          <latest>$time_tok.latest$</latest>
+        </search>
+        <option name="charting.chart">fillerGauge</option>
+        <option name="charting.chart.rangeValues">[0,50,80,100]</option>
+      </chart>
+    </panel>
+    <panel>
+      <title>Downtime minutes vs. orders fulfilled</title>
+      <chart>
+        <search>
+          <query>
+            (index=production sourcetype=ot:scada event_type=downtime plant=$plant_tok$)
+            OR (index=orders sourcetype=erp:orders status=fulfilled plant=$plant_tok$ sku=$sku_tok$)
+            | eval metric=if(sourcetype="ot:scada","Downtime minutes","Orders fulfilled")
+            | eval val=coalesce(downtime_minutes, order_qty)
+            | timechart span=1h sum(val) as val by metric
+          </query>
+          <earliest>$time_tok.earliest$</earliest>
+          <latest>$time_tok.latest$</latest>
+        </search>
+        <option name="charting.chart">line</option>
+      </chart>
+    </panel>
+  </row>
+
+  <row>
+    <panel>
+      <title>Backlog by SKU vs. plant capacity</title>
+      <table>
+        <search>
+          <query>
+            index=orders sourcetype=erp:orders status=backlog plant=$plant_tok$ sku=$sku_tok$
+            | stats sum(order_qty) as backlog_units by sku
+            | join type=left sku
+              [ search index=production sourcetype=mes:production plant=$plant_tok$
+                | stats avg(capacity_units_per_hr) as capacity_per_hr by sku ]
+            | eval hours_to_clear=round(backlog_units/capacity_per_hr,1)
+            | sort -backlog_units
+          </query>
+          <earliest>$time_tok.earliest$</earliest>
+          <latest>$time_tok.latest$</latest>
+        </search>
+      </table>
+    </panel>
+  </row>
+
+  <row>
+    <panel>
+      <title>Delayed orders correlated to line faults</title>
+      <table>
+        <search>
+          <query>
+            index=orders sourcetype=erp:orders status=delayed plant=$plant_tok$ sku=$sku_tok$
+            | table order_id, sku, plant, line, promised_date, order_qty
+            | join type=left line
+              [ search index=production sourcetype=ot:scada event_type=fault plant=$plant_tok$
+                | stats count as fault_count latest(fault_code) as last_fault_code by line ]
+            | sort -fault_count
+          </query>
+          <earliest>$time_tok.earliest$</earliest>
+          <latest>$time_tok.latest$</latest>
+        </search>
+        <format type="color" field="fault_count">
+          <colorPalette type="minMidMax" maxColor="#D6563C" midColor="#F8BE34" minColor="#65A637"></colorPalette>
+        </format>
+      </table>
+    </panel>
+  </row>
+
+  <row>
+    <panel>
+      <title>Demand by region</title>
+      <chart>
+        <search>
+          <query>
+            index=orders sourcetype=erp:orders sku=$sku_tok$
+            | stats sum(order_qty) as demand_units by region
+            | sort -demand_units
+          </query>
+          <earliest>$time_tok.earliest$</earliest>
+          <latest>$time_tok.latest$</latest>
+        </search>
+        <option name="charting.chart">bar</option>
+      </chart>
+    </panel>
+    <panel>
+      <title>Active production anomalies (last 24h)</title>
+      <table>
+        <search>
+          <query>
+            index=production sourcetype=ot:scada event_type=fault plant=$plant_tok$
+            | stats count as fault_count by plant, line, fault_code
+            | where fault_count > 3
+            | sort -fault_count
+          </query>
+          <earliest>-24h@h</earliest>
+          <latest>now</latest>
+        </search>
+      </table>
+    </panel>
+  </row>
+</form>`;
+
+document.getElementById('xmlSource').textContent = xmlRaw;
+
+const drawer = document.getElementById('drawer');
+const overlay = document.getElementById('overlay');
+function openDrawer(){ drawer.classList.add('open'); overlay.classList.add('open'); }
+function closeDrawer(){ drawer.classList.remove('open'); overlay.classList.remove('open'); }
+document.getElementById('sourceBtn').addEventListener('click', openDrawer);
+document.getElementById('drawerClose').addEventListener('click', closeDrawer);
+overlay.addEventListener('click', closeDrawer);
+document.getElementById('copyBtn').addEventListener('click', ()=>{
+  navigator.clipboard.writeText(xmlRaw).then(()=>{
+    const btn = document.getElementById('copyBtn');
+    const old = btn.textContent; btn.textContent = 'Copied!';
+    setTimeout(()=>{ btn.textContent = old; }, 1400);
+  });
+});
+</script>
+</body>
+</html>
