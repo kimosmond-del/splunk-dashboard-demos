@@ -1,0 +1,857 @@
+<div style="padding: 15px;">
+  <a href="../" style="color:#4ea1ff; text-decoration:none; font-size:16px;">
+    ← Back to Demo Portal
+  </a>
+</div>
+
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Line Efficiency — Splunk</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Roboto+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg-app: #0B0C0E;
+    --bg-topbar: #0A0A0A;
+    --bg-subbar: #131519;
+    --bg-panel: #1B1E23;
+    --bg-panel-head: #20242A;
+    --border: #2B2F36;
+    --border-soft: #23262C;
+    --text: #E8EAED;
+    --text-muted: #9AA1AC;
+    --text-subtle: #656C77;
+    --accent-blue: #3FA7E1;
+    --accent-cyan: #22C3DD;
+    --accent-amber: #F2B827;
+    --accent-green: #65A637;
+    --accent-red: #D6563C;
+    --link: #3FA7E1;
+    --font: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif;
+    --mono: 'Roboto Mono', 'Courier New', monospace;
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  html,body{ background:var(--bg-app); color:var(--text); font-family:var(--font); font-size:14px; }
+  body{ min-height:100vh; }
+  a{ color:var(--link); text-decoration:none; }
+
+  .topbar{ height:44px; background:var(--bg-topbar); display:flex; align-items:center; padding:0 16px; border-bottom:1px solid var(--border); gap:22px; }
+  .splunk-mark{ display:flex; align-items:center; gap:2px; font-weight:700; font-size:16px; color:#fff; letter-spacing:-.01em; }
+  .splunk-mark .chev{ color:var(--accent-amber); font-weight:700; }
+  .topnav{ display:flex; gap:20px; }
+  .topnav a{ color:var(--text-muted); font-size:13px; font-weight:500; padding:6px 2px; border-bottom:2px solid transparent; }
+  .topnav a.active{ color:#fff; border-bottom-color:var(--accent-amber); }
+  .topbar .spacer{ flex:1; }
+  .topbar-right{ display:flex; align-items:center; gap:16px; color:var(--text-muted); font-size:13px; }
+  .avatar{ width:26px; height:26px; border-radius:50%; background:linear-gradient(135deg,#3FA7E1,#22C3DD); display:flex; align-items:center; justify-content:center; font-size:11px; font-weight:700; color:#04070B; }
+
+  .subbar{ background:var(--bg-subbar); border-bottom:1px solid var(--border); padding:14px 24px 12px; }
+  .breadcrumb{ font-size:12px; color:var(--text-subtle); margin-bottom:6px; }
+  .breadcrumb a{ color:var(--text-subtle); }
+  .breadcrumb .sep{ margin:0 6px; }
+  .subbar-row{ display:flex; align-items:flex-end; justify-content:space-between; flex-wrap:wrap; gap:10px; }
+  .subbar-title{ display:flex; align-items:center; gap:10px; }
+  h1{ font-size:20px; font-weight:600; color:#fff; }
+  .badge-live{ display:inline-flex; align-items:center; gap:6px; font-size:11px; font-weight:600; color:var(--accent-green); background:rgba(101,166,55,0.12); border:1px solid rgba(101,166,55,0.35); padding:3px 9px; border-radius:20px; }
+  .badge-live .dot{ width:6px; height:6px; border-radius:50%; background:var(--accent-green); box-shadow:0 0 6px var(--accent-green); }
+  .badge-live.stale{ color:var(--text-subtle); background:rgba(255,255,255,0.05); border-color:var(--border); }
+  .badge-live.stale .dot{ background:var(--text-subtle); box-shadow:none; }
+  .dash-desc{ font-size:12.5px; color:var(--text-muted); margin-top:4px; max-width:820px; line-height:1.4; }
+
+  .toolbar{ display:flex; gap:8px; }
+  .btn{ display:inline-flex; align-items:center; gap:6px; font-size:12.5px; font-weight:500; color:var(--text); background:#20242A; border:1px solid var(--border); padding:7px 12px; border-radius:5px; cursor:pointer; }
+  .btn:hover{ background:#262B32; }
+  .btn-primary{ background:var(--accent-blue); border-color:var(--accent-blue); color:#04121C; font-weight:600; }
+  .btn-primary:hover{ background:#57B4EA; }
+  .btn svg{ width:14px; height:14px; }
+
+  .filters{ display:flex; align-items:center; gap:10px; padding:12px 24px; background:var(--bg-subbar); border-bottom:1px solid var(--border); flex-wrap:wrap; }
+  .filter{ display:flex; align-items:center; gap:8px; background:#191C21; border:1px solid var(--border); border-radius:5px; padding:6px 10px; }
+  .filter label{ font-size:11px; color:var(--text-subtle); text-transform:uppercase; letter-spacing:.05em; }
+  .filter select{ background:transparent; border:none; color:var(--text); font-size:12.5px; font-family:var(--font); outline:none; cursor:pointer; }
+  .filter select option{ background:#191C21; }
+  .submit-btn{ background:var(--accent-blue); color:#04121C; font-weight:600; font-size:12.5px; padding:7px 16px; border:none; border-radius:5px; cursor:pointer; }
+  .submit-btn:hover{ background:#57B4EA; }
+  .pending-note{ font-size:11.5px; color:var(--accent-amber); opacity:0; transition:opacity .2s ease; }
+  .pending-note.show{ opacity:1; }
+
+  main{ padding:20px 24px 60px; }
+  .grid{ display:grid; grid-template-columns:repeat(12,1fr); gap:16px; }
+  .panel{ background:var(--bg-panel); border:1px solid var(--border-soft); border-radius:6px; overflow:hidden; display:flex; flex-direction:column; }
+  .col-12{ grid-column:span 12; }
+  .col-6{ grid-column:span 6; }
+  @media (max-width:1100px){ .col-6{ grid-column:span 12; } }
+
+  .panel-head{ display:flex; align-items:center; justify-content:space-between; padding:11px 14px; background:var(--bg-panel-head); border-bottom:1px solid var(--border-soft); }
+  .panel-title{ font-size:13px; font-weight:600; color:var(--text); }
+  .panel-meta{ font-size:10.5px; color:var(--text-subtle); font-family:var(--mono); }
+  .panel-body{ padding:14px; flex:1; }
+  .legend{ display:flex; gap:14px; padding:0 14px 10px; font-size:11px; color:var(--text-muted); flex-wrap:wrap; }
+  .legend span{ display:inline-flex; align-items:center; gap:6px; }
+  .legend .sw{ width:10px; height:3px; border-radius:2px; }
+
+  svg text{ font-family:var(--font); }
+  .axis-line{ stroke:var(--border); stroke-width:1; }
+  .grid-line{ stroke:var(--border-soft); stroke-width:1; stroke-dasharray:2,3; }
+  .tick-label{ fill:var(--text-subtle); font-size:9.5px; }
+
+  table{ width:100%; border-collapse:collapse; font-size:12px; }
+  th{ text-align:left; color:var(--text-subtle); font-weight:600; font-size:10px; text-transform:uppercase; letter-spacing:.04em; padding:8px 9px; border-bottom:1px solid var(--border); white-space:nowrap; }
+  td{ padding:8px 9px; border-bottom:1px solid var(--border-soft); color:var(--text); }
+  tr:hover td{ background:rgba(255,255,255,0.02); }
+  td.num{ font-family:var(--mono); text-align:right; white-space:nowrap; }
+  td.mono{ font-family:var(--mono); font-size:11px; color:var(--text-muted); white-space:nowrap; }
+  .pill{ display:inline-block; padding:2px 9px; border-radius:12px; font-size:10.5px; font-weight:600; font-family:var(--mono); white-space:nowrap; }
+  .pill-green{ background:rgba(101,166,55,0.16); color:#8FD65E; }
+  .pill-amber{ background:rgba(242,184,39,0.16); color:#F6CB5B; }
+  .pill-red{ background:rgba(214,86,60,0.18); color:#F0806B; }
+  .pos-tag{ font-size:10px; color:var(--text-subtle); text-transform:uppercase; letter-spacing:.04em; }
+  .machine-name.flag{ color:#F0806B; font-weight:700; }
+  .empty-row td{ color:var(--text-subtle); font-style:italic; text-align:center; padding:16px; }
+
+  footer{ padding:14px 24px 30px; color:var(--text-subtle); font-size:11px; display:flex; justify-content:space-between; }
+
+  .overlay{ position:fixed; inset:0; background:rgba(0,0,0,0.55); opacity:0; pointer-events:none; transition:opacity .2s ease; z-index:40; }
+  .overlay.open{ opacity:1; pointer-events:auto; }
+  .drawer{ position:fixed; top:0; right:-620px; width:600px; max-width:92vw; height:100vh; background:#101317; border-left:1px solid var(--border); z-index:50; transition:right .25s ease; display:flex; flex-direction:column; box-shadow:-8px 0 30px rgba(0,0,0,0.4); }
+  .drawer.open{ right:0; }
+  .drawer-head{ display:flex; align-items:center; justify-content:space-between; padding:14px 18px; border-bottom:1px solid var(--border); background:var(--bg-subbar); }
+  .drawer-head h3{ font-size:14px; font-weight:600; color:#fff; }
+  .drawer-head .sub{ font-size:11px; color:var(--text-subtle); margin-top:2px; }
+  .drawer-close{ background:none; border:none; color:var(--text-muted); font-size:20px; cursor:pointer; line-height:1; padding:4px; }
+  .drawer-close:hover{ color:#fff; }
+  .drawer-body{ flex:1; overflow:auto; padding:16px 18px; }
+  .drawer-body pre{ font-family:var(--mono); font-size:11.5px; line-height:1.6; color:#C7D6D9; white-space:pre-wrap; word-break:break-word; }
+  .drawer-foot{ padding:12px 18px; border-top:1px solid var(--border); display:flex; justify-content:space-between; align-items:center; gap:8px; }
+  .copy-btn{ background:var(--accent-blue); color:#04121C; font-weight:600; font-size:12px; border:none; border-radius:5px; padding:8px 14px; cursor:pointer; }
+  .raw-link{ font-size:12px; color:var(--text-muted); }
+  .raw-link:hover{ color:#fff; }
+</style>
+</head>
+<body>
+
+  <div class="topbar">
+    <div class="splunk-mark">splunk<span class="chev">&gt;</span></div>
+    <nav class="topnav">
+      <a>Search</a><a>Analytics</a><a>Datasets</a><a>Reports</a><a>Alerts</a><a class="active">Dashboards</a>
+    </nav>
+    <div class="spacer"></div>
+    <div class="topbar-right"><span>Soda Co Production</span><div class="avatar">KO</div></div>
+  </div>
+
+  <div class="subbar">
+    <div class="breadcrumb"><a>Apps</a><span class="sep">/</span><a>Search &amp; Reporting</a><span class="sep">/</span><a>Dashboards</a></div>
+    <div class="subbar-row">
+      <div>
+        <div class="subbar-title">
+          <h1>Line Efficiency — Machine Downtime &amp; Trend Analysis</h1>
+          <span class="badge-live" id="liveBadge"><span class="dot"></span>Live</span>
+        </div>
+        <div class="dash-desc">Granular, machine-level view of the filler and its upstream/downstream machines: what's down right now and why, which machines lose the most time, how filler stops cascade through the line, and which machines are chronic problems. Change plant/line below — every panel recalculates.</div>
+      </div>
+      <div class="toolbar">
+        <button class="btn" id="sourceBtn">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 4L2 12l6 8"/><path d="M16 4l6 8-6 8"/></svg>
+          View XML
+        </button>
+        <a class="btn" href="line-efficiency-data-sources.html" target="_blank" rel="noopener">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 016.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z"/></svg>
+          Data sources
+        </a>
+        <button class="btn">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="M7 10l5 5 5-5"/><path d="M4 20h16"/></svg>
+          Export
+        </button>
+        <button class="btn btn-primary">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 013 3L7 19l-4 1 1-4z"/></svg>
+          Edit
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div class="filters">
+    <div class="filter"><label>Time range</label>
+      <select id="timeSelect">
+        <option value="24h" selected>Last 24 hours</option>
+        <option value="7d">Last 7 days</option>
+      </select>
+    </div>
+    <div class="filter"><label>Plant</label>
+      <select id="plantSelect"></select>
+    </div>
+    <div class="filter"><label>Line</label>
+      <select id="lineSelect"></select>
+    </div>
+    <button class="submit-btn" id="submitBtn">Submit</button>
+    <span class="pending-note" id="pendingNote">Selection changed — click Submit to apply</span>
+  </div>
+
+  <main>
+    <div class="grid">
+
+      <div class="panel col-12">
+        <div class="panel-head">
+          <span class="panel-title" id="statusPanelTitle">Current machine status</span>
+          <span class="panel-meta">last 15m &middot; status heartbeat</span>
+        </div>
+        <div class="panel-body" style="padding:0;">
+          <table>
+            <thead><tr><th>Position</th><th>Machine</th><th>Status</th><th>Fault / reason</th><th style="text-align:right;">Down since</th></tr></thead>
+            <tbody id="statusBody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="panel col-6">
+        <div class="panel-head"><span class="panel-title">Downtime by machine — last 24h</span><span class="panel-meta">stats sum(downtime_minutes)</span></div>
+        <div class="panel-body"><svg id="chartPareto" width="100%" height="240" viewBox="0 0 540 240"></svg></div>
+      </div>
+
+      <div class="panel col-6">
+        <div class="panel-head"><span class="panel-title">MTBF / MTTR by machine</span><span class="panel-meta">reliability, last 24h</span></div>
+        <div class="panel-body" style="padding:0;">
+          <table>
+            <thead><tr><th>Machine</th><th style="text-align:right;">Failures</th><th style="text-align:right;">MTTR</th><th style="text-align:right;">MTBF</th></tr></thead>
+            <tbody id="mtbfBody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="panel col-12">
+        <div class="panel-head"><span class="panel-title">Downtime reason detail by machine</span><span class="panel-meta">stats count, sum, avg by machine, fault_reason</span></div>
+        <div class="panel-body" style="padding:0;">
+          <table>
+            <thead><tr><th>Machine</th><th>Fault reason</th><th style="text-align:right;">Occurrences</th><th style="text-align:right;">Total min</th><th style="text-align:right;">Avg min</th></tr></thead>
+            <tbody id="reasonBody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="panel col-12">
+        <div class="panel-head"><span class="panel-title">Downtime trend by machine — 14 days (chronic problem finder)</span><span class="panel-meta">timechart span=1d</span></div>
+        <div class="legend" id="trendLegend"></div>
+        <div class="panel-body"><svg id="chartTrend" width="100%" height="240" viewBox="0 0 1120 240"></svg></div>
+      </div>
+
+      <div class="panel col-6">
+        <div class="panel-head"><span class="panel-title">Filler stops cascading to blocked / starved machines</span><span class="panel-meta">trigger_machine="Filler*"</span></div>
+        <div class="panel-body" style="padding:0;">
+          <table>
+            <thead><tr><th>Event</th><th>Machine</th><th style="text-align:right;">Events</th><th style="text-align:right;">Total min</th></tr></thead>
+            <tbody id="cascadeBody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="panel col-6">
+        <div class="panel-head"><span class="panel-title">Recent downtime events — event log</span><span class="panel-meta">sort -_time &middot; head 25</span></div>
+        <div class="panel-body" style="padding:0; max-height:280px; overflow:auto;">
+          <table>
+            <thead><tr><th>Time</th><th>Machine</th><th>Fault</th><th style="text-align:right;">Min</th><th>Shift</th></tr></thead>
+            <tbody id="eventLogBody"></tbody>
+          </table>
+        </div>
+      </div>
+
+    </div>
+  </main>
+
+  <footer>
+    <span>Line Efficiency — Machine Downtime &amp; Trend Analysis &middot; demo data, generated client-side, not connected to a live index</span>
+    <span>Splunk &middot; a Cisco company</span>
+  </footer>
+
+  <div class="overlay" id="overlay"></div>
+  <div class="drawer" id="drawer">
+    <div class="drawer-head">
+      <div><h3>Dashboard source</h3><div class="sub">line-efficiency.xml &middot; Simple XML</div></div>
+      <button class="drawer-close" id="drawerClose">&times;</button>
+    </div>
+    <div class="drawer-body"><pre id="xmlSource"></pre></div>
+    <div class="drawer-foot">
+      <a class="raw-link" href="line-efficiency.xml" target="_blank" rel="noopener">Open raw .xml file &#8599;</a>
+      <button class="copy-btn" id="copyBtn">Copy XML</button>
+    </div>
+  </div>
+
+<script>
+const svgNS = "http://www.w3.org/2000/svg";
+function el(tag, attrs){ const e = document.createElementNS(svgNS, tag); for(const k in attrs) e.setAttribute(k, attrs[k]); return e; }
+function esc(s){ const d=document.createElement('div'); d.textContent=s; return d.innerHTML; }
+
+// =========================================================================
+// Plant / line topology + severity model
+// severity 0 = healthy line, 1 = worst-case (matches the flagged Filler-3 story)
+// =========================================================================
+const TOPOLOGY = {
+  "Mississauga, ON": ["Line 1", "Line 2"],
+  "Calgary, AB":      ["Line 1", "Line 2"],
+  "Moncton, NB":       ["Line 3", "Line 4"],
+};
+const SEVERITY = {
+  "Mississauga, ON|Line 1": 0.12,
+  "Mississauga, ON|Line 2": 0.24,
+  "Calgary, AB|Line 1":     0.33,
+  "Calgary, AB|Line 2":     0.54,
+  "Moncton, NB|Line 3":     0.95,
+  "Moncton, NB|Line 4":     0.42,
+};
+const ROLES = [
+  {key:'Depalletizer', label:'Depalletizer', pos:'upstream',   base:6,   floor:1, failBase:2},
+  {key:'Rinser',       label:'Rinser',       pos:'upstream',   base:18,  floor:3, failBase:6},
+  {key:'Filler',       label:'Filler',       pos:'filler',     base:142, floor:8, failBase:12},
+  {key:'Capper',       label:'Capper',       pos:'downstream', base:38,  floor:4, failBase:8},
+  {key:'Labeler',      label:'Labeler',      pos:'downstream', base:22,  floor:3, failBase:6},
+  {key:'Coder',        label:'Coder',        pos:'downstream', base:4,   floor:1, failBase:1},
+  {key:'CasePacker',   label:'Case Packer',  pos:'downstream', base:14,  floor:2, failBase:2},
+  {key:'Palletizer',   label:'Palletizer',   pos:'downstream', base:3,   floor:1, failBase:1},
+];
+const REASON_TEMPLATES = {
+  Filler:       [ {code:'FILL_PRESSURE_LOW', desc:'fill pressure below threshold', share:0.68}, {code:'VALVE_STICK', desc:'fill valve stuck open', share:0.32} ],
+  Capper:       [ {code:'TORQUE_FAULT', desc:'cap torque out of range', share:0.68}, {code:'STARVED', desc:'no input from Filler', share:0.32} ],
+  Rinser:       [ {code:'BLOCKED', desc:'downstream buffer full', share:1.0} ],
+  Labeler:      [ {code:'LABEL_MISALIGN', desc:'label sensor misalignment', share:0.65}, {code:'STARVED', desc:'no input from Filler', share:0.35} ],
+  Coder:        [ {code:'PRINT_FAULT', desc:'print head fault', share:1.0} ],
+  CasePacker:   [ {code:'JAM', desc:'carton jam at infeed', share:1.0} ],
+  Depalletizer: [ {code:'BLOCKED', desc:'downstream buffer full', share:1.0} ],
+  Palletizer:   [ {code:'WRAP_FAULT', desc:'stretch wrap fault', share:1.0} ],
+};
+
+function round1(n){ return Math.round(n*10)/10; }
+
+function generateLineData(plant, line, severity){
+  const lineNum = line.replace('Line ', '');
+  const s = severity;
+  const machines = ROLES.map(r=>{
+    const name = (r.key==='CasePacker' ? 'Case Packer' : r.label) + '-' + lineNum;
+    const downtime_min = Math.round(r.floor + (r.base - r.floor) * s);
+    const failures = Math.max(1, Math.round(1 + (r.failBase - 1) * s));
+    const mttr_min = round1(downtime_min / failures);
+    const uptime_min = 1440 - downtime_min;
+    const mtbf_hr = round1((uptime_min/60) / failures);
+    return { role:r.key, name, pos:r.pos, downtime_min, failures, mttr_min, mtbf_hr };
+  });
+
+  const filler = machines.find(m=>m.role==='Filler');
+  const vibration = round1(2 + s*5.8);
+  const bearingTemp = Math.round(50 + s*36);
+  let risk = Math.round((vibration/8)*50 + (bearingTemp/90)*50);
+  risk = Math.min(risk, 100);
+
+  // status rows
+  const fillerDown = s > 0.85;
+  const fillerIdle = !fillerDown && s > 0.6;
+  const fillerDownSince = fillerDown ? Math.round(10 + s*15) : null;
+
+  const status = machines.map(m=>{
+    if(m.role==='Filler'){
+      if(fillerDown) return {...m, status:'down', fault:'FILL_PRESSURE_LOW', since:fillerDownSince+' min'};
+      if(fillerIdle) return {...m, status:'idle', fault:'Minor stoppage', since:Math.round(3+s*5)+' min'};
+      return {...m, status:'running', fault:'—', since:'—'};
+    }
+    if(m.pos==='upstream'){
+      // Only the machine immediately adjacent to the filler backs up this fast —
+      // further-upstream machines are absorbed by buffer capacity within a 15m window.
+      if(m.role==='Rinser' && fillerDown && s>0.7) return {...m, status:'blocked', fault:'Waiting on '+filler.name, since:Math.max(1,fillerDownSince-8)+' min'};
+      return {...m, status:'running', fault:'—', since:'—'};
+    }
+    if(m.pos==='downstream'){
+      // Only the machines immediately downstream starve within the snapshot window;
+      // machines further down the line are still working through buffered product.
+      if(fillerDown && (m.role==='Capper' || m.role==='Labeler')){
+        return {...m, status:'starved', fault:'Waiting on '+filler.name, since:Math.max(1,fillerDownSince-2)+' min'};
+      }
+      if(m.role==='CasePacker' && s>0.35){
+        return {...m, status:'idle', fault:'Awaiting product', since:Math.round(3+s*8)+' min'};
+      }
+      return {...m, status:'running', fault:'—', since:'—'};
+    }
+    return {...m, status:'running', fault:'—', since:'—'};
+  });
+
+  // pareto (sorted desc)
+  const pareto = [...machines].sort((a,b)=>b.downtime_min - a.downtime_min);
+
+  // reason detail
+  const reasons = [];
+  machines.forEach(m=>{
+    const templates = REASON_TEMPLATES[m.role] || [];
+    templates.forEach(t=>{
+      const total_min = Math.round(m.downtime_min * t.share);
+      if(total_min < 1) return;
+      const occurrences = Math.max(1, Math.round(m.failures * t.share));
+      const avg_min = round1(total_min / occurrences);
+      reasons.push({ machine:m.name, flag:m.role==='Filler', code:t.code, desc:t.desc, occurrences, total_min, avg_min });
+    });
+  });
+  reasons.sort((a,b)=>b.total_min - a.total_min);
+
+  // trend (14 days) for filler, capper(secondary), rinser(tertiary), others avg
+  function trendFor(role, todayVal){
+    const startFactor = 1 - Math.min(0.6, 0.15 + s*0.5);
+    const start = Math.max(1, Math.round(todayVal * startFactor));
+    const arr = [];
+    for(let i=0;i<14;i++){
+      const t = i/13;
+      const wobble = Math.sin(i*1.3)*todayVal*0.03*s;
+      arr.push(Math.max(0, Math.round(start + (todayVal-start)*t + wobble)));
+    }
+    arr[13] = todayVal; // ensure trend ends exactly at today's pareto value
+    return arr;
+  }
+  const capper = machines.find(m=>m.role==='Capper');
+  const rinser = machines.find(m=>m.role==='Rinser');
+  const othersAvg = Math.round(machines.filter(m=>!['Filler','Capper','Rinser'].includes(m.role)).reduce((a,m)=>a+m.downtime_min,0)/5);
+  const trend = {
+    filler: trendFor('Filler', filler.downtime_min),
+    capper: trendFor('Capper', capper.downtime_min),
+    rinser: trendFor('Rinser', rinser.downtime_min),
+    others: trendFor('Others', othersAvg),
+  };
+
+  // cascade
+  const cascade = [];
+  if(s > 0.3){
+    const downstreamRoles = ['Capper','Labeler','Coder','CasePacker'];
+    downstreamRoles.forEach(role=>{
+      const m = machines.find(x=>x.role===role);
+      const events = Math.max(1, Math.round(filler.failures * (0.15 + s*0.45) * (role==='Capper'?1.1:role==='Labeler'?0.9:role==='Coder'?0.5:0.4)));
+      const total_min = Math.round(events * (2.5 + s*1.5));
+      cascade.push({ type:'starved', machine:m.name, events, total_min });
+    });
+    ['Rinser','Depalletizer'].forEach(role=>{
+      const m = machines.find(x=>x.role===role);
+      const events = Math.max(1, Math.round(filler.failures * (0.1 + s*0.35) * (role==='Rinser'?1:0.6)));
+      const total_min = Math.round(events * (2.5 + s*1.2));
+      cascade.push({ type:'blocked', machine:m.name, events, total_min });
+    });
+    cascade.sort((a,b)=>b.total_min - a.total_min);
+  }
+
+  // event log — synthesize most recent N events from reasons pool, weighted by severity
+  const eventLog = [];
+  const shifts = ['C','C','B','B','A'];
+  let hour = 14, min = 32;
+  const pool = [];
+  reasons.forEach(r=>{
+    for(let i=0;i<r.occurrences;i++) pool.push(r);
+  });
+  pool.sort(()=>0); // keep deterministic order (already sorted by total_min via reasons)
+  const nEvents = Math.min(8, Math.max(3, Math.round(3 + s*7)));
+  for(let i=0;i<nEvents && i<pool.length; i++){
+    const r = pool[i % pool.length];
+    const dur = i===0 && fillerDown && r.flag ? fillerDownSince+'*' : Math.max(1, Math.round(r.avg_min + (i%3 - 1)));
+    const timeStr = String(hour).padStart(2,'0')+':'+String(min).padStart(2,'0');
+    eventLog.push({ time:timeStr, machine:r.machine, flag:r.flag, code:r.code, dur, shift:shifts[i % shifts.length] });
+    min -= (12 + i*3);
+    while(min < 0){ min += 60; hour -= 1; }
+    if(hour < 0) hour += 24;
+  }
+
+  return { plant, line, machines, status, filler:{...filler, vibration, bearingTemp, risk, down:fillerDown}, pareto, reasons, trend, cascade, eventLog, severity:s };
+}
+
+// =========================================================================
+// Rendering
+// =========================================================================
+function statusPillClass(status){
+  if(status==='running') return 'pill-green';
+  if(status==='down') return 'pill-red';
+  return 'pill-amber'; // idle, blocked, starved
+}
+function statusLabel(status){
+  return status.charAt(0).toUpperCase()+status.slice(1);
+}
+function riskPillClass(v){ return v>=70?'pill-red':(v>=40?'pill-amber':'pill-green'); }
+function mtbfPillClass(v){ return v<2?'pill-red':(v<6?'pill-amber':'pill-green'); }
+
+function renderStatus(data){
+  document.getElementById('statusPanelTitle').textContent =
+    `Current machine status — ${data.plant} · ${data.line}`;
+  const rows = data.status.map(m=>`
+    <tr>
+      <td class="pos-tag">${m.pos}</td>
+      <td class="machine-name${m.role==='Filler'?' flag':''}">${esc(m.name)}</td>
+      <td><span class="pill ${statusPillClass(m.status)}">${statusLabel(m.status)}</span></td>
+      <td>${esc(m.fault)}</td>
+      <td class="num">${esc(m.since)}</td>
+    </tr>`).join('');
+  document.getElementById('statusBody').innerHTML = rows;
+
+  const badge = document.getElementById('liveBadge');
+  if(data.filler.down){
+    badge.className = 'badge-live';
+    badge.innerHTML = '<span class="dot"></span>Filler down';
+    badge.style.color = '#F0806B';
+  } else {
+    badge.className = 'badge-live';
+    badge.innerHTML = '<span class="dot"></span>Live';
+    badge.style.color = '';
+  }
+}
+
+function renderPareto(data){
+  const svg = document.getElementById('chartPareto');
+  svg.innerHTML = '';
+  const items = data.pareto;
+  const W=540, H=240, padL=112, padR=44, padT=8, padB=8;
+  const rowH = (H-padT-padB)/items.length;
+  const maxV = Math.max(...items.map(d=>d.downtime_min)) * 1.1 || 1;
+  items.forEach((d,i)=>{
+    const y = padT + i*rowH + rowH*0.2;
+    const barH = rowH*0.6;
+    const barW = (d.downtime_min/maxV) * (W-padL-padR);
+    const flagged = d.role==='Filler';
+    const nameColor = flagged ? '#F0806B' : '#C7CDD6';
+    const label = el('text',{x:padL-10,y:y+barH/2+4,'text-anchor':'end',class:'tick-label',style:`font-size:11.5px;fill:${nameColor};font-weight:${flagged?700:400};`});
+    label.textContent = d.name;
+    svg.appendChild(label);
+    svg.appendChild(el('rect',{x:padL,y:y,width:Math.max(barW,1),height:barH,rx:3,fill: flagged ? '#D6563C' : '#3FA7E1'}));
+    const val = el('text',{x:padL+barW+8,y:y+barH/2+4,class:'tick-label',style:'font-size:11px;fill:#E8EAED;'});
+    val.textContent = d.downtime_min + ' min';
+    svg.appendChild(val);
+  });
+}
+
+function renderMtbf(data){
+  const rows = [...data.machines].sort((a,b)=>a.mtbf_hr-b.mtbf_hr).map(m=>`
+    <tr>
+      <td class="machine-name${m.role==='Filler'?' flag':''}">${esc(m.name)}</td>
+      <td class="num">${m.failures}</td>
+      <td class="num">${m.mttr_min} min</td>
+      <td class="num"><span class="pill ${mtbfPillClass(m.mtbf_hr)}">${m.mtbf_hr} hr</span></td>
+    </tr>`).join('');
+  document.getElementById('mtbfBody').innerHTML = rows;
+}
+
+function renderReasons(data){
+  if(data.reasons.length===0){
+    document.getElementById('reasonBody').innerHTML = `<tr class="empty-row"><td colspan="5">No fault events in this window.</td></tr>`;
+    return;
+  }
+  const rows = data.reasons.map(r=>`
+    <tr>
+      <td class="machine-name${r.flag?' flag':''}">${esc(r.machine)}</td>
+      <td>${esc(r.code)} — ${esc(r.desc)}</td>
+      <td class="num">${r.occurrences}</td>
+      <td class="num"><span class="pill ${riskPillClass(Math.min(100, r.total_min))}">${r.total_min}</span></td>
+      <td class="num">${r.avg_min}</td>
+    </tr>`).join('');
+  document.getElementById('reasonBody').innerHTML = rows;
+}
+
+function renderTrend(data){
+  const svg = document.getElementById('chartTrend');
+  svg.innerHTML = '';
+  const W=1120, H=240, padL=40, padR=16, padT=14, padB=26;
+  const plotW=W-padL-padR, plotH=H-padT-padB;
+  const days=14;
+  const series = [
+    {data:data.trend.others, color:'#65A637', w:1.8, label:'All other machines (avg)'},
+    {data:data.trend.rinser, color:'#3FA7E1', w:1.8, label:data.machines.find(m=>m.role==='Rinser').name},
+    {data:data.trend.capper, color:'#F2B827', w:2.0, label:data.machines.find(m=>m.role==='Capper').name},
+    {data:data.trend.filler, color:'#D6563C', w:2.6, label:data.filler.name},
+  ];
+  const allVals = series.flatMap(s=>s.data);
+  const maxV = Math.max(...allVals) * 1.1 || 1;
+  const x = i => padL + (i/(days-1)) * plotW;
+  const y = v => padT + plotH - (v/maxV) * plotH;
+
+  for(let g=0; g<=4; g++){
+    const gy = padT + (plotH/4)*g;
+    svg.appendChild(el('line',{x1:padL,y1:gy,x2:W-padR,y2:gy,class:'grid-line'}));
+    const val = Math.round(maxV - (maxV/4)*g);
+    const t = el('text',{x:4,y:gy+3,class:'tick-label'}); t.textContent = val;
+    svg.appendChild(t);
+  }
+  for(let i=0;i<days;i++){
+    const t = el('text',{x:x(i),y:H-6,class:'tick-label','text-anchor':'middle'});
+    t.textContent = 'D'+(i+1);
+    svg.appendChild(t);
+  }
+  svg.appendChild(el('line',{x1:padL,y1:padT+plotH,x2:W-padR,y2:padT+plotH,class:'axis-line'}));
+
+  series.forEach(s=>{
+    let d = s.data.map((v,i)=> (i===0?'M':'L') + x(i).toFixed(1) + ',' + y(v).toFixed(1)).join(' ');
+    svg.appendChild(el('path',{d, fill:'none', stroke:s.color, 'stroke-width':s.w, 'stroke-linejoin':'round', 'stroke-linecap':'round'}));
+    s.data.forEach((v,i)=>{ svg.appendChild(el('circle',{cx:x(i),cy:y(v),r:2.2,fill:s.color})); });
+  });
+
+  document.getElementById('trendLegend').innerHTML = series.map(s=>
+    `<span><span class="sw" style="background:${s.color};"></span>${esc(s.label)}</span>`).join('');
+}
+
+function renderCascade(data){
+  if(data.cascade.length===0){
+    document.getElementById('cascadeBody').innerHTML = `<tr class="empty-row"><td colspan="4">No cascade events — filler stability is within normal range on this line.</td></tr>`;
+    return;
+  }
+  const rows = data.cascade.map(c=>`
+    <tr>
+      <td><span class="pill pill-amber">${c.type.charAt(0).toUpperCase()+c.type.slice(1)}</span></td>
+      <td>${esc(c.machine)}</td>
+      <td class="num">${c.events}</td>
+      <td class="num">${c.total_min}</td>
+    </tr>`).join('');
+  document.getElementById('cascadeBody').innerHTML = rows;
+}
+
+function renderEventLog(data){
+  if(data.eventLog.length===0){
+    document.getElementById('eventLogBody').innerHTML = `<tr class="empty-row"><td colspan="5">No downtime events logged in this window.</td></tr>`;
+    return;
+  }
+  const rows = data.eventLog.map(e=>`
+    <tr>
+      <td class="mono">${esc(e.time)}</td>
+      <td class="machine-name${e.flag?' flag':''}">${esc(e.machine)}</td>
+      <td>${esc(e.code)}</td>
+      <td class="num">${e.dur}</td>
+      <td>${esc(e.shift)}</td>
+    </tr>`).join('');
+  document.getElementById('eventLogBody').innerHTML = rows +
+    (data.eventLog.some(e=>String(e.dur).includes('*')) ? `<tr><td colspan="5" style="font-size:10.5px;color:var(--text-subtle);">* ongoing at time of snapshot</td></tr>` : '');
+}
+
+function renderAll(){
+  const plant = document.getElementById('plantSelect').value;
+  const line = document.getElementById('lineSelect').value;
+  const key = plant+'|'+line;
+  const severity = SEVERITY[key] !== undefined ? SEVERITY[key] : 0.3;
+  const data = generateLineData(plant, line, severity);
+  renderStatus(data);
+  renderPareto(data);
+  renderMtbf(data);
+  renderReasons(data);
+  renderTrend(data);
+  renderCascade(data);
+  renderEventLog(data);
+  document.getElementById('pendingNote').classList.remove('show');
+}
+
+// =========================================================================
+// Wiring: cascading plant -> line dropdown, submit, pending-change indicator
+// =========================================================================
+const plantSelect = document.getElementById('plantSelect');
+const lineSelect = document.getElementById('lineSelect');
+
+Object.keys(TOPOLOGY).forEach(p=>{
+  const opt = document.createElement('option');
+  opt.value = p; opt.textContent = p;
+  plantSelect.appendChild(opt);
+});
+plantSelect.value = "Moncton, NB";
+
+function populateLines(selectedLine){
+  lineSelect.innerHTML = '';
+  TOPOLOGY[plantSelect.value].forEach(l=>{
+    const opt = document.createElement('option');
+    opt.value = l; opt.textContent = l;
+    lineSelect.appendChild(opt);
+  });
+  if(selectedLine && TOPOLOGY[plantSelect.value].includes(selectedLine)){
+    lineSelect.value = selectedLine;
+  }
+}
+populateLines("Line 3");
+
+plantSelect.addEventListener('change', ()=>{
+  populateLines();
+  document.getElementById('pendingNote').classList.add('show');
+});
+lineSelect.addEventListener('change', ()=>{
+  document.getElementById('pendingNote').classList.add('show');
+});
+document.getElementById('submitBtn').addEventListener('click', renderAll);
+
+// initial render
+renderAll();
+
+// ---------------- Source drawer ----------------
+const xmlRaw = `<form version="1.1" theme="dark">
+  <label>Line Efficiency — Machine Downtime &amp; Trend Analysis</label>
+  <description>Granular, machine-level view of the filler and its upstream/downstream machines: what's down right now and why, which machines lose the most time, how the filler's stops cascade through the line, and which machines are chronic problems over time.</description>
+
+  <fieldset submitButton="false" autoRun="true">
+    <input type="time" token="time_tok">
+      <label>Time range</label>
+      <default><earliest>-24h@h</earliest><latest>now</latest></default>
+    </input>
+    <input type="dropdown" token="plant_tok">
+      <label>Plant</label>
+      <choice value="*">All plants</choice>
+      <fieldForLabel>plant</fieldForLabel>
+      <fieldForValue>plant</fieldForValue>
+      <search>
+        <query>index=production sourcetype=ot:scada | stats count by plant</query>
+        <earliest>-7d@h</earliest><latest>now</latest>
+      </search>
+      <default>*</default>
+    </input>
+    <input type="dropdown" token="line_tok">
+      <label>Line</label>
+      <choice value="*">All lines</choice>
+      <fieldForLabel>line</fieldForLabel>
+      <fieldForValue>line</fieldForValue>
+      <search>
+        <query>index=production sourcetype=ot:scada plant=$plant_tok$ | stats count by line</query>
+        <earliest>-7d@h</earliest><latest>now</latest>
+      </search>
+      <default>*</default>
+    </input>
+  </fieldset>
+
+  <row>
+    <panel>
+      <title>Current machine status — filler, upstream &amp; downstream</title>
+      <table>
+        <search>
+          <query>
+            index=production sourcetype=ot:scada event_type=status plant=$plant_tok$ line=$line_tok$
+            | stats latest(status) as status latest(fault_reason) as fault_reason latest(_time) as last_change_time by position, machine
+            | eval down_since_min=if(status!="running", round((now()-last_change_time)/60,1), null())
+            | table position, machine, status, fault_reason, down_since_min
+            | sort position
+          </query>
+          <earliest>-15m</earliest>
+          <latest>now</latest>
+        </search>
+        <format type="color" field="status">
+          <colorPalette type="map">{"running":"#65A637","idle":"#F2B827","down":"#D6563C","blocked":"#F2B827","starved":"#F2B827"}</colorPalette>
+        </format>
+      </table>
+    </panel>
+  </row>
+
+  <row>
+    <panel>
+      <title>Downtime by machine — last 24h</title>
+      <chart>
+        <search>
+          <query>
+            index=production sourcetype=ot:scada event_type=fault plant=$plant_tok$ line=$line_tok$
+            | stats sum(downtime_minutes) as total_downtime_min count as fault_events by machine
+            | sort -total_downtime_min
+          </query>
+          <earliest>$time_tok.earliest$</earliest>
+          <latest>$time_tok.latest$</latest>
+        </search>
+        <option name="charting.chart">bar</option>
+      </chart>
+    </panel>
+    <panel>
+      <title>MTBF / MTTR by machine</title>
+      <table>
+        <search>
+          <query>
+            index=production sourcetype=ot:scada event_type=fault plant=$plant_tok$ line=$line_tok$
+            | stats count as failures sum(downtime_minutes) as total_downtime_min by machine
+            | eval mttr_min=round(total_downtime_min/failures,1)
+            | eval scheduled_runtime_min=1440
+            | eval uptime_min=scheduled_runtime_min-total_downtime_min
+            | eval mtbf_hr=round((uptime_min/60)/failures,1)
+            | table machine, failures, mttr_min, mtbf_hr
+            | sort mtbf_hr
+          </query>
+          <earliest>$time_tok.earliest$</earliest>
+          <latest>$time_tok.latest$</latest>
+        </search>
+        <format type="color" field="mtbf_hr">
+          <colorPalette type="minMidMax" maxColor="#65A637" midColor="#F8BE34" minColor="#D6563C"></colorPalette>
+        </format>
+      </table>
+    </panel>
+  </row>
+
+  <row>
+    <panel>
+      <title>Downtime reason detail by machine</title>
+      <table>
+        <search>
+          <query>
+            index=production sourcetype=ot:scada event_type=fault plant=$plant_tok$ line=$line_tok$
+            | stats count as occurrences sum(downtime_minutes) as total_min avg(downtime_minutes) as avg_min by machine, fault_reason
+            | eval avg_min=round(avg_min,1)
+            | sort -total_min
+          </query>
+          <earliest>$time_tok.earliest$</earliest>
+          <latest>$time_tok.latest$</latest>
+        </search>
+      </table>
+    </panel>
+  </row>
+
+  <row>
+    <panel>
+      <title>Downtime trend by machine — 14 days (chronic problem finder)</title>
+      <chart>
+        <search>
+          <query>
+            index=production sourcetype=ot:scada event_type=fault plant=$plant_tok$ line=$line_tok$
+            | timechart span=1d sum(downtime_minutes) as downtime_min by machine
+          </query>
+          <earliest>-14d@d</earliest>
+          <latest>now</latest>
+        </search>
+        <option name="charting.chart">line</option>
+      </chart>
+    </panel>
+  </row>
+
+  <row>
+    <panel>
+      <title>Filler stops cascading to blocked / starved machines</title>
+      <table>
+        <search>
+          <query>
+            index=production sourcetype=ot:scada event_type IN (blocked, starved) plant=$plant_tok$ line=$line_tok$ trigger_machine="Filler*"
+            | stats count as events sum(duration_minutes) as total_min by event_type, machine
+            | sort -total_min
+          </query>
+          <earliest>$time_tok.earliest$</earliest>
+          <latest>$time_tok.latest$</latest>
+        </search>
+      </table>
+    </panel>
+    <panel>
+      <title>Recent downtime events — event log</title>
+      <table>
+        <search>
+          <query>
+            index=production sourcetype=ot:scada event_type=fault plant=$plant_tok$ line=$line_tok$
+            | table _time, machine, position, fault_code, fault_reason, downtime_minutes, shift
+            | sort -_time
+            | head 25
+          </query>
+          <earliest>$time_tok.earliest$</earliest>
+          <latest>$time_tok.latest$</latest>
+        </search>
+      </table>
+    </panel>
+  </row>
+</form>`;
+
+document.getElementById('xmlSource').textContent = xmlRaw;
+
+const drawer = document.getElementById('drawer');
+const overlay = document.getElementById('overlay');
+function openDrawer(){ drawer.classList.add('open'); overlay.classList.add('open'); }
+function closeDrawer(){ drawer.classList.remove('open'); overlay.classList.remove('open'); }
+document.getElementById('sourceBtn').addEventListener('click', openDrawer);
+document.getElementById('drawerClose').addEventListener('click', closeDrawer);
+overlay.addEventListener('click', closeDrawer);
+document.getElementById('copyBtn').addEventListener('click', ()=>{
+  navigator.clipboard.writeText(xmlRaw).then(()=>{
+    const btn = document.getElementById('copyBtn');
+    const old = btn.textContent; btn.textContent = 'Copied!';
+    setTimeout(()=>{ btn.textContent = old; }, 1400);
+  });
+});
+</script>
+</body>
+</html>
