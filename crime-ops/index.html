@@ -1,0 +1,637 @@
+<div style="padding: 15px;">
+  <a href="../" style="color:#4ea1ff; text-decoration:none; font-size:16px;">
+    ← Back to Demo Portal
+  </a>
+</div>
+
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ARGUS — Real-Time Operations Command</title>
+<style>
+:root{
+  --magenta:#FF007F;
+  --orange:#FF9000;
+  --cyan:#02C8FF;
+  --bg-top:#04070B;
+  --bg-bottom:#0B1118;
+  --panel:#101720;
+  --panel-2:#0C121A;
+  --border:#232932;
+  --text:#F2F5FA;
+  --text-muted:#BCC4CF;
+  --text-subtle:#6E7682;
+  --danger:#FF3B5C;
+  --ok:#28E0A8;
+}
+*{box-sizing:border-box;}
+html,body{margin:0;padding:0;}
+body{
+  font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Inter,Arial,sans-serif;
+  background:linear-gradient(180deg,var(--bg-top) 10%,var(--bg-bottom) 90%);
+  color:var(--text);
+  min-height:100vh;
+  padding-bottom:60px;
+}
+.topbar{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:20px 32px;border-bottom:1px solid var(--border);
+  position:relative;overflow:hidden;
+}
+.topbar::before{
+  content:"";position:absolute;top:-140px;right:-80px;width:420px;height:420px;
+  background:var(--magenta);filter:blur(140px);opacity:.28;border-radius:50%;pointer-events:none;
+}
+.topbar::after{
+  content:"";position:absolute;top:-100px;right:120px;width:380px;height:380px;
+  background:var(--orange);filter:blur(140px);opacity:.22;border-radius:50%;pointer-events:none;
+}
+.brand{display:flex;align-items:center;gap:14px;position:relative;z-index:1;}
+.brand-mark{
+  width:40px;height:40px;border-radius:10px;
+  background:linear-gradient(135deg,var(--magenta) 0%,var(--orange) 100%);
+  display:flex;align-items:center;justify-content:center;font-weight:700;font-size:18px;color:#04070B;
+  flex-shrink:0;
+}
+.brand-text h1{font-size:20px;font-weight:600;margin:0;letter-spacing:-0.01em;}
+.brand-text p{font-size:12px;color:var(--text-subtle);margin:2px 0 0;text-transform:uppercase;letter-spacing:.08em;}
+.status-cluster{display:flex;align-items:center;gap:24px;position:relative;z-index:1;}
+.live-pill{
+  display:flex;align-items:center;gap:8px;font-size:12px;color:var(--text-muted);
+  border:1px solid var(--border);padding:6px 12px;border-radius:999px;background:rgba(255,255,255,.02);
+}
+.live-dot{width:7px;height:7px;border-radius:50%;background:var(--cyan);box-shadow:0 0 8px var(--cyan);animation:pulse 1.8s infinite;}
+@keyframes pulse{0%,100%{opacity:1;}50%{opacity:.35;}}
+.clock{font-size:13px;color:var(--text-muted);font-variant-numeric:tabular-nums;}
+.filterbar{
+  display:flex;gap:12px;align-items:center;padding:14px 32px;
+  border-bottom:1px solid var(--border);background:rgba(255,255,255,.015);
+  flex-wrap:wrap;
+}
+.filterbar label{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--text-subtle);margin-right:6px;}
+select{
+  background:var(--panel);border:1px solid var(--border);color:var(--text);
+  font-family:inherit;font-size:13px;padding:7px 12px;border-radius:8px;outline:none;cursor:pointer;
+}
+select:focus{border-color:var(--magenta);}
+.filtergroup{display:flex;align-items:center;}
+.wrap{padding:24px 32px;}
+.row{display:grid;gap:16px;margin-bottom:16px;}
+.row.kpis{grid-template-columns:repeat(5,1fr);}
+.row.two{grid-template-columns:1.15fr 1fr;}
+.row.board{grid-template-columns:repeat(3,1fr) 1.4fr;}
+@media(max-width:1100px){
+  .row.kpis{grid-template-columns:repeat(2,1fr);}
+  .row.two{grid-template-columns:1fr;}
+  .row.board{grid-template-columns:repeat(2,1fr);}
+}
+.panel{
+  background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:18px 20px;
+  position:relative;
+}
+.panel-title{
+  font-size:12px;text-transform:uppercase;letter-spacing:.06em;color:var(--text-subtle);
+  margin:0 0 12px;display:flex;justify-content:space-between;align-items:center;
+}
+.panel-title .tag{
+  font-size:10px;padding:2px 8px;border-radius:999px;border:1px solid var(--border);color:var(--text-muted);
+  text-transform:none;letter-spacing:0;
+}
+.kpi .value{font-size:32px;font-weight:600;letter-spacing:-0.02em;line-height:1;}
+.kpi .sub{font-size:12px;color:var(--text-subtle);margin-top:8px;}
+.kpi.accent-magenta{border-top:2px solid var(--magenta);}
+.kpi.accent-orange{border-top:2px solid var(--orange);}
+.kpi.accent-cyan{border-top:2px solid var(--cyan);}
+table{width:100%;border-collapse:collapse;font-size:12.5px;}
+th{
+  text-align:left;color:var(--text-subtle);font-weight:500;text-transform:uppercase;font-size:10.5px;
+  letter-spacing:.04em;padding:6px 8px;border-bottom:1px solid var(--border);
+}
+td{padding:8px 8px;border-bottom:1px solid rgba(255,255,255,.04);color:var(--text-muted);}
+tr:hover td{background:rgba(255,255,255,.02);color:var(--text);}
+.badge{padding:2px 8px;border-radius:999px;font-size:11px;font-weight:500;display:inline-block;}
+.badge-p1{background:rgba(255,0,127,.15);color:#FF6BB0;}
+.badge-p2{background:rgba(255,144,0,.15);color:#FFB866;}
+.badge-p3{background:rgba(2,200,255,.15);color:#66DEFF;}
+.badge-ok{background:rgba(40,224,168,.15);color:var(--ok);}
+.badge-warn{background:rgba(255,59,92,.15);color:var(--danger);}
+.mono{font-variant-numeric:tabular-nums;font-feature-settings:"tnum";}
+.zonegrid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;}
+.zone{
+  border:1px solid var(--border);border-radius:10px;padding:12px;background:var(--panel-2);
+  position:relative;overflow:hidden;
+}
+.zone .zname{font-size:11px;color:var(--text-subtle);text-transform:uppercase;letter-spacing:.04em;}
+.zone .zcount{font-size:22px;font-weight:600;margin-top:6px;}
+.zone .zdots{display:flex;gap:4px;margin-top:8px;flex-wrap:wrap;}
+.dot{width:7px;height:7px;border-radius:50%;}
+.dot.inc{background:var(--magenta);}
+.dot.alpr{background:var(--cyan);}
+.legend{display:flex;gap:16px;margin-top:14px;font-size:11px;color:var(--text-subtle);}
+.legend span{display:flex;align-items:center;gap:6px;}
+.legend .dot{width:8px;height:8px;}
+.chartbox{position:relative;height:190px;}
+canvas{width:100%;height:100%;display:block;}
+.chart-legend{display:flex;gap:16px;margin-top:8px;font-size:11px;color:var(--text-subtle);flex-wrap:wrap;}
+.chart-legend span{display:flex;align-items:center;gap:6px;}
+.chart-legend .sw{width:9px;height:9px;border-radius:2px;display:inline-block;}
+footer{
+  padding:20px 32px;color:var(--text-subtle);font-size:11px;display:flex;justify-content:space-between;
+  border-top:1px solid var(--border);margin-top:8px;flex-wrap:wrap;gap:8px;
+}
+footer b{color:var(--text-muted);font-weight:500;}
+.err-note{display:none;background:rgba(255,59,92,.1);border:1px solid var(--danger);color:#FF9DB0;
+  padding:10px 16px;border-radius:8px;margin:0 32px 16px;font-size:12px;}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="brand">
+    <div class="brand-mark">A</div>
+    <div class="brand-text">
+      <h1>ARGUS — Real-time operations command</h1>
+      <p>Real-time crime center · watch floor view</p>
+    </div>
+  </div>
+  <div class="status-cluster">
+    <div class="live-pill"><span class="live-dot"></span> Live · simulated feed</div>
+    <div class="clock" id="clock">--:--:--</div>
+  </div>
+</div>
+
+<div class="filterbar">
+  <div class="filtergroup">
+    <label for="division">Division</label>
+    <select id="division">
+      <option value="all">All divisions</option>
+      <option value="north">North division</option>
+      <option value="south">South division</option>
+      <option value="downtown">Downtown division</option>
+      <option value="west">West division</option>
+    </select>
+  </div>
+  <div class="filtergroup">
+    <label for="shift">Watch</label>
+    <select id="shift">
+      <option value="all">All watches</option>
+      <option value="day">Day watch</option>
+      <option value="evening">Evening watch</option>
+      <option value="night">Night watch</option>
+    </select>
+  </div>
+  <div class="filtergroup">
+    <label for="range">Time range</label>
+    <select id="range">
+      <option value="60">Last 60 minutes</option>
+      <option value="240">Last 4 hours</option>
+      <option value="1440">Last 24 hours</option>
+    </select>
+  </div>
+</div>
+
+<div id="err-note" class="err-note">A rendering error occurred in one panel. The rest of the dashboard is unaffected.</div>
+
+<div class="wrap">
+
+  <div class="row kpis">
+    <div class="panel kpi accent-magenta">
+      <p class="panel-title">Active incidents</p>
+      <div class="value mono" id="kpi-incidents">—</div>
+      <p class="sub">open, all priorities</p>
+    </div>
+    <div class="panel kpi accent-cyan">
+      <p class="panel-title">ALPR hotlist hits <span class="tag">60m</span></p>
+      <div class="value mono" id="kpi-alpr">—</div>
+      <p class="sub">plate matches, active hotlists</p>
+    </div>
+    <div class="panel kpi accent-orange">
+      <p class="panel-title">Drone sorties airborne</p>
+      <div class="value mono" id="kpi-drone">—</div>
+      <p class="sub">DFR program</p>
+    </div>
+    <div class="panel kpi accent-magenta">
+      <p class="panel-title">AI alerts pending review</p>
+      <div class="value mono" id="kpi-ai">—</div>
+      <p class="sub">analyst triage queue</p>
+    </div>
+    <div class="panel kpi accent-cyan">
+      <p class="panel-title">Watch floor staffing</p>
+      <div class="value mono" id="kpi-staff">—</div>
+      <p class="sub">actual vs. scheduled FTE</p>
+    </div>
+  </div>
+
+  <div class="row two">
+    <div class="panel">
+      <p class="panel-title">Live incident feed <span class="tag">auto-refreshing</span></p>
+      <table>
+        <thead><tr><th>Time</th><th>ID</th><th>Type</th><th>Priority</th><th>Division</th><th>Status</th><th>Age</th></tr></thead>
+        <tbody id="incident-table"></tbody>
+      </table>
+    </div>
+    <div class="panel">
+      <p class="panel-title">Zone intelligence <span class="tag">incidents · ALPR</span></p>
+      <div class="zonegrid" id="zone-grid"></div>
+      <div class="legend">
+        <span><span class="dot inc"></span>Active incident</span>
+        <span><span class="dot alpr"></span>ALPR hotlist hit</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="row two">
+    <div class="panel">
+      <p class="panel-title">AI-flagged alert triage queue</p>
+      <table>
+        <thead><tr><th>Time</th><th>Alert</th><th>Type</th><th>Camera</th><th>Division</th><th>Confidence</th></tr></thead>
+        <tbody id="ai-table"></tbody>
+      </table>
+    </div>
+    <div class="panel">
+      <p class="panel-title">Drone (DFR) dispatch timeline</p>
+      <div class="chartbox"><canvas id="droneChart"></canvas></div>
+      <div class="chart-legend">
+        <span><span class="sw" style="background:#6E7682"></span>Queued</span>
+        <span><span class="sw" style="background:#FF9000"></span>Airborne</span>
+        <span><span class="sw" style="background:#FF007F"></span>On scene</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="row two">
+    <div class="panel">
+      <p class="panel-title">CCTV / BWC access audit <span class="tag">privacy &amp; Charter compliance</span></p>
+      <table>
+        <thead><tr><th>Time</th><th>User</th><th>Camera</th><th>Action</th><th>Incident</th><th>Justification</th></tr></thead>
+        <tbody id="audit-table"></tbody>
+      </table>
+    </div>
+    <div class="panel">
+      <p class="panel-title">Response posture — proactive vs. reactive <span class="tag">24h</span></p>
+      <div class="chartbox"><canvas id="postureChart"></canvas></div>
+      <div class="chart-legend">
+        <span><span class="sw" style="background:#FF9000"></span>Reactive (911 / CFS)</span>
+        <span><span class="sw" style="background:#02C8FF"></span>Proactive (RTCC)</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="row board">
+    <div class="panel kpi accent-cyan">
+      <p class="panel-title">Case assists this shift</p>
+      <div class="value mono" id="kpi-assists">—</div>
+      <p class="sub">RTCC-attributed, RMS-linked</p>
+    </div>
+    <div class="panel kpi accent-orange">
+      <p class="panel-title">Officer minutes saved</p>
+      <div class="value mono" id="kpi-minutes">—</div>
+      <p class="sub">est. patrol time reallocated</p>
+    </div>
+    <div class="panel kpi accent-magenta">
+      <p class="panel-title">Cost avoidance</p>
+      <div class="value mono" id="kpi-cost">—</div>
+      <p class="sub">est., current period</p>
+    </div>
+    <div class="panel">
+      <p class="panel-title">Overtime hours — watch floor <span class="tag">7 day trend</span></p>
+      <div class="chartbox"><canvas id="otChart"></canvas></div>
+    </div>
+  </div>
+
+</div>
+
+<footer>
+  <span><b>ARGUS</b> · Real-time operations command · demo build with simulated data · fully offline, no external dependencies</span>
+  <span>Splunk · a Cisco company</span>
+</footer>
+
+<script>
+"use strict";
+
+function $(id){ return document.getElementById(id); }
+function rand(min, max){ return Math.floor(Math.random() * (max - min + 1)) + min; }
+function pick(arr){ return arr[rand(0, arr.length - 1)]; }
+function fmtTime(d){ return d.toLocaleTimeString('en-CA', {hour12:false}); }
+function ago(mins){ return new Date(Date.now() - mins*60000); }
+
+var divisions = ["North", "South", "Downtown", "West"];
+var incidentTypes = ["Break & enter", "Disturbance", "Traffic collision", "Suspicious person", "Theft from vehicle", "Domestic incident", "Assault in progress", "Alarm activation", "Welfare check"];
+var alertTypes = ["Loitering — restricted zone", "Object left unattended", "Crowd density threshold", "Gunshot detection", "Vehicle — wrong way", "Facial match — BOLO"];
+var officers = ["rtoc.analyst01", "rtoc.analyst04", "rtoc.supervisor", "rtoc.analyst07", "rtoc.analyst02"];
+var cameras = ["CAM-DT-014", "CAM-N-221", "CAM-S-088", "CAM-W-155", "CAM-DT-032"];
+var actionsList = ["Live view", "PTZ control", "Clip export", "Playback"];
+
+function tickClock(){ $('clock').textContent = fmtTime(new Date()) + " local"; }
+setInterval(tickClock, 1000);
+tickClock();
+
+var incidents = [];
+var aiAlerts = [];
+var auditLog = [];
+
+function seedIncidents(){
+  incidents = [];
+  for (var i = 0; i < 9; i++){
+    incidents.push({
+      id: "INC-" + rand(10000,99999),
+      time: ago(rand(1,55)),
+      type: pick(incidentTypes),
+      priority: pick([1,1,2,2,2,3]),
+      division: pick(divisions),
+      status: pick(["Dispatched","En route","On scene","Dispatched"])
+    });
+  }
+  incidents.sort(function(a,b){ return b.time - a.time; });
+}
+function seedAI(){
+  aiAlerts = [];
+  for (var i = 0; i < 8; i++){
+    aiAlerts.push({
+      id: "AI-" + rand(1000,9999),
+      time: ago(rand(1,40)),
+      type: pick(alertTypes),
+      camera: pick(cameras),
+      division: pick(divisions),
+      confidence: rand(58,98)
+    });
+  }
+  aiAlerts.sort(function(a,b){ return b.confidence - a.confidence; });
+}
+function seedAudit(){
+  auditLog = [];
+  for (var i = 0; i < 8; i++){
+    var hasJust = Math.random() > 0.15;
+    auditLog.push({
+      time: ago(rand(1,50)),
+      user: pick(officers),
+      camera: pick(cameras),
+      action: pick(actionsList),
+      incident: Math.random() > 0.3 ? "INC-" + rand(10000,99999) : "—",
+      justified: hasJust
+    });
+  }
+  auditLog.sort(function(a,b){ return b.time - a.time; });
+}
+
+function priorityBadge(p){
+  if (p === 1) return '<span class="badge badge-p1">P1</span>';
+  if (p === 2) return '<span class="badge badge-p2">P2</span>';
+  return '<span class="badge badge-p3">P3</span>';
+}
+function confBadge(c){
+  var cls = c >= 85 ? 'badge-p1' : c >= 70 ? 'badge-p2' : 'badge-p3';
+  return '<span class="badge ' + cls + '">' + c + '%</span>';
+}
+function justBadge(ok){
+  return ok ? '<span class="badge badge-ok">Logged</span>' : '<span class="badge badge-warn">Missing</span>';
+}
+
+function renderIncidents(){
+  var rows = incidents.slice(0,9).map(function(r){
+    var ageMin = Math.round((Date.now() - r.time) / 60000);
+    return '<tr><td class="mono">' + fmtTime(r.time) + '</td><td class="mono">' + r.id + '</td><td>' + r.type +
+      '</td><td>' + priorityBadge(r.priority) + '</td><td>' + r.division + '</td><td>' + r.status +
+      '</td><td class="mono">' + ageMin + 'm</td></tr>';
+  });
+  $('incident-table').innerHTML = rows.join('');
+}
+function renderAI(){
+  var rows = aiAlerts.slice(0,8).map(function(r){
+    return '<tr><td class="mono">' + fmtTime(r.time) + '</td><td class="mono">' + r.id + '</td><td>' + r.type +
+      '</td><td class="mono">' + r.camera + '</td><td>' + r.division + '</td><td>' + confBadge(r.confidence) + '</td></tr>';
+  });
+  $('ai-table').innerHTML = rows.join('');
+}
+function renderAudit(){
+  var rows = auditLog.slice(0,8).map(function(r){
+    return '<tr><td class="mono">' + fmtTime(r.time) + '</td><td class="mono">' + r.user + '</td><td class="mono">' + r.camera +
+      '</td><td>' + r.action + '</td><td class="mono">' + r.incident + '</td><td>' + justBadge(r.justified) + '</td></tr>';
+  });
+  $('audit-table').innerHTML = rows.join('');
+}
+function renderZones(){
+  var html = divisions.map(function(div){
+    var incCount = incidents.filter(function(i){ return i.division === div; }).length;
+    var alprCount = rand(0,4);
+    var dots = '';
+    for (var i = 0; i < Math.min(incCount,10); i++) dots += '<span class="dot inc"></span>';
+    for (var j = 0; j < Math.min(alprCount,10); j++) dots += '<span class="dot alpr"></span>';
+    return '<div class="zone"><div class="zname">' + div + '</div><div class="zcount mono">' + incCount +
+      '</div><div class="zdots">' + dots + '</div></div>';
+  });
+  $('zone-grid').innerHTML = html.join('');
+}
+function renderKPIs(){
+  $('kpi-incidents').textContent = incidents.length;
+  $('kpi-alpr').textContent = rand(2,9);
+  $('kpi-drone').textContent = rand(0,4);
+  $('kpi-ai').textContent = aiAlerts.length;
+  $('kpi-staff').textContent = rand(84,101) + "%";
+  $('kpi-assists').textContent = rand(6,22);
+  $('kpi-minutes').textContent = rand(180,640).toLocaleString();
+  $('kpi-cost').textContent = "$" + rand(4,18) + "." + rand(0,9) + "K";
+}
+function fullRender(){
+  renderIncidents();
+  renderAI();
+  renderAudit();
+  renderZones();
+  renderKPIs();
+}
+
+function setupCanvas(canvas){
+  var rect = canvas.getBoundingClientRect();
+  var dpr = window.devicePixelRatio || 1;
+  var w = Math.max(rect.width, 200);
+  var h = Math.max(rect.height, 150);
+  canvas.width = w * dpr;
+  canvas.height = h * dpr;
+  var ctx = canvas.getContext('2d');
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  return { ctx: ctx, w: w, h: h };
+}
+function drawGrid(ctx, w, h, pad){
+  ctx.strokeStyle = '#232932';
+  ctx.lineWidth = 1;
+  var rows = 4;
+  for (var i = 0; i <= rows; i++){
+    var y = pad.top + ((h - pad.top - pad.bottom) / rows) * i;
+    ctx.beginPath();
+    ctx.moveTo(pad.left, y);
+    ctx.lineTo(w - pad.right, y);
+    ctx.stroke();
+  }
+}
+function drawStackedBar(canvasId, labels, series, colors){
+  var canvas = $(canvasId);
+  if (!canvas) return;
+  var setup = setupCanvas(canvas);
+  var ctx = setup.ctx, w = setup.w, h = setup.h;
+  var pad = { top: 10, right: 10, bottom: 22, left: 26 };
+  ctx.clearRect(0,0,w,h);
+
+  var maxTotal = 1;
+  for (var i = 0; i < labels.length; i++){
+    var total = 0;
+    for (var s = 0; s < series.length; s++) total += series[s][i];
+    if (total > maxTotal) maxTotal = total;
+  }
+  maxTotal = Math.ceil(maxTotal * 1.15) || 1;
+
+  drawGrid(ctx, w, h, pad);
+
+  var chartW = w - pad.left - pad.right;
+  var chartH = h - pad.top - pad.bottom;
+  var barSlot = chartW / labels.length;
+  var barW = barSlot * 0.55;
+
+  for (var i = 0; i < labels.length; i++){
+    var x = pad.left + barSlot * i + (barSlot - barW) / 2;
+    var yCursor = h - pad.bottom;
+    for (var s = 0; s < series.length; s++){
+      var v = series[s][i];
+      var barH = (v / maxTotal) * chartH;
+      ctx.fillStyle = colors[s];
+      ctx.fillRect(x, yCursor - barH, barW, barH);
+      yCursor -= barH;
+    }
+  }
+
+  ctx.fillStyle = '#6E7682';
+  ctx.font = '10px -apple-system, Arial, sans-serif';
+  ctx.textAlign = 'center';
+  var everyN = Math.ceil(labels.length / 6);
+  for (var i = 0; i < labels.length; i += everyN){
+    var x = pad.left + barSlot * i + barSlot / 2;
+    ctx.fillText(labels[i], x, h - 6);
+  }
+  ctx.textAlign = 'right';
+  ctx.fillText(String(maxTotal), pad.left - 4, pad.top + 8);
+  ctx.fillText('0', pad.left - 4, h - pad.bottom);
+}
+function drawMultiLine(canvasId, labels, series, colors, opts){
+  var canvas = $(canvasId);
+  if (!canvas) return;
+  opts = opts || {};
+  var setup = setupCanvas(canvas);
+  var ctx = setup.ctx, w = setup.w, h = setup.h;
+  var pad = { top: 10, right: 10, bottom: 22, left: 26 };
+  ctx.clearRect(0,0,w,h);
+
+  var allVals = [];
+  series.forEach(function(s){ allVals = allVals.concat(s); });
+  var maxV = Math.max.apply(null, allVals);
+  maxV = Math.ceil((maxV || 1) * 1.15);
+
+  drawGrid(ctx, w, h, pad);
+
+  var chartW = w - pad.left - pad.right;
+  var chartH = h - pad.top - pad.bottom;
+  var stepX = chartW / (labels.length - 1 || 1);
+
+  function ptX(i){ return pad.left + stepX * i; }
+  function ptY(v){ return h - pad.bottom - (v / maxV) * chartH; }
+
+  series.forEach(function(s, sIdx){
+    if (opts.fill){
+      ctx.beginPath();
+      ctx.moveTo(ptX(0), h - pad.bottom);
+      s.forEach(function(v,i){ ctx.lineTo(ptX(i), ptY(v)); });
+      ctx.lineTo(ptX(s.length-1), h - pad.bottom);
+      ctx.closePath();
+      ctx.fillStyle = colors[sIdx] + '26';
+      ctx.fill();
+    }
+    ctx.beginPath();
+    s.forEach(function(v,i){
+      var x = ptX(i), y = ptY(v);
+      if (i === 0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
+    });
+    ctx.strokeStyle = colors[sIdx];
+    ctx.lineWidth = 2;
+    ctx.stroke();
+  });
+
+  ctx.fillStyle = '#6E7682';
+  ctx.font = '10px -apple-system, Arial, sans-serif';
+  ctx.textAlign = 'center';
+  var everyN = Math.ceil(labels.length / 6);
+  for (var i = 0; i < labels.length; i += everyN){
+    ctx.fillText(labels[i], ptX(i), h - 6);
+  }
+  ctx.textAlign = 'right';
+  ctx.fillText(String(maxV), pad.left - 4, pad.top + 8);
+  ctx.fillText('0', pad.left - 4, h - pad.bottom);
+}
+function renderCharts(){
+  var droneLabels = [];
+  var queued = [], airborne = [], onscene = [];
+  for (var i = 7; i >= 0; i--){
+    droneLabels.push((i*5) + "m");
+    queued.push(rand(0,2));
+    airborne.push(rand(0,3));
+    onscene.push(rand(0,3));
+  }
+  drawStackedBar('droneChart', droneLabels, [queued, airborne, onscene], ['#6E7682','#FF9000','#FF007F']);
+
+  var postureLabels = [];
+  var reactive = [], proactive = [];
+  for (var i = 0; i < 12; i++){
+    postureLabels.push((i*2) + "h");
+    reactive.push(rand(8,22));
+    proactive.push(rand(2,14));
+  }
+  drawMultiLine('postureChart', postureLabels, [reactive, proactive], ['#FF9000','#02C8FF'], {fill:false});
+
+  var otLabels = ['-6d','-5d','-4d','-3d','-2d','-1d','today'];
+  var otVals = otLabels.map(function(){ return rand(12,58); });
+  drawMultiLine('otChart', otLabels, [otVals], ['#FF007F'], {fill:true});
+}
+
+function init(){
+  seedIncidents();
+  seedAI();
+  seedAudit();
+  fullRender();
+  renderCharts();
+
+  setInterval(function(){
+    if (Math.random() > 0.4){
+      incidents.unshift({
+        id: "INC-" + rand(10000,99999), time: new Date(), type: pick(incidentTypes),
+        priority: pick([1,1,2,2,2,3]), division: pick(divisions), status: "Dispatched"
+      });
+      incidents = incidents.slice(0,14);
+    }
+    if (Math.random() > 0.55){
+      aiAlerts.unshift({ id:"AI-"+rand(1000,9999), time: new Date(), type: pick(alertTypes), camera: pick(cameras), division: pick(divisions), confidence: rand(58,98) });
+      aiAlerts.sort(function(a,b){ return b.confidence - a.confidence; });
+      aiAlerts = aiAlerts.slice(0,12);
+    }
+    fullRender();
+    renderCharts();
+  }, 8000);
+
+  ['division','shift','range'].forEach(function(id){
+    $(id).addEventListener('change', function(){
+      seedIncidents(); seedAI(); seedAudit(); fullRender(); renderCharts();
+    });
+  });
+
+  window.addEventListener('resize', renderCharts);
+}
+
+try {
+  init();
+} catch (e) {
+  var note = $('err-note');
+  if (note){ note.style.display = 'block'; note.textContent = 'Rendering error: ' + e.message; }
+}
+</script>
+
+</body>
+</html>
