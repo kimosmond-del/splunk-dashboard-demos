@@ -1,0 +1,1528 @@
+<div style="padding: 15px;">
+  <a href="../" style="color:#4ea1ff; text-decoration:none; font-size:16px;">
+    ← Back to Demo Portal
+  </a>
+</div>
+
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Hard Rock Stadium · Nerve Center</title>
+<style>
+/* ============================================================
+   VANTAGE ARENA NERVE CENTER
+   Self-contained ops dashboard mockup — Splunk dark brand system
+   No external dependencies (fonts/CDNs). Demo data only.
+   ============================================================ */
+
+:root{
+  --splunk-magenta:#FF007F;
+  --splunk-orange:#FF9000;
+  --cisco-blue:#02C8FF;
+  --cisco-medium-blue:#0A60FF;
+
+  --bg-top:#04070B;
+  --bg-bottom:#0B1118;
+
+  --neutral-40:#353B45;
+  --neutral-30:#232932;
+  --neutral-25:#1B2129;
+  --neutral-20:#161B22;
+  --neutral-15:#10141A;
+  --neutral-10:#0B1118;
+
+  --text-hi:#F2F5FA;
+  --text-mid:#BCC4CF;
+  --text-low:#6E7682;
+
+  --status-good:#22C55E;
+  --status-warn:var(--splunk-orange);
+  --status-crit:var(--splunk-magenta);
+  --status-info:var(--cisco-blue);
+
+  --radius-lg:16px;
+  --radius-md:10px;
+  --radius-sm:6px;
+
+  --font: -apple-system, BlinkMacSystemFont, "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+  --mono: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+}
+
+*{box-sizing:border-box;}
+html,body{margin:0;padding:0;}
+body{
+  font-family:var(--font);
+  background: linear-gradient(180deg, var(--bg-top) 0%, var(--bg-bottom) 100%);
+  color:var(--text-hi);
+  min-height:100vh;
+  -webkit-font-smoothing:antialiased;
+}
+
+/* ---------- layout shell ---------- */
+.shell{
+  position:relative;
+  max-width:1880px;
+  margin:0 auto;
+  padding:20px 28px 40px;
+  overflow:hidden;
+}
+.glow{position:absolute; pointer-events:none; border-radius:50%; filter:blur(140px); opacity:.28; z-index:0;}
+.glow-m{ width:520px; height:520px; top:-220px; right:-140px; background:var(--splunk-magenta); }
+.glow-o{ width:460px; height:460px; top:-160px; right:220px; background:var(--splunk-orange); opacity:.20;}
+.glow-c{ width:480px; height:480px; bottom:-260px; left:-160px; background:var(--cisco-medium-blue); opacity:.22;}
+.shell > *:not(.glow){position:relative; z-index:1;}
+
+/* ---------- header ---------- */
+.topbar{
+  display:flex; align-items:flex-start; justify-content:space-between;
+  gap:24px; padding-bottom:16px; border-bottom:1px solid var(--neutral-30);
+  flex-wrap:wrap;
+}
+.brand{display:flex; align-items:center; gap:14px;}
+.brand-mark{
+  width:44px; height:44px; border-radius:12px;
+  background:linear-gradient(135deg, var(--splunk-magenta), var(--splunk-orange));
+  display:flex; align-items:center; justify-content:center;
+  box-shadow:0 0 32px rgba(255,0,127,.35);
+  flex-shrink:0;
+}
+.brand-mark svg{width:24px; height:24px; stroke:#fff;}
+.brand-text .eyebrow{
+  font-size:11px; letter-spacing:.14em; text-transform:uppercase;
+  color:var(--text-low); font-weight:600; margin-bottom:2px;
+}
+.brand-text h1{ margin:0; font-size:22px; font-weight:600; letter-spacing:-.01em; }
+.brand-text .sub{ font-size:12.5px; color:var(--text-mid); margin-top:2px;}
+
+.status-cluster{ display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
+.pill{
+  display:inline-flex; align-items:center; gap:7px;
+  padding:7px 13px; border-radius:999px;
+  font-size:12px; font-weight:600; letter-spacing:.02em;
+  background:var(--neutral-20); border:1px solid var(--neutral-30);
+  color:var(--text-mid); white-space:nowrap;
+}
+.pill .dot{width:7px; height:7px; border-radius:50%; flex-shrink:0;}
+.dot-good{ background:var(--status-good); box-shadow:0 0 8px var(--status-good);}
+.dot-warn{ background:var(--status-warn); box-shadow:0 0 8px var(--status-warn);}
+.dot-crit{ background:var(--status-crit); box-shadow:0 0 8px var(--status-crit); animation:pulse 1.4s infinite;}
+.dot-info{ background:var(--status-info); box-shadow:0 0 8px var(--status-info);}
+@keyframes pulse{ 0%,100%{opacity:1;} 50%{opacity:.35;} }
+.pill.strong{ color:var(--text-hi); }
+.clockbox{ text-align:right; }
+.clockbox .time{ font-family:var(--mono); font-size:20px; font-weight:600; letter-spacing:.01em;}
+.clockbox .refreshed{ font-size:11px; color:var(--text-low); margin-top:2px;}
+
+/* ---------- filter / query bar ---------- */
+.filterbar{
+  display:flex; align-items:center; gap:10px; flex-wrap:wrap;
+  padding:14px 0; border-bottom:1px solid var(--neutral-30); margin-bottom:22px;
+}
+.fbar-select{
+  background:var(--neutral-20); border:1px solid var(--neutral-30); color:var(--text-hi);
+  font-family:var(--font); font-size:12.5px; padding:8px 12px; border-radius:8px;
+  min-width:150px;
+}
+.spl-chip{
+  font-family:var(--mono); font-size:11.5px; color:var(--cisco-blue);
+  background:rgba(2,200,255,.08); border:1px solid rgba(2,200,255,.25);
+  padding:8px 14px; border-radius:8px; flex:1; min-width:280px;
+  overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+}
+.fbar-spacer{flex:1 1 auto;}
+.fbar-note{font-size:11px; color:var(--text-low);}
+
+/* ---------- KPI strip ---------- */
+.kpi-strip{
+  display:grid; grid-template-columns:repeat(8,1fr); gap:12px; margin-bottom:30px;
+}
+@media (max-width:1400px){ .kpi-strip{grid-template-columns:repeat(4,1fr);} }
+@media (max-width:760px){ .kpi-strip{grid-template-columns:repeat(2,1fr);} }
+.kpi{
+  background:var(--neutral-20); border:1px solid var(--neutral-30); border-radius:var(--radius-md);
+  padding:14px 16px; position:relative; overflow:hidden;
+}
+.kpi::before{
+  content:""; position:absolute; left:0; top:0; bottom:0; width:3px;
+}
+.kpi.good::before{background:var(--status-good);}
+.kpi.warn::before{background:var(--status-warn);}
+.kpi.crit::before{background:var(--status-crit);}
+.kpi.info::before{background:var(--status-info);}
+.kpi .label{ font-size:10.5px; text-transform:uppercase; letter-spacing:.07em; color:var(--text-low); font-weight:600;}
+.kpi .value{ font-size:24px; font-weight:600; margin-top:6px; letter-spacing:-.01em;}
+.kpi .delta{ font-size:11px; margin-top:4px; color:var(--text-mid);}
+.kpi .delta.up{color:var(--status-good);}
+.kpi .delta.down{color:var(--status-crit);}
+
+/* ---------- section header ---------- */
+.section{ margin-bottom:34px; }
+.section-head{
+  display:flex; align-items:center; gap:12px; margin-bottom:14px;
+}
+.section-icon{
+  width:34px; height:34px; border-radius:9px; display:flex; align-items:center; justify-content:center;
+  background:var(--neutral-20); border:1px solid var(--neutral-30); flex-shrink:0;
+}
+.section-icon svg{width:18px; height:18px;}
+.section-head h2{ font-size:16px; font-weight:600; margin:0; letter-spacing:-.005em; }
+.section-head .section-sub{ font-size:12px; color:var(--text-low); margin-top:1px;}
+.section-head .count-chip{
+  margin-left:auto; font-size:11px; font-weight:600; padding:5px 11px; border-radius:999px;
+  background:var(--neutral-20); border:1px solid var(--neutral-30); color:var(--text-mid);
+}
+
+/* ---------- panel grid ---------- */
+.grid{ display:grid; grid-template-columns:repeat(12,1fr); gap:14px; }
+.panel{
+  grid-column:span 4;
+  background:var(--neutral-20); border:1px solid var(--neutral-30); border-radius:var(--radius-lg);
+  padding:16px 18px 18px; display:flex; flex-direction:column;
+}
+.panel.span-3{grid-column:span 3;}
+.panel.span-6{grid-column:span 6;}
+.panel.span-8{grid-column:span 8;}
+.panel.span-12{grid-column:span 12;}
+@media (max-width:1400px){ .panel, .panel.span-3, .panel.span-6, .panel.span-8, .panel.span-12{grid-column:span 12;} }
+
+.panel-head{ display:flex; align-items:baseline; justify-content:space-between; margin-bottom:10px;}
+.panel-title{ font-size:13px; font-weight:600; color:var(--text-hi);}
+.panel-tag{ font-size:10px; color:var(--text-low); font-family:var(--mono); }
+
+/* ---------- sparkline area ---------- */
+.spark-wrap{ height:92px; }
+.spark-wrap svg{ width:100%; height:100%; display:block; }
+.spark-foot{ display:flex; justify-content:space-between; margin-top:8px; font-size:11px; color:var(--text-low);}
+.spark-foot .big{ font-size:19px; font-weight:600; color:var(--text-hi); font-family:var(--mono);}
+
+/* ---------- bar list ---------- */
+.barlist{ display:flex; flex-direction:column; gap:10px; }
+.barlist .row{ display:grid; grid-template-columns:120px 1fr 46px; align-items:center; gap:10px; font-size:12px;}
+.barlist .row .name{ color:var(--text-mid); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+.barlist .track{ background:var(--neutral-30); border-radius:6px; height:8px; overflow:hidden;}
+.barlist .fill{ height:100%; border-radius:6px; }
+.barlist .row .num{ text-align:right; font-family:var(--mono); color:var(--text-hi); font-size:11.5px;}
+
+/* ---------- table ---------- */
+table.dtable{ width:100%; border-collapse:collapse; font-size:12px;}
+table.dtable th{
+  text-align:left; font-size:10px; text-transform:uppercase; letter-spacing:.05em;
+  color:var(--text-low); font-weight:600; padding:0 8px 8px 0; border-bottom:1px solid var(--neutral-30);
+}
+table.dtable td{ padding:8px 8px 8px 0; border-bottom:1px solid var(--neutral-25); color:var(--text-mid); vertical-align:middle;}
+table.dtable tr:last-child td{border-bottom:none;}
+.sev{ display:inline-flex; align-items:center; gap:6px; font-weight:600; font-size:11.5px;}
+.sev .dot{width:7px;height:7px;border-radius:50%;}
+.sev.crit{color:var(--status-crit);} .sev.crit .dot{background:var(--status-crit);}
+.sev.warn{color:var(--status-warn);} .sev.warn .dot{background:var(--status-warn);}
+.sev.info{color:var(--status-info);} .sev.info .dot{background:var(--status-info);}
+.sev.good{color:var(--status-good);} .sev.good .dot{background:var(--status-good);}
+.mono{font-family:var(--mono); font-size:11px; color:var(--text-mid);}
+
+/* ---------- status grid (uptime matrix / crowd zones) ---------- */
+.statusgrid{ display:grid; grid-template-columns:repeat(2,1fr); gap:8px;}
+.statusgrid.cols3{grid-template-columns:repeat(3,1fr);}
+.sg-item{
+  display:flex; align-items:center; justify-content:space-between; gap:8px;
+  background:var(--neutral-15); border:1px solid var(--neutral-30); border-radius:8px;
+  padding:9px 11px; font-size:11.5px;
+}
+.sg-item .nm{color:var(--text-mid); overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+.sg-item .st{display:flex; align-items:center; gap:6px; font-weight:600; flex-shrink:0;}
+
+/* ---------- gauge ---------- */
+.gauge-wrap{ display:flex; align-items:center; gap:18px; }
+.gauge{
+  width:96px; height:96px; border-radius:50%; flex-shrink:0;
+  display:flex; align-items:center; justify-content:center; position:relative;
+}
+.gauge .hole{
+  width:70px; height:70px; border-radius:50%; background:var(--neutral-20);
+  display:flex; align-items:center; justify-content:center; flex-direction:column;
+}
+.gauge .hole .pct{font-size:17px; font-weight:700; font-family:var(--mono);}
+.gauge .hole .pct-label{font-size:8.5px; color:var(--text-low); text-transform:uppercase; letter-spacing:.05em;}
+.gauge-legend{ display:flex; flex-direction:column; gap:6px; font-size:11.5px; color:var(--text-mid);}
+.gauge-legend .li{display:flex; align-items:center; gap:7px;}
+.gauge-legend .sw{width:9px;height:9px;border-radius:2px;}
+
+/* ---------- ticker ---------- */
+.ticker-outer{
+  overflow:hidden; white-space:nowrap; border-top:1px solid var(--neutral-30);
+  border-bottom:1px solid var(--neutral-30); background:var(--neutral-15);
+  padding:11px 0; margin:6px 0 22px;
+}
+.ticker-inner{ display:inline-block; padding-left:100%; animation:ticker 55s linear infinite; }
+.ticker-inner span{ margin-right:46px; font-size:12.5px; color:var(--text-mid); font-family:var(--mono); }
+.ticker-inner span b{ color:var(--text-hi); font-weight:600; }
+.ticker-inner .tag{
+  display:inline-block; margin-right:8px; padding:1px 7px; border-radius:4px; font-size:10px;
+  font-weight:700; letter-spacing:.03em;
+}
+.tag.crit{ background:rgba(255,0,127,.16); color:#ff5fac; }
+.tag.warn{ background:rgba(255,144,0,.16); color:#ffb85c; }
+.tag.info{ background:rgba(2,200,255,.14); color:#5fe0ff; }
+.tag.good{ background:rgba(34,197,94,.14); color:#5fe08c; }
+@keyframes ticker{ 0%{transform:translateX(0);} 100%{transform:translateX(-100%);} }
+
+/* ---------- footer ---------- */
+.footer{
+  display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px;
+  padding-top:18px; border-top:1px solid var(--neutral-30);
+  font-size:11px; color:var(--text-low);
+}
+.footer .fs-left{display:flex; align-items:center; gap:8px;}
+.footer .fs-left .fmark{
+  width:16px; height:16px; border-radius:4px;
+  background:linear-gradient(135deg, var(--splunk-magenta), var(--splunk-orange));
+  display:inline-block;
+}
+
+/* misc */
+.mini-note{ font-size:11px; color:var(--text-low); margin-top:10px; line-height:1.5;}
+.two-col{ display:grid; grid-template-columns:1fr 1fr; gap:16px; }
+
+/* ---------- tab navigation ---------- */
+.tabnav{
+  display:flex; gap:2px; padding-top:14px; border-bottom:1px solid var(--neutral-30);
+  overflow-x:auto;
+}
+.tabnav button{
+  background:none; border:none; color:var(--text-mid); font-family:var(--font); font-size:13px; font-weight:600;
+  padding:11px 18px; cursor:pointer; border-bottom:2px solid transparent; display:flex; align-items:center; gap:8px;
+  white-space:nowrap;
+}
+.tabnav button .tabicon{ width:16px; height:16px; opacity:.8; }
+.tabnav button:hover{ color:var(--text-hi); }
+.tabnav button.active{ color:var(--text-hi); border-bottom-color:var(--splunk-magenta); }
+.tabnav button.active .tabicon{ opacity:1; }
+.tabnav button .tcount{
+  font-size:9.5px; background:var(--neutral-25); border:1px solid var(--neutral-30); padding:1px 6px;
+  border-radius:999px; color:var(--text-low); font-weight:600;
+}
+
+.dash-page{ display:none; }
+.dash-page.active{ display:block; }
+
+/* ---------- quick nav cards (overview) ---------- */
+.quicknav{ display:grid; grid-template-columns:repeat(4,1fr); gap:14px; margin-bottom:30px; }
+@media (max-width:1300px){ .quicknav{grid-template-columns:repeat(2,1fr);} }
+.qn-card{
+  background:var(--neutral-20); border:1px solid var(--neutral-30); border-radius:14px; padding:16px;
+  cursor:pointer; transition:border-color .15s, transform .15s; text-align:left; font-family:var(--font);
+}
+.qn-card:hover{ border-color:var(--splunk-magenta); transform:translateY(-1px); }
+.qn-card .qn-top{ display:flex; align-items:center; justify-content:space-between; margin-bottom:12px;}
+.qn-card .qn-icon{ width:34px; height:34px; border-radius:9px; background:var(--neutral-25); display:flex; align-items:center; justify-content:center;}
+.qn-card .qn-icon svg{width:18px;height:18px;}
+.qn-card h4{ margin:0 0 6px; font-size:14px; color:var(--text-hi); }
+.qn-card .qn-stat{ font-size:12px; color:var(--text-mid); line-height:1.5;}
+.qn-card .qn-link{ margin-top:12px; font-size:11.5px; color:#ff8fc4; font-weight:600; }
+
+/* ---------- stadium map + legend ---------- */
+.map-section{ margin-bottom:30px; }
+.map-wrap{ display:grid; grid-template-columns:2fr 1fr; gap:14px; }
+@media (max-width:1200px){ .map-wrap{grid-template-columns:1fr;} }
+.map-panel, .legend-panel{
+  background:var(--neutral-20); border:1px solid var(--neutral-30); border-radius:var(--radius-lg);
+  padding:16px 18px 18px;
+}
+.map-svg-holder{ background:var(--neutral-15); border-radius:12px; border:1px solid var(--neutral-30); padding:10px; }
+.map-svg-holder svg{ width:100%; height:auto; display:block; }
+.map-caption{ font-size:11px; color:var(--text-low); margin-top:10px; line-height:1.5;}
+
+.metric-toggle{ display:flex; gap:6px; margin-bottom:16px; }
+.metric-toggle button{
+  flex:1; background:var(--neutral-15); border:1px solid var(--neutral-30); color:var(--text-mid);
+  font-family:var(--font); font-size:11.5px; font-weight:600; padding:10px 6px; border-radius:8px; cursor:pointer;
+  line-height:1.3;
+}
+.metric-toggle button.active{ background:rgba(255,0,127,.12); border-color:var(--splunk-magenta); color:#ff8fc4; }
+
+.legend-title{ font-size:13px; font-weight:600; color:var(--text-hi); margin-bottom:2px;}
+.legend-sub{ font-size:11px; color:var(--text-low); margin-bottom:14px;}
+.legend-scale{ display:flex; flex-direction:column; gap:9px; margin-bottom:16px; }
+.legend-scale .li{ display:flex; align-items:center; gap:9px; font-size:12px; color:var(--text-mid);}
+.legend-scale .sw{ width:14px; height:14px; border-radius:4px; flex-shrink:0; }
+.legend-stats{ display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+.legend-stats .stat{ background:var(--neutral-15); border:1px solid var(--neutral-30); border-radius:8px; padding:10px; }
+.legend-stats .stat .n{ font-size:19px; font-weight:700; font-family:var(--mono); }
+.legend-stats .stat .l{ font-size:9.5px; color:var(--text-low); text-transform:uppercase; letter-spacing:.05em; margin-top:2px;}
+
+
+/* ---------- parking & traffic tab additions ---------- */
+.flow-chart-wrap{ height:150px; margin-bottom:8px; }
+.flow-chart-wrap svg{ width:100%; height:100%; display:block; }
+.flow-milestones{ display:flex; justify-content:space-between; font-size:10.5px; color:var(--text-low); margin-bottom:20px; flex-wrap:wrap; gap:6px; padding-bottom:16px; border-bottom:1px solid var(--neutral-30); }
+.flow-milestones .ms{ text-align:center; flex:1; min-width:90px; }
+.flow-milestones .ms b{ display:block; color:var(--text-mid); font-size:11.5px; margin-bottom:2px; }
+.reco-list{ display:flex; flex-direction:column; gap:10px; }
+.reco-item{ display:flex; gap:11px; background:var(--neutral-15); border:1px solid var(--neutral-30); border-radius:9px; padding:11px 13px; font-size:12.5px; color:var(--text-mid); line-height:1.55; align-items:flex-start; }
+.reco-item .reco-badge{ flex-shrink:0; width:23px; height:23px; margin-top:1px; border-radius:6px; background:rgba(255,144,0,.15); color:#ffb85c; display:flex; align-items:center; justify-content:center; font-size:11px; font-weight:700; }
+.reco-item b{ color:var(--text-hi); }
+.ap-callout{
+  display:flex; align-items:center; gap:12px; background:rgba(255,0,127,.08); border:1px solid rgba(255,0,127,.3);
+  border-radius:10px; padding:12px 16px; margin-bottom:16px; font-size:12.5px; color:var(--text-mid);
+}
+.ap-callout b{ color:#ff8fc4; }
+
+</style>
+</head>
+<body>
+<div class="shell">
+  <div class="glow glow-m"></div>
+  <div class="glow glow-o"></div>
+  <div class="glow glow-c"></div>
+
+  <!-- ===================== HEADER ===================== -->
+  <div class="topbar">
+    <div class="brand">
+      <div class="brand-mark">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 3 6v6c0 5 3.8 8.7 9 10 5.2-1.3 9-5 9-10V6l-9-4Z"/></svg>
+      </div>
+      <div class="brand-text">
+        <div class="eyebrow">Hard Rock Stadium · Miami Gardens, FL · Operations</div>
+        <h1>Nerve Center</h1>
+        <div class="sub">Cybersecurity · Physical security · IT ops · Network ops · Facilities — unified view</div>
+      </div>
+    </div>
+    <div class="status-cluster">
+      <div class="pill strong"><span class="dot dot-info"></span>GAME DAY — <span id="tipoffClock" class="mono">06:42:11</span> to kickoff</div>
+      <div class="pill">Attendance <b style="color:#F2F5FA;margin-left:4px;">58,930 / 64,767</b></div>
+      <div class="pill">Weather · Clear, 61°F, wind 6mph</div>
+      <div class="pill strong"><span class="dot dot-good"></span>Risk posture: NORMAL</div>
+    </div>
+    <div class="clockbox">
+      <div class="time" id="liveClock">--:--:--</div>
+      <div class="refreshed">Last refreshed <span id="refreshedAgo">just now</span> · auto-refresh 30s</div>
+    </div>
+  </div>
+
+  
+  <!-- ===================== TAB NAVIGATION ===================== -->
+  <div class="tabnav" id="tabnav">
+    <button class="active" data-tab="overview">
+      <svg class="tabicon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></svg>
+      Overview
+    </button>
+    <button data-tab="noc">
+      <svg class="tabicon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5a10 10 0 0 1 14 0"/><path d="M8.5 16a5 5 0 0 1 7 0"/><path d="M12 19.5h.01"/></svg>
+      NOC <span class="tcount">IT + Network</span>
+    </button>
+    <button data-tab="soc">
+      <svg class="tabicon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 3 6v6c0 5 3.8 8.7 9 10 5.2-1.3 9-5 9-10V6l-9-4Z"/></svg>
+      SOC
+    </button>
+    <button data-tab="physec">
+      <svg class="tabicon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M3 12s3.5-7 9-7 9 7 9 7-3.5 7-9 7-9-7-9-7Z"/></svg>
+      Physical Security
+    </button>
+    <button data-tab="facops">
+      <svg class="tabicon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 21V9l8-6 8 6v12"/><path d="M9 21v-6h6v6"/></svg>
+      Facility Ops
+    </button>
+    <button data-tab="parking">
+      <svg class="tabicon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="10" width="18" height="9" rx="2"/><path d="M5 10 7 4h10l2 6"/><circle cx="7.5" cy="16" r="1.3"/><circle cx="16.5" cy="16" r="1.3"/></svg>
+      Parking &amp; Traffic
+    </button>
+  </div>
+<!-- ===================== FILTER / SEARCH BAR ===================== -->
+  <div class="filterbar">
+    <select class="fbar-select"><option>Venue: Hard Rock Stadium — Main Bowl</option></select>
+    <select class="fbar-select"><option>Event: Tonight — Home vs. Away (Conf.)</option></select>
+    <select class="fbar-select"><option>Time range: Last 60 minutes</option><option>Last 15 minutes</option><option>Today</option><option>Event window</option></select>
+    <div class="spl-chip">index=arena_soc OR index=arena_itsi OR index=arena_netops OR index=arena_facilities | stats latest(_time) by index</div>
+    <div class="fbar-spacer"></div>
+    <div class="fbar-note">Sourced from Splunk ES · Splunk ITSI · Splunk Observability Cloud · Splunk Core</div>
+  </div>
+
+  
+  <div class="dash-page active" id="page-overview">
+<!-- ===================== KPI STRIP ===================== -->
+  <div class="kpi-strip">
+    <div class="kpi good"><div class="label">Security posture</div><div class="value">92<span style="font-size:13px;color:var(--text-low);">/100</span></div><div class="delta up">▲ 1.2 vs. last hr</div></div>
+    <div class="kpi warn"><div class="label">Active incidents</div><div class="value">3</div><div class="delta">1 sev-2, 2 sev-3</div></div>
+    <div class="kpi info"><div class="label">Cyber threats blocked (24h)</div><div class="value">1,284</div><div class="delta up">▲ 6% vs. avg</div></div>
+    <div class="kpi good"><div class="label">Network uptime</div><div class="value">99.6%</div><div class="delta">SLA 99.5%</div></div>
+    <div class="kpi info"><div class="label">Fan WiFi utilization</div><div class="value">71%</div><div class="delta">6,140 associated</div></div>
+    <div class="kpi good"><div class="label">Gate throughput</div><div class="value">2,140<span style="font-size:12px;color:var(--text-low);">/15m</span></div><div class="delta up">▲ ahead of pace</div></div>
+    <div class="kpi info"><div class="label">POS transactions</div><div class="value">412<span style="font-size:12px;color:var(--text-low);">/min</span></div><div class="delta">0.2% decline rate</div></div>
+    <div class="kpi warn"><div class="label">Mean time to acknowledge</div><div class="value">2m 14s</div><div class="delta down">▼ target 2m</div></div>
+  </div>
+
+  
+<!-- ===================== TICKER ===================== -->
+  <div class="ticker-outer">
+    <div class="ticker-inner">
+      <span><span class="tag warn">SOC</span><b>21:42</b> — Elevated failed-login velocity from Gate C kiosk subnet, auto-throttled</span>
+      <span><span class="tag info">NETOPS</span><b>21:39</b> — Broadcast VLAN failed over to secondary uplink, 0 dropped frames</span>
+      <span><span class="tag crit">PHYSEC</span><b>21:35</b> — Access-control alert: propped door, Loading Dock B — dispatched</span>
+      <span><span class="tag good">ITOPS</span><b>21:31</b> — Mobile app API latency back under 200ms after autoscale event</span>
+      <span><span class="tag warn">FACILITIES</span><b>21:26</b> — Yellow 18 at 92% capacity, overflow routing to Lot 42 activated</span>
+      <span><span class="tag info">SOC</span><b>21:20</b> — New EDR signature deployed to POS endpoints, 0 impact</span>
+      <span><span class="tag good">PHYSEC</span><b>21:14</b> — Perimeter sweep complete, all zones clear</span>
+    </div>
+  </div>
+
+  
+
+  <!-- ===================== QUICK NAV CARDS ===================== -->
+  <div class="quicknav">
+    <button class="qn-card" data-goto="noc">
+      <div class="qn-top">
+        <div class="qn-icon"><svg viewBox="0 0 24 24" fill="none" stroke="#5fe0ff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5a10 10 0 0 1 14 0"/><path d="M8.5 16a5 5 0 0 1 7 0"/><path d="M12 19.5h.01"/></svg></div>
+        <span class="dot dot-warn"></span>
+      </div>
+      <h4>NOC</h4>
+      <div class="qn-stat">99.6% network uptime · 2 devices flapping · app latency 184ms</div>
+      <div class="qn-link">Open NOC dashboard →</div>
+    </button>
+    <button class="qn-card" data-goto="soc">
+      <div class="qn-top">
+        <div class="qn-icon"><svg viewBox="0 0 24 24" fill="none" stroke="#ff5fac" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 3 6v6c0 5 3.8 8.7 9 10 5.2-1.3 9-5 9-10V6l-9-4Z"/></svg></div>
+        <span class="dot dot-info"></span>
+      </div>
+      <h4>SOC</h4>
+      <div class="qn-stat">1,284 threats blocked (24h) · 6 critical alerts · 2 fraud signals blocked</div>
+      <div class="qn-link">Open SOC dashboard →</div>
+    </button>
+    <button class="qn-card" data-goto="physec">
+      <div class="qn-top">
+        <div class="qn-icon"><svg viewBox="0 0 24 24" fill="none" stroke="#ff5fac" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M3 12s3.5-7 9-7 9 7 9 7-3.5 7-9 7-9-7-9-7Z"/></svg></div>
+        <span class="dot dot-crit"></span>
+      </div>
+      <h4>Physical Security</h4>
+      <div class="qn-stat">1 unit dispatched · Plaza/gates at 94% density · 41 access denials</div>
+      <div class="qn-link">Open Physical Security dashboard →</div>
+    </button>
+    <button class="qn-card" data-goto="facops">
+      <div class="qn-top">
+        <div class="qn-icon"><svg viewBox="0 0 24 24" fill="none" stroke="#ffb85c" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 21V9l8-6 8 6v12"/><path d="M9 21v-6h6v6"/></svg></div>
+        <span class="dot dot-good"></span>
+      </div>
+      <h4>Facility Ops</h4>
+      <div class="qn-stat">All life-safety systems normal · Yellow 18 at 92% · Gate 1 wait 4m 10s</div>
+      <div class="qn-link">Open Facility Ops dashboard →</div>
+    </button>
+  </div>
+
+
+  <!-- ===================== STADIUM HOT SPOT MAP ===================== -->
+  <div class="map-section">
+    <div class="section-head">
+      <div class="section-icon"><svg viewBox="0 0 24 24" fill="none" stroke="#5fe0ff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21c4.4-4 7-7.8 7-11a7 7 0 0 0-14 0c0 3.2 2.6 7 7 11Z"/><circle cx="12" cy="10" r="2.4"/></svg></div>
+      <div><h2>Stadium hot spot map</h2><div class="section-sub">Hard Rock Stadium — 64,767 capacity bowl · 26,718 parking spaces · Gates 1, 1A, 2, 2A, 3, 4, 5A, 6</div></div>
+      <div class="count-chip">Toggle layer to change hot spots</div>
+    </div>
+    <div class="map-wrap">
+      <div class="map-panel">
+        <div class="map-svg-holder">
+          <svg id="stadiumMap" viewBox="0 0 920 640" xmlns="http://www.w3.org/2000/svg"></svg>
+        </div>
+        <div class="map-caption">Hover any zone, lot or gate for its live reading. Colors update per the selected layer in the legend panel — geography stays visible at all times so you can cross-reference zones across layers.</div>
+      </div>
+      <div class="legend-panel">
+        <div class="metric-toggle">
+          <button class="active" data-metric="attendance">Attendance</button>
+          <button data-metric="traffic">Traffic flow</button>
+          <button data-metric="wifi">WiFi load</button>
+        </div>
+        <div class="legend-title" id="legendTitle">Attendance density</div>
+        <div class="legend-sub" id="legendSub">% of section capacity, 16 bowl sections</div>
+        <div class="legend-scale">
+          <div class="li"><span class="sw" style="background:#22C55E;"></span>Normal — under 40%</div>
+          <div class="li"><span class="sw" style="background:#02C8FF;"></span>Moderate — 40–65%</div>
+          <div class="li"><span class="sw" style="background:#FF9000;"></span>Elevated — 65–85%</div>
+          <div class="li"><span class="sw" style="background:#FF007F;"></span>Critical — 85%+</div>
+        </div>
+        <div class="legend-stats">
+          <div class="stat"><div class="n" id="legendAvg">—</div><div class="l">Average</div></div>
+          <div class="stat"><div class="n" id="legendCrit">—</div><div class="l">Critical zones</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  </div>
+
+  <div class="dash-page" id="page-noc">
+<!-- ===================== SECTION: IT OPERATIONS ===================== -->
+  <div class="section">
+    <div class="section-head">
+      <div class="section-icon"><svg viewBox="0 0 24 24" fill="none" stroke="#5fe0ff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="6" rx="1.5"/><rect x="3" y="14" width="18" height="6" rx="1.5"/><path d="M7 7h.01M7 17h.01"/></svg></div>
+      <div><h2>IT operations</h2><div class="section-sub">Application &amp; infrastructure health · service desk</div></div>
+      <div class="count-chip">4 panels · 8 core systems</div>
+    </div>
+    <div class="grid">
+      <div class="panel span-4">
+        <div class="panel-head"><span class="panel-title">Core systems uptime</span><span class="panel-tag">ITSI service health</span></div>
+        <div class="statusgrid">
+          <div class="sg-item"><span class="nm">Ticketing platform</span><span class="st"><span class="dot dot-good"></span>100%</span></div>
+          <div class="sg-item"><span class="nm">Mobile app API</span><span class="st"><span class="dot dot-good"></span>99.9%</span></div>
+          <div class="sg-item"><span class="nm">POS network</span><span class="st"><span class="dot dot-good"></span>99.8%</span></div>
+          <div class="sg-item"><span class="nm">Scoreboard / video</span><span class="st"><span class="dot dot-good"></span>100%</span></div>
+          <div class="sg-item"><span class="nm">WiFi controller</span><span class="st"><span class="dot dot-warn"></span>98.1%</span></div>
+          <div class="sg-item"><span class="nm">Broadcast encoder</span><span class="st"><span class="dot dot-good"></span>99.9%</span></div>
+          <div class="sg-item"><span class="nm">Access control server</span><span class="st"><span class="dot dot-good"></span>100%</span></div>
+          <div class="sg-item"><span class="nm">Concessions systems</span><span class="st"><span class="dot dot-warn"></span>97.4%</span></div>
+        </div>
+      </div>
+
+      <div class="panel span-4">
+        <div class="panel-head"><span class="panel-title">Mobile app performance</span><span class="panel-tag">APM · p95 latency</span></div>
+        <div class="spark-wrap"><svg id="spk-latency" viewBox="0 0 300 92" preserveAspectRatio="none"><path d="M4,50 L60,46 L116,58 L172,44 L228,52 L296,48" fill="none" stroke="#5fe0ff" stroke-width="2"/></svg></div>
+        <div class="spark-foot"><span class="big" id="spk-latency-val">184ms</span><span>error rate 0.31%</span></div>
+      </div>
+
+      <div class="panel span-4">
+        <div class="panel-head"><span class="panel-title">Server &amp; infra health</span><span class="panel-tag">CPU / mem — core clusters</span></div>
+        <div class="barlist">
+          <div class="row"><span class="name">Ticketing DB</span><div class="track"><div class="fill" style="width:41%;background:var(--status-good);"></div></div><span class="num">41%</span></div>
+          <div class="row"><span class="name">POS gateway</span><div class="track"><div class="fill" style="width:63%;background:var(--status-good);"></div></div><span class="num">63%</span></div>
+          <div class="row"><span class="name">SOC indexers</span><div class="track"><div class="fill" style="width:77%;background:var(--splunk-orange);"></div></div><span class="num">77%</span></div>
+          <div class="row"><span class="name">Broadcast render</span><div class="track"><div class="fill" style="width:52%;background:var(--status-good);"></div></div><span class="num">52%</span></div>
+        </div>
+      </div>
+
+      <div class="panel span-12">
+        <div class="panel-head"><span class="panel-title">Service desk</span><span class="panel-tag">ITSM → Splunk</span></div>
+        <div class="two-col">
+          <div class="statusgrid" style="grid-template-columns:repeat(3,1fr);">
+            <div class="sg-item"><span class="nm">Open tickets</span><span class="st"><span class="dot dot-warn"></span>27</span></div>
+            <div class="sg-item"><span class="nm">SLA breach risk</span><span class="st"><span class="dot dot-warn"></span>4</span></div>
+            <div class="sg-item"><span class="nm">Avg resolution</span><span class="st"><span class="dot dot-good"></span>38m</span></div>
+          </div>
+          <table class="dtable">
+            <thead><tr><th>Top category</th><th>Count</th><th>Priority</th></tr></thead>
+            <tbody>
+              <tr><td>WiFi connectivity — suites</td><td class="mono">9</td><td><span class="sev warn"><span class="dot"></span>P2</span></td></tr>
+              <tr><td>POS terminal reboot</td><td class="mono">6</td><td><span class="sev info"><span class="dot"></span>P3</span></td></tr>
+              <tr><td>Credential printer jam</td><td class="mono">4</td><td><span class="sev info"><span class="dot"></span>P3</span></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  
+<!-- ===================== SECTION: NETWORK OPERATIONS ===================== -->
+  <div class="section">
+    <div class="section-head">
+      <div class="section-icon"><svg viewBox="0 0 24 24" fill="none" stroke="#5fe0ff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5a10 10 0 0 1 14 0"/><path d="M8.5 16a5 5 0 0 1 7 0"/><path d="M12 19.5h.01"/></svg></div>
+      <div><h2>Network operations</h2><div class="section-sub">Segment throughput · device health · broadcast transport</div></div>
+      <div class="count-chip">5 panels · 2 devices flapping</div>
+    </div>
+    <div class="grid">
+      <div class="panel span-4">
+        <div class="panel-head"><span class="panel-title">Throughput by segment</span><span class="panel-tag">Gbps, live</span></div>
+        <div class="barlist">
+          <div class="row"><span class="name">Fan WiFi</span><div class="track"><div class="fill" style="width:71%;background:var(--cisco-blue);"></div></div><span class="num">7.1G</span></div>
+          <div class="row"><span class="name">Broadcast / production</span><div class="track"><div class="fill" style="width:54%;background:var(--cisco-blue);"></div></div><span class="num">5.4G</span></div>
+          <div class="row"><span class="name">Ops / corporate LAN</span><div class="track"><div class="fill" style="width:33%;background:var(--cisco-blue);"></div></div><span class="num">3.3G</span></div>
+          <div class="row"><span class="name">POS / payment VLAN</span><div class="track"><div class="fill" style="width:18%;background:var(--cisco-blue);"></div></div><span class="num">1.8G</span></div>
+          <div class="row"><span class="name">IoT / building automation</span><div class="track"><div class="fill" style="width:12%;background:var(--cisco-blue);"></div></div><span class="num">1.2G</span></div>
+        </div>
+      </div>
+
+      <div class="panel span-4">
+        <div class="panel-head"><span class="panel-title">Broadcast feed jitter</span><span class="panel-tag">production LAN, ms</span></div>
+        <div class="spark-wrap"><svg id="spk-jitter" viewBox="0 0 300 92" preserveAspectRatio="none"><path d="M4,54 L60,58 L116,50 L172,56 L228,52 L296,55" fill="none" stroke="#5fe0ff" stroke-width="2"/></svg></div>
+        <div class="spark-foot"><span class="big" id="spk-jitter-val">3.2ms</span><span>failover ready · redundant uplink healthy</span></div>
+      </div>
+
+      <div class="panel span-4">
+        <div class="panel-head"><span class="panel-title">Device health</span><span class="panel-tag">switches / APs</span></div>
+        <div class="statusgrid" style="grid-template-columns:repeat(2,1fr);">
+          <div class="sg-item"><span class="nm">Core switches</span><span class="st"><span class="dot dot-good"></span>12/12</span></div>
+          <div class="sg-item"><span class="nm">Access switches</span><span class="st"><span class="dot dot-warn"></span>84/86</span></div>
+          <div class="sg-item"><span class="nm">Wireless APs</span><span class="st"><span class="dot dot-warn"></span>311/315</span></div>
+          <div class="sg-item"><span class="nm">Firewalls / IPS</span><span class="st"><span class="dot dot-good"></span>4/4</span></div>
+        </div>
+        <div class="mini-note">2 APs flapping — Concourse N, near Gate 4 (high-density zone).</div>
+      </div>
+
+      <div class="panel span-6">
+        <div class="panel-head"><span class="panel-title">DDoS / traffic anomaly detection</span><span class="panel-tag">flow analytics</span></div>
+        <table class="dtable">
+          <thead><tr><th>Time</th><th>Signal</th><th>Segment</th><th>Status</th></tr></thead>
+          <tbody>
+            <tr><td class="mono">21:38</td><td>Volumetric spike, ticketing ingress</td><td>Public internet edge</td><td><span class="sev warn"><span class="dot"></span>Scrubbing</span></td></tr>
+            <tr><td class="mono">20:52</td><td>SYN flood pattern</td><td>Guest WiFi gateway</td><td><span class="sev good"><span class="dot"></span>Mitigated</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="panel span-6">
+        <div class="panel-head"><span class="panel-title">Top talkers</span><span class="panel-tag">by bandwidth, last 15m</span></div>
+        <table class="dtable">
+          <thead><tr><th>Device / segment</th><th>Volume</th><th>% of total</th></tr></thead>
+          <tbody>
+            <tr><td>Broadcast encoder rack 2</td><td class="mono">412 GB</td><td class="mono">18%</td></tr>
+            <tr><td>Fan WiFi — Concourse N APs</td><td class="mono">288 GB</td><td class="mono">12%</td></tr>
+            <tr><td>Digital signage CDN cache</td><td class="mono">140 GB</td><td class="mono">6%</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  
+  </div>
+
+  <div class="dash-page" id="page-soc">
+<!-- ===================== SECTION: CYBERSECURITY ===================== -->
+  <div class="section">
+    <div class="section-head">
+      <div class="section-icon"><svg viewBox="0 0 24 24" fill="none" stroke="#ff5fac" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 3 6v6c0 5 3.8 8.7 9 10 5.2-1.3 9-5 9-10V6l-9-4Z"/><path d="m9 12 2 2 4-4"/></svg></div>
+      <div><h2>Cybersecurity</h2><div class="section-sub">SOC · threat detection · identity · payment fraud</div></div>
+      <div class="count-chip">6 panels · 3 active alerts</div>
+    </div>
+    <div class="grid">
+      <div class="panel span-4">
+        <div class="panel-head"><span class="panel-title">Threats blocked — last 60 min</span><span class="panel-tag">timechart</span></div>
+        <div class="spark-wrap"><svg id="spk-threats" viewBox="0 0 300 92" preserveAspectRatio="none"><path d="M4,60 L60,52 L116,58 L172,40 L228,46 L296,30" fill="none" stroke="#ff5fac" stroke-width="2"/></svg></div>
+        <div class="spark-foot"><span class="big" id="spk-threats-val">1,284</span><span>blocked / 24h · IPS + EDR + email gateway</span></div>
+      </div>
+
+      <div class="panel span-4">
+        <div class="panel-head"><span class="panel-title">Alert severity mix</span><span class="panel-tag">stats count by severity</span></div>
+        <div class="barlist">
+          <div class="row"><span class="name">Critical</span><div class="track"><div class="fill" style="width:14%;background:var(--status-crit);"></div></div><span class="num">6</span></div>
+          <div class="row"><span class="name">High</span><div class="track"><div class="fill" style="width:32%;background:var(--splunk-orange);"></div></div><span class="num">22</span></div>
+          <div class="row"><span class="name">Medium</span><div class="track"><div class="fill" style="width:58%;background:var(--cisco-blue);"></div></div><span class="num">61</span></div>
+          <div class="row"><span class="name">Low / info</span><div class="track"><div class="fill" style="width:82%;background:var(--neutral-40);"></div></div><span class="num">148</span></div>
+        </div>
+        <div class="mini-note">Notable analytics: Enterprise Security risk-based alerting, correlation search matches, last 24h.</div>
+      </div>
+
+      <div class="panel span-4">
+        <div class="panel-head"><span class="panel-title">Vulnerability exposure</span><span class="panel-tag">tenable / qualys → Splunk</span></div>
+        <div class="gauge-wrap">
+          <div class="gauge" style="background:conic-gradient(var(--status-good) 0% 88%, var(--neutral-30) 88% 100%);">
+            <div class="hole"><div class="pct">88%</div><div class="pct-label">patch SLA</div></div>
+          </div>
+          <div class="gauge-legend">
+            <div class="li"><span class="sw" style="background:var(--status-crit);"></span>4 critical CVEs open</div>
+            <div class="li"><span class="sw" style="background:var(--splunk-orange);"></span>17 high CVEs open</div>
+            <div class="li"><span class="sw" style="background:var(--status-good);"></span>88% within patch SLA</div>
+            <div class="li"><span class="sw" style="background:var(--neutral-40);"></span>2 assets pending scan</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel span-4">
+        <div class="panel-head"><span class="panel-title">Top attack categories</span><span class="panel-tag">last 24h</span></div>
+        <table class="dtable">
+          <thead><tr><th>Category</th><th>Count</th><th>Trend</th></tr></thead>
+          <tbody>
+            <tr><td>Credential stuffing</td><td class="mono">412</td><td><span class="sev warn"><span class="dot"></span>▲ 18%</span></td></tr>
+            <tr><td>Web app scanning</td><td class="mono">301</td><td><span class="sev info"><span class="dot"></span>flat</span></td></tr>
+            <tr><td>DDoS attempt (L3/L4)</td><td class="mono">2</td><td><span class="sev crit"><span class="dot"></span>▲ new</span></td></tr>
+            <tr><td>Phishing click-through</td><td class="mono">9</td><td><span class="sev good"><span class="dot"></span>▼ 22%</span></td></tr>
+            <tr><td>Malware / EDR detection</td><td class="mono">5</td><td><span class="sev good"><span class="dot"></span>▼ 10%</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="panel span-4">
+        <div class="panel-head"><span class="panel-title">Identity &amp; auth anomalies</span><span class="panel-tag">UBA / risk-based alerting</span></div>
+        <table class="dtable">
+          <thead><tr><th>Signal</th><th>Entity</th><th>Risk</th></tr></thead>
+          <tbody>
+            <tr><td>Impossible travel</td><td class="mono">svc-broadcast-01</td><td><span class="sev crit"><span class="dot"></span>High</span></td></tr>
+            <tr><td>Brute-force lockout</td><td class="mono">kiosk-gatec-14</td><td><span class="sev warn"><span class="dot"></span>Med</span></td></tr>
+            <tr><td>MFA bypass attempt</td><td class="mono">u.rodriguez</td><td><span class="sev warn"><span class="dot"></span>Med</span></td></tr>
+            <tr><td>New admin role grant</td><td class="mono">svc-pos-admin</td><td><span class="sev info"><span class="dot"></span>Review</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="panel span-4">
+        <div class="panel-head"><span class="panel-title">Payment / POS fraud signals</span><span class="panel-tag">PCI zone</span></div>
+        <table class="dtable">
+          <thead><tr><th>Signal</th><th>Terminal</th><th>Status</th></tr></thead>
+          <tbody>
+            <tr><td>Decline-velocity spike</td><td class="mono">POS-217</td><td><span class="sev warn"><span class="dot"></span>Monitoring</span></td></tr>
+            <tr><td>Card-testing pattern</td><td class="mono">POS-092</td><td><span class="sev crit"><span class="dot"></span>Blocked</span></td></tr>
+            <tr><td>Terminal tamper alert</td><td class="mono">POS-304</td><td><span class="sev good"><span class="dot"></span>Cleared</span></td></tr>
+          </tbody>
+        </table>
+        <div class="mini-note">PCI-scoped index, restricted role-based access in Splunk.</div>
+      </div>
+    </div>
+  </div>
+
+  
+  </div>
+
+  <div class="dash-page" id="page-physec">
+<!-- ===================== SECTION: PHYSICAL SECURITY ===================== -->
+  <div class="section">
+    <div class="section-head">
+      <div class="section-icon"><svg viewBox="0 0 24 24" fill="none" stroke="#ff5fac" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M3 12s3.5-7 9-7 9 7 9 7-3.5 7-9 7-9-7-9-7Z"/></svg></div>
+      <div><h2>Physical security</h2><div class="section-sub">Access control · CCTV analytics · crowd &amp; credential monitoring</div></div>
+      <div class="count-chip">5 panels · 1 dispatched incident</div>
+    </div>
+    <div class="grid">
+      <div class="panel span-4">
+        <div class="panel-head"><span class="panel-title">Access control activity</span><span class="panel-tag">badge events / 15m</span></div>
+        <div class="spark-wrap"><svg id="spk-access" viewBox="0 0 300 92" preserveAspectRatio="none"><path d="M4,40 L60,50 L116,44 L172,60 L228,66 L296,72" fill="none" stroke="#ff5fac" stroke-width="2"/></svg></div>
+        <div class="spark-foot"><span class="big" id="spk-access-val">3,912</span><span>swipes · 41 denied</span></div>
+      </div>
+
+      <div class="panel span-4">
+        <div class="panel-head"><span class="panel-title">Crowd density by zone</span><span class="panel-tag">video analytics</span></div>
+        <div class="statusgrid">
+          <div class="sg-item"><span class="nm">Lower bowl</span><span class="st"><span class="dot dot-warn"></span>88%</span></div>
+          <div class="sg-item"><span class="nm">Upper bowl</span><span class="st"><span class="dot dot-good"></span>64%</span></div>
+          <div class="sg-item"><span class="nm">Concourse N</span><span class="st"><span class="dot dot-warn"></span>81%</span></div>
+          <div class="sg-item"><span class="nm">Concourse S</span><span class="st"><span class="dot dot-good"></span>57%</span></div>
+          <div class="sg-item"><span class="nm">Concourse E/W</span><span class="st"><span class="dot dot-good"></span>49%</span></div>
+          <div class="sg-item"><span class="nm">Plaza / gates</span><span class="st"><span class="dot dot-crit"></span>94%</span></div>
+        </div>
+      </div>
+
+      <div class="panel span-4">
+        <div class="panel-head"><span class="panel-title">Credentialed movement</span><span class="panel-tag">restricted-area badge scope</span></div>
+        <div class="statusgrid cols3" style="grid-template-columns:1fr 1fr;">
+          <div class="sg-item"><span class="nm">VIP / suites</span><span class="st"><span class="dot dot-good"></span>18 on-site</span></div>
+          <div class="sg-item"><span class="nm">Team / talent</span><span class="st"><span class="dot dot-good"></span>64 on-site</span></div>
+          <div class="sg-item"><span class="nm">Broadcast crew</span><span class="st"><span class="dot dot-good"></span>22 on-site</span></div>
+          <div class="sg-item"><span class="nm">Vendor / contractor</span><span class="st"><span class="dot dot-warn"></span>2 expired badge</span></div>
+        </div>
+        <div class="mini-note">Cross-referenced against event-day credential list; expired-badge attempts auto-alert SOC.</div>
+      </div>
+
+      <div class="panel span-8">
+        <div class="panel-head"><span class="panel-title">CCTV / restricted-zone analytics alerts</span><span class="panel-tag">live</span></div>
+        <table class="dtable">
+          <thead><tr><th>Time</th><th>Zone</th><th>Alert type</th><th>Status</th></tr></thead>
+          <tbody>
+            <tr><td class="mono">21:35:02</td><td>Loading Dock B</td><td>Door propped &gt; 90s</td><td><span class="sev crit"><span class="dot"></span>Dispatched</span></td></tr>
+            <tr><td class="mono">21:22:47</td><td>Backstage corridor 3</td><td>Tailgating detected</td><td><span class="sev warn"><span class="dot"></span>Reviewing</span></td></tr>
+            <tr><td class="mono">20:58:11</td><td>Perimeter — Gray Lot 40 fence line</td><td>Line-cross event</td><td><span class="sev good"><span class="dot"></span>Cleared, false positive</span></td></tr>
+            <tr><td class="mono">20:41:36</td><td>Concourse N — Gate 4</td><td>Object left unattended</td><td><span class="sev good"><span class="dot"></span>Resolved</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="panel span-4">
+        <div class="panel-head"><span class="panel-title">Security dispatch log</span><span class="panel-tag">radio / CAD feed</span></div>
+        <table class="dtable">
+          <thead><tr><th>Unit</th><th>Type</th><th>Status</th></tr></thead>
+          <tbody>
+            <tr><td class="mono">S-14</td><td>Door alarm</td><td><span class="sev warn"><span class="dot"></span>En route</span></td></tr>
+            <tr><td class="mono">S-08</td><td>Medical assist</td><td><span class="sev good"><span class="dot"></span>Closed</span></td></tr>
+            <tr><td class="mono">S-22</td><td>Crowd management</td><td><span class="sev good"><span class="dot"></span>Closed</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  
+  </div>
+
+  <div class="dash-page" id="page-facops">
+<!-- ===================== SECTION: FACILITIES / GAME-DAY OPS ===================== -->
+  <div class="section">
+    <div class="section-head">
+      <div class="section-icon"><svg viewBox="0 0 24 24" fill="none" stroke="#ffb85c" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 21V9l8-6 8 6v12"/><path d="M9 21v-6h6v6"/></svg></div>
+      <div><h2>Facilities &amp; game-day operations</h2><div class="section-sub">Gates · parking · concessions · life safety · weather</div></div>
+      <div class="count-chip">6 panels · all life-safety systems normal</div>
+    </div>
+    <div class="grid">
+      <div class="panel span-4">
+        <div class="panel-head"><span class="panel-title">Gate entry — wait time</span><span class="panel-tag">seconds, current</span></div>
+        <div class="barlist">
+          <div class="row"><span class="name">Gate A — Main</span><div class="track"><div class="fill" style="width:70%;background:var(--splunk-orange);"></div></div><span class="num">4m 10s</span></div>
+          <div class="row"><span class="name">Gate B</span><div class="track"><div class="fill" style="width:35%;background:var(--status-good);"></div></div><span class="num">1m 40s</span></div>
+          <div class="row"><span class="name">Gate C — Kiosk</span><div class="track"><div class="fill" style="width:55%;background:var(--status-good);"></div></div><span class="num">2m 30s</span></div>
+          <div class="row"><span class="name">Gate D — Club</span><div class="track"><div class="fill" style="width:20%;background:var(--status-good);"></div></div><span class="num">0m 55s</span></div>
+        </div>
+      </div>
+
+      <div class="panel span-4">
+        <div class="panel-head"><span class="panel-title">Parking &amp; traffic flow</span><span class="panel-tag">lot sensors</span></div>
+        <div class="statusgrid" style="grid-template-columns:repeat(2,1fr);">
+          <div class="sg-item"><span class="nm">Black Lot (inner)</span><span class="st"><span class="dot dot-warn"></span>86%</span></div>
+          <div class="sg-item"><span class="nm">Orange Lot (inner)</span><span class="st"><span class="dot dot-good"></span>61%</span></div>
+          <div class="sg-item"><span class="nm">Yellow 18 (outer)</span><span class="st"><span class="dot dot-crit"></span>92%</span></div>
+          <div class="sg-item"><span class="nm">Lot 42 (overflow)</span><span class="st"><span class="dot dot-good"></span>28%</span></div>
+        </div>
+        <div class="mini-note">Overflow routing to Lot 42 auto-activated when Yellow 18 &gt; 90%.</div>
+      </div>
+
+      <div class="panel span-4">
+        <div class="panel-head"><span class="panel-title">Concessions POS throughput</span><span class="panel-tag">transactions / min</span></div>
+        <div class="spark-wrap"><svg id="spk-pos" viewBox="0 0 300 92" preserveAspectRatio="none"><path d="M4,62 L60,50 L116,54 L172,38 L228,44 L296,34" fill="none" stroke="#ffb85c" stroke-width="2"/></svg></div>
+        <div class="spark-foot"><span class="big" id="spk-pos-val">412</span><span>top seller: draft beer, Section 114</span></div>
+      </div>
+
+      <div class="panel span-4">
+        <div class="panel-head"><span class="panel-title">Life safety systems</span><span class="panel-tag">fire · sprinkler · HVAC</span></div>
+        <div class="statusgrid" style="grid-template-columns:repeat(1,1fr);">
+          <div class="sg-item"><span class="nm">Fire alarm panel — all zones</span><span class="st"><span class="dot dot-good"></span>Normal</span></div>
+          <div class="sg-item"><span class="nm">Sprinkler monitoring</span><span class="st"><span class="dot dot-good"></span>Normal</span></div>
+          <div class="sg-item"><span class="nm">HVAC — bowl &amp; concourse zones</span><span class="st"><span class="dot dot-good"></span>18/18 online</span></div>
+        </div>
+      </div>
+
+      <div class="panel span-4">
+        <div class="panel-head"><span class="panel-title">Emergency communications</span><span class="panel-tag">mass notification</span></div>
+        <div class="statusgrid" style="grid-template-columns:repeat(1,1fr);">
+          <div class="sg-item"><span class="nm">PA / voice evacuation</span><span class="st"><span class="dot dot-good"></span>Ready</span></div>
+          <div class="sg-item"><span class="nm">Mass notification (text/app)</span><span class="st"><span class="dot dot-good"></span>Ready</span></div>
+          <div class="sg-item"><span class="nm">Public safety radio</span><span class="st"><span class="dot dot-good"></span>Ready</span></div>
+        </div>
+      </div>
+
+      <div class="panel span-4">
+        <div class="panel-head"><span class="panel-title">Weather &amp; lightning detection</span><span class="panel-tag">outdoor plaza / lots</span></div>
+        <div class="statusgrid" style="grid-template-columns:repeat(1,1fr);">
+          <div class="sg-item"><span class="nm">Conditions</span><span class="st"><span class="dot dot-good"></span>Clear, 61°F</span></div>
+          <div class="sg-item"><span class="nm">Lightning proximity</span><span class="st"><span class="dot dot-good"></span>None detected &lt; 15mi</span></div>
+          <div class="sg-item"><span class="nm">Wind</span><span class="st"><span class="dot dot-good"></span>6 mph</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  
+  </div>
+
+  <!-- ===================== DASHBOARD: PARKING & TRAFFIC ===================== -->
+  <div class="dash-page" id="page-parking">
+
+    <div class="section-head">
+      <div class="section-icon"><svg viewBox="0 0 24 24" fill="none" stroke="#ffb85c" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="10" width="18" height="9" rx="2"/><path d="M5 10 7 4h10l2 6"/><circle cx="7.5" cy="16" r="1.3"/><circle cx="16.5" cy="16" r="1.3"/></svg></div>
+      <div><h2>Parking lot map</h2><div class="section-sub">Hard Rock Stadium — 26,718 spaces across 3 inner + 9 outer lots</div></div>
+      <div class="count-chip">Illustrative layout, not to exact scale</div>
+    </div>
+    <div class="map-wrap" style="margin-bottom:30px;">
+      <div class="map-panel">
+        <div class="map-svg-holder">
+          <svg id="parkingMap" viewBox="0 0 1000 800" xmlns="http://www.w3.org/2000/svg"></svg>
+        </div>
+        <div class="map-caption">Inner lots (Black, Orange, Blue) hug the bowl and fill first — mostly premium and season-pass holders. Outer lots (Yellow, Gray, numbered lots) serve general admission and tailgating. Hover any lot or AP marker for its live reading.</div>
+      </div>
+      <div class="legend-panel">
+        <div class="metric-toggle">
+          <button class="active" data-pmetric="fill">Predicted fill</button>
+          <button data-pmetric="traffic">Traffic flow</button>
+          <button data-pmetric="wifi">WiFi AP load</button>
+        </div>
+        <div class="legend-title" id="pLegendTitle">Predicted parking fill</div>
+        <div class="legend-sub" id="pLegendSub">% of lot capacity, likely-to-park model</div>
+        <div class="legend-scale">
+          <div class="li"><span class="sw" style="background:#22C55E;"></span>Normal — under 40%</div>
+          <div class="li"><span class="sw" style="background:#02C8FF;"></span>Moderate — 40–65%</div>
+          <div class="li"><span class="sw" style="background:#FF9000;"></span>Elevated — 65–85%</div>
+          <div class="li"><span class="sw" style="background:#FF007F;"></span>Critical — 85%+</div>
+        </div>
+        <div class="legend-stats">
+          <div class="stat"><div class="n" id="pLegendAvg">—</div><div class="l">Average</div></div>
+          <div class="stat"><div class="n" id="pLegendCrit">—</div><div class="l">Critical zones</div></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="section-head">
+      <div class="section-icon"><svg viewBox="0 0 24 24" fill="none" stroke="#5fe0ff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5a10 10 0 0 1 14 0"/><path d="M8.5 16a5 5 0 0 1 7 0"/><path d="M12 19.5h.01"/></svg></div>
+      <div><h2>WiFi access point capacity</h2><div class="section-sub">One AP per lot zone · utilization over the last 15 minutes</div></div>
+      <div class="count-chip">12 lot APs · 4 at or above 85% load</div>
+    </div>
+    <div class="ap-callout">
+      <span>📶</span>
+      <div><b>2 additional access points recommended:</b> Yellow 13 (94% load, highest in the lot) and Black Lot (88% load, premium/season-holder traffic) — both are sustained near-capacity through the pre-game window, not just momentary spikes.</div>
+    </div>
+    <div class="panel span-12" style="margin-bottom:30px;">
+      <div class="panel-head"><span class="panel-title">AP utilization by lot</span><span class="panel-tag">sorted by load, live</span></div>
+      <table class="dtable" id="apTable">
+        <thead><tr><th>Access point</th><th>Lot</th><th>Utilization</th><th>Status</th></tr></thead>
+        <tbody id="apTableBody"></tbody>
+      </table>
+    </div>
+
+    <div class="section-head">
+      <div class="section-icon"><svg viewBox="0 0 24 24" fill="none" stroke="#ffb85c" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.5 2"/></svg></div>
+      <div><h2>Traffic flow — before &amp; after the game</h2><div class="section-sub">Congestion index across the game-day window, so ops can act ahead of the peak</div></div>
+      <div class="count-chip">Kickoff 7:00 PM local</div>
+    </div>
+    <div class="panel span-12">
+      <div class="metric-toggle" style="max-width:340px; margin-bottom:18px;">
+        <button class="active" data-phase="pre">Pre-game (T-3h → kickoff)</button>
+        <button data-phase="post">Post-game (whistle → T+2h)</button>
+      </div>
+      <div class="flow-chart-wrap"><svg id="flowChart" viewBox="0 0 900 150" preserveAspectRatio="none"></svg></div>
+      <div class="flow-milestones" id="flowMilestones"></div>
+      <div class="panel-head" style="margin-bottom:10px;"><span class="panel-title">Preemptive recommendations</span><span class="panel-tag" id="flowRecoTag">pre-game</span></div>
+      <div class="reco-list" id="recoList"></div>
+    </div>
+
+  </div>
+
+  <!-- ===================== FOOTER ===================== -->
+  <div class="footer">
+    <div class="fs-left"><span class="fmark"></span> Splunk · a Cisco company — Nerve Center reference build</div>
+    <div>Demo data for illustration only · not connected to a live Splunk instance</div>
+    <div id="footTimestamp">Generated —</div>
+  </div>
+</div>
+
+<script>
+try {
+/* ---------------- live clock ---------------- */
+function pad(n){ return n.toString().padStart(2,'0'); }
+function tickClock(){
+  const d = new Date();
+  document.getElementById('liveClock').textContent = pad(d.getHours())+':'+pad(d.getMinutes())+':'+pad(d.getSeconds());
+}
+tickClock(); setInterval(tickClock, 1000);
+
+let refreshSecs = 0;
+setInterval(()=>{
+  refreshSecs++;
+  document.getElementById('refreshedAgo').textContent = refreshSecs<60 ? refreshSecs+'s ago' : Math.floor(refreshSecs/60)+'m ago';
+}, 1000);
+
+/* tip-off countdown (demo, from 06:42:11) */
+let tipoff = 6*3600+42*60+11;
+setInterval(()=>{
+  if(tipoff<=0) return;
+  tipoff--;
+  const h=Math.floor(tipoff/3600), m=Math.floor((tipoff%3600)/60), s=tipoff%60;
+  document.getElementById('tipoffClock').textContent = pad(h)+':'+pad(m)+':'+pad(s);
+}, 1000);
+
+document.getElementById('footTimestamp').textContent = 'Generated ' + new Date().toString().replace(/GMT.*/,'').trim();
+
+/* ---------------- sparkline engine ---------------- */
+function seedSeries(n, base, vol){
+  const arr=[]; let v=base;
+  for(let i=0;i<n;i++){ v += (Math.random()-0.5)*vol; v = Math.max(v, base*0.2); arr.push(v); }
+  return arr;
+}
+function renderSpark(svgId, data, color){
+  const svg = document.getElementById(svgId);
+  if(!svg) return;
+  const w=300, h=92, pad=4;
+  const max = Math.max(...data), min = Math.min(...data);
+  const range = (max-min)||1;
+  const stepX = (w-pad*2)/(data.length-1);
+  let pathPts = data.map((v,i)=> [pad+i*stepX, h-pad-((v-min)/range)*(h-pad*2)] );
+  let linePath = 'M'+pathPts.map(p=>p[0].toFixed(1)+','+p[1].toFixed(1)).join(' L');
+  let areaPath = linePath + ` L${(w-pad).toFixed(1)},${(h-pad).toFixed(1)} L${pad},${(h-pad).toFixed(1)} Z`;
+  const gradId = svgId+'-grad';
+  svg.innerHTML = `
+    <defs>
+      <linearGradient id="${gradId}" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stop-color="${color}" stop-opacity="0.45"/>
+        <stop offset="100%" stop-color="${color}" stop-opacity="0"/>
+      </linearGradient>
+    </defs>
+    <path d="${areaPath}" fill="url(#${gradId})" stroke="none"/>
+    <path d="${linePath}" fill="none" stroke="${color}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+  `;
+}
+
+const seriesConfig = [
+  {svg:'spk-threats', valEl:'spk-threats-val', base:22, vol:8, color:'#ff5fac', fmt:v=>Math.round(v*58)+''},
+  {svg:'spk-access',  valEl:'spk-access-val',  base:70, vol:18, color:'#ff5fac', fmt:v=>Math.round(v*56)+''},
+  {svg:'spk-latency', valEl:'spk-latency-val', base:180, vol:30, color:'#5fe0ff', fmt:v=>Math.round(v)+'ms'},
+  {svg:'spk-jitter',  valEl:'spk-jitter-val',  base:3.2, vol:1.4, color:'#5fe0ff', fmt:v=>v.toFixed(1)+'ms'},
+  {svg:'spk-pos',     valEl:'spk-pos-val',     base:400, vol:60, color:'#ffb85c', fmt:v=>Math.round(v)+''},
+];
+const seriesData = {};
+seriesConfig.forEach(cfg=>{
+  seriesData[cfg.svg] = seedSeries(40, cfg.base, cfg.vol);
+  renderSpark(cfg.svg, seriesData[cfg.svg], cfg.color);
+  document.getElementById(cfg.valEl).textContent = cfg.fmt(seriesData[cfg.svg][seriesData[cfg.svg].length-1]);
+});
+
+setInterval(()=>{
+  seriesConfig.forEach(cfg=>{
+    const arr = seriesData[cfg.svg];
+    let last = arr[arr.length-1];
+    let next = last + (Math.random()-0.5)*cfg.vol;
+    next = Math.max(next, cfg.base*0.2);
+    arr.shift(); arr.push(next);
+    renderSpark(cfg.svg, arr, cfg.color);
+    document.getElementById(cfg.valEl).textContent = cfg.fmt(next);
+  });
+}, 2500);
+
+/* ---------------- tab navigation ---------------- */
+const tabButtons = document.querySelectorAll('#tabnav button[data-tab]');
+const dashPages = document.querySelectorAll('.dash-page');
+function switchTab(name){
+  tabButtons.forEach(function(b){ b.classList.toggle('active', b.dataset.tab === name); });
+  dashPages.forEach(function(p){ p.classList.toggle('active', p.id === 'page-'+name); });
+  window.scrollTo(0,0);
+}
+tabButtons.forEach(function(b){ b.addEventListener('click', function(){ switchTab(b.dataset.tab); }); });
+document.querySelectorAll('.qn-card[data-goto]').forEach(function(c){
+  c.addEventListener('click', function(){ switchTab(c.dataset.goto); });
+});
+
+/* ---------------- stadium hot spot map ---------------- */
+(function(){
+  var svg = document.getElementById('stadiumMap');
+  if(!svg) return;
+
+  var cx = 460, cy = 320;
+  var rOuter = 205, rInner = 128;
+  var squash = 0.62;
+
+  function polar(r, angleDeg){
+    var a = (angleDeg - 90) * Math.PI / 180;
+    return { x: cx + r*Math.cos(a), y: cy + r*Math.sin(a) };
+  }
+  function squashY(y){ return cy + (y-cy)*squash; }
+  function squashPt(p){ return { x:p.x, y: squashY(p.y) }; }
+
+  function donutSegment(rO, rI, startA, endA){
+    var so = squashPt(polar(rO, endA));
+    var eo = squashPt(polar(rO, startA));
+    var si = squashPt(polar(rI, endA));
+    var ei = squashPt(polar(rI, startA));
+    var large = (endA - startA) <= 180 ? 0 : 1;
+    return ['M', so.x.toFixed(1), so.y.toFixed(1),
+            'A', rO, (rO*squash).toFixed(1), 0, large, 0, eo.x.toFixed(1), eo.y.toFixed(1),
+            'L', ei.x.toFixed(1), ei.y.toFixed(1),
+            'A', rI, (rI*squash).toFixed(1), 0, large, 1, si.x.toFixed(1), si.y.toFixed(1),
+            'Z'].join(' ');
+  }
+
+  var NEUTRAL = '#2A313B';
+  function heatColor(v){
+    if(v>=85) return '#FF007F';
+    if(v>=65) return '#FF9000';
+    if(v>=40) return '#02C8FF';
+    return '#22C55E';
+  }
+
+  var N_SECTIONS = 16;
+  var N_GATES = 8;
+  var LOTS = ['Black Lot','Orange Lot','Blue Lot','Yellow 18','Gray 40','Lot 42'];
+  var GATE_NAMES = ['1','1A','2','2A','3','4','5A','6'];
+  var N_WIFI = 12;
+
+  function rand(min,max){ return Math.round(min + Math.random()*(max-min)); }
+
+  var data = {
+    attendance: [],
+    traffic: [],
+    wifi: []
+  };
+  for(var i=0;i<N_SECTIONS;i++){ data.attendance.push(rand(28,80)); }
+  for(var i=0;i<(LOTS.length+N_GATES);i++){ data.traffic.push(rand(15,80)); }
+  for(var i=0;i<N_WIFI;i++){ data.wifi.push(rand(20,80)); }
+  data.attendance[2] = 96; data.attendance[9] = 91;
+  data.traffic[2] = 93;
+  data.traffic[LOTS.length + 0] = 88;
+  data.wifi[4] = 92;
+
+  var activeMetric = 'attendance';
+
+  var lotDefs = [
+    { key:'Black Lot', x:40,  y:60,  w:150, h:90 },
+    { key:'Orange Lot', x:730, y:60,  w:150, h:90 },
+    { key:'Blue Lot', x:800, y:250, w:110, h:110 },
+    { key:'Yellow 18', x:730, y:480, w:150, h:100 },
+    { key:'Gray 40', x:40,  y:480, w:150, h:100 },
+    { key:'Lot 42', x:10,  y:250, w:110, h:110 }
+  ];
+  var gateAngles = []; for(var g=0; g<N_GATES; g++){ gateAngles.push(g*(360/N_GATES)); }
+  var wifiAngles = []; for(var w=0; w<N_WIFI; w++){ wifiAngles.push(w*(360/N_WIFI) + 8); }
+
+  function buildStaticMarkup(){
+    var parts = [];
+    parts.push('<rect x="0" y="0" width="920" height="640" fill="#0E131A" rx="14"></rect>');
+
+    lotDefs.forEach(function(lot, i){
+      parts.push('<g class="lot-group" data-kind="lot" data-idx="'+i+'">' +
+        '<rect x="'+lot.x+'" y="'+lot.y+'" width="'+lot.w+'" height="'+lot.h+'" rx="8" fill="'+NEUTRAL+'" stroke="#354055" stroke-width="1" data-fillable="1"></rect>' +
+        '<text x="'+(lot.x+lot.w/2)+'" y="'+(lot.y+lot.h/2+4)+'" text-anchor="middle" font-size="13" font-weight="700" fill="#E7ECF3" font-family="sans-serif">'+lot.key+'</text>' +
+        '<title>'+lot.key+'</title></g>');
+    });
+
+    var gap = 1.1;
+    var step = 360/N_SECTIONS;
+    for(var s=0;s<N_SECTIONS;s++){
+      var startA = s*step + gap/2;
+      var endA = (s+1)*step - gap/2;
+      var path = donutSegment(rOuter, rInner, startA, endA);
+      parts.push('<path class="section-path" data-kind="section" data-idx="'+s+'" d="'+path+'" fill="'+NEUTRAL+'" stroke="#0E131A" stroke-width="1.5" data-fillable="1"><title>Section '+(100+s*2)+'</title></path>');
+    }
+
+    var fieldW = 210, fieldH = 96;
+    var fx = cx - fieldW/2, fy = squashY(cy) - fieldH/2;
+    parts.push('<rect x="'+fx+'" y="'+fy+'" width="'+fieldW+'" height="'+fieldH+'" rx="4" fill="#123321" stroke="#1f5c39" stroke-width="1.5"></rect>');
+    for(var ln=1; ln<10; ln++){
+      var lx = fx + (fieldW/10)*ln;
+      parts.push('<line x1="'+lx+'" y1="'+fy+'" x2="'+lx+'" y2="'+(fy+fieldH)+'" stroke="#1f5c39" stroke-width="1"></line>');
+    }
+    parts.push('<line x1="'+(fx+fieldW/2)+'" y1="'+fy+'" x2="'+(fx+fieldW/2)+'" y2="'+(fy+fieldH)+'" stroke="#2f7a4d" stroke-width="2"></line>');
+
+    gateAngles.forEach(function(ang,i){
+      var p = squashPt(polar(rOuter+16, ang));
+      var letter = GATE_NAMES[i];
+      parts.push('<g class="gate-group" data-kind="gate" data-idx="'+i+'">' +
+        '<circle cx="'+p.x.toFixed(1)+'" cy="'+p.y.toFixed(1)+'" r="13" fill="'+NEUTRAL+'" stroke="#0E131A" stroke-width="1.5" data-fillable="1"></circle>' +
+        '<text x="'+p.x.toFixed(1)+'" y="'+(p.y+3.2).toFixed(1)+'" text-anchor="middle" font-size="8.5" font-weight="700" fill="#0E131A" font-family="sans-serif" data-textfor="gate">'+letter+'</text>' +
+        '<title>Gate '+letter+'</title></g>');
+    });
+
+    var wifiR = (rOuter+rInner)/2;
+    wifiAngles.forEach(function(ang,i){
+      var p = squashPt(polar(wifiR, ang));
+      parts.push('<g class="wifi-group" data-kind="wifi" data-idx="'+i+'">' +
+        '<rect x="'+(p.x-6).toFixed(1)+'" y="'+(p.y-6).toFixed(1)+'" width="12" height="12" rx="3" fill="'+NEUTRAL+'" stroke="#0E131A" stroke-width="1.5" data-fillable="1"></rect>' +
+        '<title>AP-'+String(i+1).padStart(2,'0')+'</title></g>');
+    });
+
+    return parts.join('');
+  }
+
+  svg.innerHTML = buildStaticMarkup();
+
+  var labels = {
+    attendance: { title:'Attendance density', sub:'% of section capacity, 16 bowl sections', unit:'%' },
+    traffic:    { title:'Traffic & entry congestion', sub:'Congestion index, 6 parking lots + 8 gates', unit:'' },
+    wifi:       { title:'WiFi network load', sub:'Utilization %, 12 concourse access points', unit:'%' }
+  };
+
+  function refreshMap(){
+    var vals = data[activeMetric];
+
+    svg.querySelectorAll('[data-fillable]').forEach(function(el){ el.setAttribute('fill', NEUTRAL); });
+    svg.querySelectorAll('[data-textfor="gate"]').forEach(function(el){ el.setAttribute('fill', '#0E131A'); });
+
+    if(activeMetric === 'attendance'){
+      svg.querySelectorAll('[data-kind="section"]').forEach(function(el,i){
+        var v = vals[i];
+        el.setAttribute('fill', heatColor(v));
+        el.querySelector('title').textContent = 'Section '+(100+i*2)+' \u00b7 '+v+'% of capacity';
+      });
+    } else if(activeMetric === 'traffic'){
+      svg.querySelectorAll('[data-kind="lot"]').forEach(function(el,i){
+        var v = vals[i];
+        el.querySelector('rect').setAttribute('fill', heatColor(v));
+        el.querySelector('title').textContent = lotDefs[i].key+' \u00b7 congestion index '+v;
+      });
+      svg.querySelectorAll('[data-kind="gate"]').forEach(function(el,i){
+        var v = vals[LOTS.length + i];
+        var letter = GATE_NAMES[i];
+        el.querySelector('circle').setAttribute('fill', heatColor(v));
+        el.querySelector('title').textContent = 'Gate '+letter+' \u00b7 congestion index '+v;
+      });
+    } else if(activeMetric === 'wifi'){
+      svg.querySelectorAll('[data-kind="wifi"]').forEach(function(el,i){
+        var v = vals[i];
+        el.querySelector('rect').setAttribute('fill', heatColor(v));
+        el.querySelector('title').textContent = 'AP-'+String(i+1).padStart(2,'0')+' \u00b7 '+v+'% utilization';
+      });
+    }
+
+    var lab = labels[activeMetric];
+    document.getElementById('legendTitle').textContent = lab.title;
+    document.getElementById('legendSub').textContent = lab.sub;
+    var avg = Math.round(vals.reduce(function(a,b){return a+b;},0)/vals.length);
+    var critCount = vals.filter(function(v){return v>=85;}).length;
+    document.getElementById('legendAvg').textContent = avg + (lab.unit||'');
+    document.getElementById('legendCrit').textContent = critCount;
+  }
+
+  refreshMap();
+
+  document.querySelectorAll('.metric-toggle button[data-metric]').forEach(function(btn){
+    btn.addEventListener('click', function(){
+      document.querySelectorAll('.metric-toggle button[data-metric]').forEach(function(b){ b.classList.remove('active'); });
+      btn.classList.add('active');
+      activeMetric = btn.dataset.metric;
+      refreshMap();
+    });
+  });
+
+  setInterval(function(){
+    Object.keys(data).forEach(function(k){
+      data[k] = data[k].map(function(v){
+        var nv = v + (Math.random()-0.5)*14;
+        return Math.max(5, Math.min(99, Math.round(nv)));
+      });
+    });
+    refreshMap();
+  }, 8000);
+})();
+
+
+/* ---------------- parking lot map ---------------- */
+(function(){
+  var svg = document.getElementById('parkingMap');
+  if(!svg) return;
+
+  var cx = 500, cy = 400;
+  var squash = 0.62;
+
+  function pointOnOval(rx, ry, angleDeg){
+    var a = (angleDeg - 90) * Math.PI / 180;
+    return { x: cx + rx*Math.cos(a), y: cy + ry*Math.sin(a) };
+  }
+
+  var NEUTRAL = '#2A313B';
+  function heatColor(v){
+    if(v>=85) return '#FF007F';
+    if(v>=65) return '#FF9000';
+    if(v>=40) return '#02C8FF';
+    return '#22C55E';
+  }
+
+  var lots = [
+    {key:'Black Lot',   ring:'inner', angle:150, cap:2100, fill:94, traffic:78, wifi:88},
+    {key:'Orange Lot',  ring:'inner', angle:30,  cap:1950, fill:91, traffic:71, wifi:82},
+    {key:'Blue Lot',    ring:'inner', angle:270, cap:1850, fill:88, traffic:69, wifi:79},
+    {key:'Yellow 13',   ring:'outer', angle:0,   cap:2600, fill:96, traffic:92, wifi:94},
+    {key:'Yellow 14',   ring:'outer', angle:40,  cap:2500, fill:93, traffic:88, wifi:91},
+    {key:'Yellow 15/16',ring:'outer', angle:80,  cap:2700, fill:85, traffic:74, wifi:76},
+    {key:'Yellow 18',   ring:'outer', angle:120, cap:2550, fill:92, traffic:81, wifi:89},
+    {key:'Gray 40',     ring:'outer', angle:160, cap:1800, fill:58, traffic:44, wifi:41},
+    {key:'Lot 20',      ring:'outer', angle:200, cap:2000, fill:71, traffic:56, wifi:58},
+    {key:'Lot 30-33',   ring:'outer', angle:240, cap:2900, fill:64, traffic:52, wifi:52},
+    {key:'Lot 42',      ring:'outer', angle:280, cap:1968, fill:45, traffic:35, wifi:33},
+    {key:'Lot 44',      ring:'outer', angle:320, cap:1800, fill:39, traffic:31, wifi:28}
+  ];
+
+  var rInner = 195, rOuter = 330;
+  var proposedAPs = [
+    {lotKey:'Yellow 13', note:'Proposed AP — Yellow 13 (94% load)'},
+    {lotKey:'Black Lot', note:'Proposed AP — Black Lot (88% load)'}
+  ];
+
+  function lotCenter(lot){
+    var r = lot.ring === 'inner' ? rInner : rOuter;
+    return pointOnOval(r, r*squash, lot.angle);
+  }
+
+  function buildMarkup(){
+    var parts = [];
+    parts.push('<rect x="0" y="0" width="1000" height="800" fill="#0E131A" rx="14"></rect>');
+
+    // access-road hint lines from each lot toward the bowl
+    lots.forEach(function(lot){
+      var p = lotCenter(lot);
+      parts.push('<line x1="'+p.x.toFixed(1)+'" y1="'+p.y.toFixed(1)+'" x2="'+cx+'" y2="'+cy+'" stroke="#1C222B" stroke-width="10" stroke-linecap="round"></line>');
+    });
+
+    // small bowl silhouette
+    parts.push('<ellipse cx="'+cx+'" cy="'+cy+'" rx="95" ry="'+(95*squash).toFixed(1)+'" fill="#232932" stroke="#354055" stroke-width="2"></ellipse>');
+    parts.push('<ellipse cx="'+cx+'" cy="'+cy+'" rx="60" ry="'+(60*squash).toFixed(1)+'" fill="#0E131A"></ellipse>');
+    parts.push('<rect x="'+(cx-40)+'" y="'+(cy-18)+'" width="80" height="36" rx="3" fill="#123321" stroke="#1f5c39" stroke-width="1"></rect>');
+    parts.push('<text x="'+cx+'" y="'+(cy+65)+'" text-anchor="middle" font-size="11" fill="#8891a0" font-family="sans-serif" font-weight="600">STADIUM</text>');
+
+    // lots
+    lots.forEach(function(lot, i){
+      var p = lotCenter(lot);
+      var w = lot.ring === 'inner' ? 150 : 118;
+      var h = lot.ring === 'inner' ? 100 : 82;
+      parts.push('<g class="plot-group" data-idx="'+i+'">' +
+        '<rect x="'+(p.x-w/2).toFixed(1)+'" y="'+(p.y-h/2).toFixed(1)+'" width="'+w+'" height="'+h+'" rx="8" fill="'+NEUTRAL+'" stroke="#354055" stroke-width="1.5" data-fillable="1"></rect>' +
+        '<text x="'+p.x.toFixed(1)+'" y="'+(p.y-4).toFixed(1)+'" text-anchor="middle" font-size="12.5" font-weight="700" fill="#E7ECF3" font-family="sans-serif">'+lot.key+'</text>' +
+        '<text x="'+p.x.toFixed(1)+'" y="'+(p.y+13).toFixed(1)+'" text-anchor="middle" font-size="10" fill="#9aa3b0" font-family="sans-serif" data-subtext="1">'+lot.cap.toLocaleString()+' spaces</text>' +
+        '<title>'+lot.key+'</title></g>');
+    });
+
+    // AP marker per lot (small square offset to top-left corner of each lot box)
+    lots.forEach(function(lot, i){
+      var p = lotCenter(lot);
+      var w = lot.ring === 'inner' ? 150 : 118;
+      var h = lot.ring === 'inner' ? 100 : 82;
+      var apx = p.x - w/2 + 10, apy = p.y - h/2 + 10;
+      parts.push('<g class="ap-group" data-idx="'+i+'">' +
+        '<circle cx="'+apx.toFixed(1)+'" cy="'+apy.toFixed(1)+'" r="7" fill="'+NEUTRAL+'" stroke="#0E131A" stroke-width="1.5" data-fillable="1"></circle>' +
+        '<title>AP \u00b7 '+lot.key+'</title></g>');
+    });
+
+    // proposed new AP markers (dashed, always visible)
+    proposedAPs.forEach(function(prop){
+      var lot = lots.filter(function(l){ return l.key === prop.lotKey; })[0];
+      if(!lot) return;
+      var p = lotCenter(lot);
+      var w = lot.ring === 'inner' ? 150 : 118;
+      var h = lot.ring === 'inner' ? 100 : 82;
+      var px = p.x + w/2 - 12, py = p.y + h/2 - 12;
+      parts.push('<g class="proposed-ap">' +
+        '<circle cx="'+px.toFixed(1)+'" cy="'+py.toFixed(1)+'" r="8" fill="none" stroke="#ff8fc4" stroke-width="2" stroke-dasharray="3,2"></circle>' +
+        '<text x="'+px.toFixed(1)+'" y="'+(py+3.5).toFixed(1)+'" text-anchor="middle" font-size="11" font-weight="700" fill="#ff8fc4" font-family="sans-serif">+</text>' +
+        '<title>'+prop.note+'</title></g>');
+    });
+
+    return parts.join('');
+  }
+
+  svg.innerHTML = buildMarkup();
+
+  var activeMetric = 'fill';
+  var labels = {
+    fill:    { title:'Predicted parking fill', sub:'% of lot capacity, likely-to-park model', unit:'%', field:'fill' },
+    traffic: { title:'Traffic & access congestion', sub:'Congestion index per lot access road', unit:'', field:'traffic' },
+    wifi:    { title:'WiFi AP load', sub:'Utilization %, one AP per lot zone', unit:'%', field:'wifi' }
+  };
+
+  function refresh(){
+    var lab = labels[activeMetric];
+    var field = lab.field;
+
+    svg.querySelectorAll('.plot-group [data-fillable]').forEach(function(el){ el.setAttribute('fill', NEUTRAL); });
+    svg.querySelectorAll('.ap-group [data-fillable]').forEach(function(el){ el.setAttribute('fill', NEUTRAL); });
+
+    if(field === 'wifi'){
+      svg.querySelectorAll('.ap-group').forEach(function(el,i){
+        var v = lots[i].wifi;
+        el.querySelector('circle').setAttribute('fill', heatColor(v));
+        el.querySelector('title').textContent = 'AP \u00b7 '+lots[i].key+' \u00b7 '+v+'% utilization';
+      });
+    } else {
+      svg.querySelectorAll('.plot-group').forEach(function(el,i){
+        var v = lots[i][field];
+        el.querySelector('rect[data-fillable]').setAttribute('fill', heatColor(v));
+        el.querySelector('title').textContent = lots[i].key+' \u00b7 '+v+(lab.unit||'');
+      });
+    }
+
+    document.getElementById('pLegendTitle').textContent = lab.title;
+    document.getElementById('pLegendSub').textContent = lab.sub;
+    var vals = lots.map(function(l){ return l[field]; });
+    var avg = Math.round(vals.reduce(function(a,b){return a+b;},0)/vals.length);
+    var crit = vals.filter(function(v){return v>=85;}).length;
+    document.getElementById('pLegendAvg').textContent = avg + (lab.unit||'');
+    document.getElementById('pLegendCrit').textContent = crit;
+
+    refreshApTable();
+  }
+
+  function refreshApTable(){
+    var rows = lots.map(function(l,i){ return {name:'AP-'+String(i+1).padStart(2,'0'), lot:l.key, v:l.wifi}; });
+    rows.sort(function(a,b){ return b.v - a.v; });
+    var body = document.getElementById('apTableBody');
+    if(!body) return;
+    body.innerHTML = rows.map(function(r){
+      var statusClass = r.v>=90 ? 'crit' : r.v>=85 ? 'warn' : r.v>=65 ? 'info' : 'good';
+      var statusText = r.v>=90 ? 'Overloaded' : r.v>=85 ? 'At risk' : r.v>=65 ? 'Elevated' : 'Normal';
+      return '<tr><td class="mono">'+r.name+'</td><td>'+r.lot+'</td><td class="mono">'+r.v+'%</td>' +
+             '<td><span class="sev '+statusClass+'"><span class="dot"></span>'+statusText+'</span></td></tr>';
+    }).join('');
+  }
+
+  refresh();
+
+  document.querySelectorAll('.legend-panel .metric-toggle button[data-pmetric]').forEach(function(btn){
+    btn.addEventListener('click', function(){
+      document.querySelectorAll('.legend-panel .metric-toggle button[data-pmetric]').forEach(function(b){ b.classList.remove('active'); });
+      btn.classList.add('active');
+      activeMetric = btn.dataset.pmetric;
+      refresh();
+    });
+  });
+
+  setInterval(function(){
+    lots.forEach(function(l){
+      ['fill','traffic','wifi'].forEach(function(f){
+        var nv = l[f] + (Math.random()-0.5)*8;
+        l[f] = Math.max(5, Math.min(99, Math.round(nv)));
+      });
+    });
+    refresh();
+  }, 9000);
+})();
+
+/* ---------------- traffic flow timeline ---------------- */
+(function(){
+  var chart = document.getElementById('flowChart');
+  if(!chart) return;
+
+  var phases = {
+    pre: {
+      color:'#ff9000',
+      data:[12,24,38,58,82,91,25],
+      labels:['T-3h','T-2h','T-1h','T-45m','T-30m','T-15m','Kickoff'],
+      milestones:[
+        {t:'T-3h', d:'Lots open'},
+        {t:'T-45m to T-15m', d:'Peak inbound congestion'},
+        {t:'T-0', d:'Kickoff — lots empty out fast'}
+      ],
+      recoTag:'pre-game',
+      recos:[
+        'Stage traffic control at <b>Gate 1 / 1A</b> inbound split by <b>T-90m</b> — Yellow 13/14 historically cross 90% fill by T-45m.',
+        'Open <b>Lot 42 overflow</b> proactively at <b>T-60m</b> rather than waiting for Yellow 18 to hit capacity.',
+        'Prioritize WiFi capacity at <b>Yellow 13/14 and Black Lot</b> ahead of the T-2h to T-45m tailgate window — these are the projected overload zones.'
+      ]
+    },
+    post: {
+      color:'#02C8FF',
+      data:[35,72,95,89,78,58,32,12],
+      labels:['Whistle','+10m','+20m','+30m','+45m','+60m','+90m','+120m'],
+      milestones:[
+        {t:'T+0', d:'Final whistle'},
+        {t:'T+20m', d:'Peak outbound congestion'},
+        {t:'~T+120m', d:'Lots substantially cleared'}
+      ],
+      recoTag:'post-game',
+      recos:[
+        'Meter <b>Gate 2 / 2A</b> outbound flow starting at the final whistle to prevent gridlock on Don Shula Drive.',
+        'Hold the rideshare queue release from <b>Blue Lot</b> for ~15 minutes post-whistle to smooth the NW 199th St merge.',
+        'Keep <b>Lot 42 / Lot 44</b> exit lanes open last — lowest congestion, best positioned to absorb overflow as inner lots clear.'
+      ]
+    }
+  };
+
+  var activePhase = 'pre';
+
+  function renderChart(phase){
+    var p = phases[phase];
+    var w = 900, h = 150, pad = 10;
+    var max = 100, min = 0;
+    var stepX = (w-pad*2)/(p.data.length-1);
+    var pts = p.data.map(function(v,i){ return [pad+i*stepX, h-pad-((v-min)/(max-min))*(h-pad*2)]; });
+    var line = 'M'+pts.map(function(pt){ return pt[0].toFixed(1)+','+pt[1].toFixed(1); }).join(' L');
+    var area = line + ' L'+(w-pad).toFixed(1)+','+(h-pad).toFixed(1)+' L'+pad+','+(h-pad).toFixed(1)+' Z';
+    chart.innerHTML =
+      '<defs><linearGradient id="flowGrad" x1="0" y1="0" x2="0" y2="1">' +
+      '<stop offset="0%" stop-color="'+p.color+'" stop-opacity="0.4"/>' +
+      '<stop offset="100%" stop-color="'+p.color+'" stop-opacity="0"/></linearGradient></defs>' +
+      '<path d="'+area+'" fill="url(#flowGrad)" stroke="none"></path>' +
+      '<path d="'+line+'" fill="none" stroke="'+p.color+'" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"></path>' +
+      pts.map(function(pt,i){ return '<circle cx="'+pt[0].toFixed(1)+'" cy="'+pt[1].toFixed(1)+'" r="3" fill="'+p.color+'"><title>'+p.labels[i]+' \u00b7 congestion '+p.data[i]+'</title></circle>'; }).join('');
+
+    document.getElementById('flowMilestones').innerHTML = p.milestones.map(function(m){
+      return '<div class="ms"><b>'+m.t+'</b>'+m.d+'</div>';
+    }).join('');
+
+    document.getElementById('flowRecoTag').textContent = p.recoTag;
+    document.getElementById('recoList').innerHTML = p.recos.map(function(r,i){
+      return '<div class="reco-item"><span class="reco-badge">'+(i+1)+'</span><span>'+r+'</span></div>';
+    }).join('');
+  }
+
+  renderChart(activePhase);
+
+  document.querySelectorAll('[data-phase]').forEach(function(btn){
+    btn.addEventListener('click', function(){
+      document.querySelectorAll('[data-phase]').forEach(function(b){ b.classList.remove('active'); });
+      btn.classList.add('active');
+      activePhase = btn.dataset.phase;
+      renderChart(activePhase);
+    });
+  });
+})();
+
+} catch (e) {
+  console.error('Nerve center script error (static layout is unaffected):', e);
+}
+</script>
+</body>
+</html>
