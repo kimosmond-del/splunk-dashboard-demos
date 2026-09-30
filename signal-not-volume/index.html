@@ -1,0 +1,558 @@
+<div style="padding: 15px;">
+  <a href="../" style="color:#4ea1ff; text-decoration:none; font-size:16px;">
+    ← Back to Demo Portal
+  </a>
+</div>
+
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Security data strategy · University demo</title>
+<style>
+:root{
+  --bg:#0B1118; --bg2:#04070B; --panel:#121A24; --panel2:#161F2B; --line:#2A3440; --line2:#3A4552;
+  --text:#F2F5FA; --muted:#BCC4CF; --subtle:#8A929E;
+  --mag:#FF007F; --magL:#FF3D9A; --magT:#FF66B0; --org:#FF9000; --cyan:#02C8FF; --gray:#5E6875;
+  --good:#3DDC97; --warn:#FFB020; --crit:#FF4D4F;
+  --r:12px;
+}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--text);font-family:'Inter',system-ui,-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:14px;line-height:1.45}
+button,select{font:inherit;color:inherit}
+.app{min-height:100vh;display:flex;flex-direction:column;background:linear-gradient(180deg,var(--bg2) 0,var(--bg) 320px)}
+/* app bar */
+.bar{display:flex;align-items:center;gap:16px;padding:10px 24px;border-bottom:1px solid var(--line);background:#070B10;position:relative;overflow:hidden}
+.bar::after{content:"";position:absolute;right:-140px;top:-180px;width:420px;height:320px;border-radius:50%;background:radial-gradient(circle,var(--org) 0,var(--mag) 35%,transparent 70%);opacity:.45;filter:blur(40px);pointer-events:none}
+.brand{font-weight:600;letter-spacing:.2px;display:flex;align-items:baseline;gap:8px;position:relative;z-index:1}
+.brand small{color:var(--subtle);font-weight:400}
+.spacer{flex:1}
+.chip{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line2);border-radius:999px;padding:3px 10px;font-size:12px;color:var(--muted);background:#0E151E;position:relative;z-index:1}
+.chip .dot{width:7px;height:7px;border-radius:50%;background:var(--mag)}
+/* header */
+.head{padding:22px 24px 0;display:flex;flex-wrap:wrap;align-items:flex-end;gap:16px}
+.head h1{margin:0;font-size:26px;font-weight:600;letter-spacing:-.3px}
+.head p{margin:4px 0 0;color:var(--muted)}
+.controls{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.seg{display:inline-flex;border:1px solid var(--line2);border-radius:999px;overflow:hidden}
+.seg button{background:transparent;border:0;padding:6px 14px;cursor:pointer;color:var(--muted)}
+.seg button[aria-pressed="true"]{background:var(--text);color:#0B1118;font-weight:600}
+.btn{background:transparent;border:1px solid var(--line2);border-radius:999px;padding:7px 16px;cursor:pointer;color:var(--text);white-space:nowrap}
+.btn:hover{border-color:var(--muted)}
+.btn.primary{background:linear-gradient(90deg,var(--mag),var(--org));border:0;color:#fff;font-weight:600}
+.btn:focus-visible,.seg button:focus-visible,select:focus-visible,.tab:focus-visible{outline:2px solid var(--mag);outline-offset:1px}
+/* tabs */
+.tabs{display:flex;gap:4px;padding:18px 24px 0;border-bottom:1px solid var(--line);overflow-x:auto}
+.tab{background:transparent;border:0;border-bottom:2px solid transparent;padding:10px 14px;cursor:pointer;color:var(--muted);white-space:nowrap}
+.tab .n{display:inline-grid;place-items:center;width:20px;height:20px;border-radius:50%;border:1px solid var(--line2);font-size:11px;margin-right:8px}
+.tab[aria-selected="true"]{color:var(--text);border-bottom-color:var(--mag)}
+.tab[aria-selected="true"] .n{background:var(--mag);border-color:var(--mag);color:#fff}
+main{padding:20px 24px 32px;flex:1}
+.view{display:none}
+.view.on{display:block}
+/* grid */
+.grid{display:grid;gap:16px}
+.g4{grid-template-columns:repeat(4,minmax(0,1fr))}
+.g2{grid-template-columns:minmax(0,1.15fr) minmax(0,1fr)}
+.g21{grid-template-columns:minmax(0,1.6fr) minmax(0,1fr)}
+@media(max-width:1100px){.g4{grid-template-columns:repeat(2,minmax(0,1fr))}.g2,.g21{grid-template-columns:1fr}}
+@media(max-width:560px){.g4{grid-template-columns:1fr}main,.head,.tabs,.bar{padding-left:16px;padding-right:16px}}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:16px;min-width:0}
+.panel h2{margin:0 0 2px;font-size:15px;font-weight:600}
+.panel .sub{margin:0 0 12px;color:var(--subtle);font-size:12.5px}
+.kpi .lab{color:var(--muted);font-size:12.5px}
+.kpi .val{font-size:32px;font-weight:600;letter-spacing:-.5px;margin:4px 0 2px;font-variant-numeric:tabular-nums}
+.kpi .val small{font-size:15px;color:var(--muted);font-weight:400;margin-left:4px}
+.kpi .delta{font-size:12.5px;color:var(--subtle)}
+.kpi .delta.up{color:var(--good)} .kpi .delta.down{color:var(--warn)}
+/* table */
+.tbl{width:100%;border-collapse:collapse;font-size:13px}
+.tbl th{text-align:left;color:var(--subtle);font-weight:500;font-size:12px;padding:8px 8px;border-bottom:1px solid var(--line);white-space:nowrap;position:sticky;top:0;background:var(--panel)}
+.tbl td{padding:7px 8px;border-bottom:1px solid #1C2530;vertical-align:middle}
+.tbl td.num,.tbl th.num{text-align:right;font-variant-numeric:tabular-nums}
+.tbl tr.sel td{background:#1C1422}
+.tbl tr:hover td{background:#18212C}
+.scroll{max-height:560px;overflow:auto;border-radius:8px}
+.dom{display:inline-block;font-size:11px;padding:1px 8px;border-radius:999px;border:1px solid var(--line2);color:var(--muted);white-space:nowrap}
+select.treat{background:#0E151E;border:1px solid var(--line2);border-radius:8px;padding:4px 8px;font-size:12.5px;cursor:pointer;max-width:190px}
+.warnrow{font-size:11.5px;color:var(--warn);margin-top:3px;display:flex;gap:4px;align-items:center}
+.bar-mini{height:6px;border-radius:3px;background:#243040;overflow:hidden;min-width:60px}
+.bar-mini i{display:block;height:100%;background:var(--muted);border-radius:3px}
+/* legend */
+.legend{display:flex;flex-wrap:wrap;gap:14px;font-size:12.5px;color:var(--muted);margin:6px 0 10px}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+.sw{width:10px;height:10px;border-radius:3px;display:inline-block}
+/* tooltip */
+#tip{position:fixed;pointer-events:none;background:#0A0F15;border:1px solid var(--line2);border-radius:8px;padding:8px 10px;font-size:12.5px;max-width:280px;z-index:50;display:none;box-shadow:0 8px 24px rgba(0,0,0,.5)}
+#tip b{display:block;margin-bottom:2px}
+/* stepper */
+.steps{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}
+.step{flex:1;min-width:150px;background:#0E151E;border:1px solid var(--line);border-radius:10px;padding:10px 12px;cursor:pointer;text-align:left}
+.step .k{font-size:11px;color:var(--subtle);text-transform:uppercase;letter-spacing:1px}
+.step .t{font-weight:600;margin-top:2px}
+.step[aria-current="true"]{border-color:var(--mag);background:#1E1020}
+.step.done{border-color:#4A1834}
+.evid{display:flex;flex-direction:column;gap:10px}
+.ev{border:1px solid var(--line);border-radius:10px;padding:10px 12px;background:#0E151E}
+.ev .top{display:flex;justify-content:space-between;gap:10px;align-items:center;flex-wrap:wrap}
+.ev .src{font-weight:600}
+.ev .body{color:var(--muted);margin-top:4px;font-size:13px}
+.ev code,.spl{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:12px}
+.spl{display:block;background:#070B10;border:1px solid var(--line);border-radius:8px;padding:8px 10px;margin-top:8px;color:#CFE8FF;white-space:pre-wrap;word-break:break-word}
+.status{display:inline-flex;align-items:center;gap:6px;font-size:12px;padding:2px 9px;border-radius:999px;border:1px solid var(--line2);white-space:nowrap}
+.status svg{flex:none}
+.s-index{color:var(--magT);border-color:#5A1F3F}
+.s-s3{color:var(--cyan);border-color:#11485A}
+.s-edge{color:var(--org);border-color:#5A3A12}
+.s-none{color:#9AA3AF;border-color:#3A4552;border-style:dashed}
+.ev.blind{border-style:dashed;border-color:#5A3A12;background:repeating-linear-gradient(135deg,#0E151E 0 10px,#131A22 10px 20px)}
+.qs{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.q{border:1px solid var(--line);border-radius:10px;padding:10px 12px;background:#0E151E;min-height:86px}
+.q .k{font-size:11px;color:var(--subtle);text-transform:uppercase;letter-spacing:1px}
+.q .a{margin-top:4px;font-size:13px}
+.q .a.pending{color:#5E6875;font-style:italic}
+.q .a.gap{color:var(--warn)}
+.graphwrap{background:#0A1017;border:1px solid var(--line);border-radius:10px;overflow:hidden}
+/* matrix */
+.mx{width:100%;border-collapse:separate;border-spacing:6px;font-size:13px}
+.mx th{color:var(--subtle);font-weight:500;font-size:12px;text-align:left;padding:4px 6px}
+.mx td{background:#0E151E;border:1px solid var(--line);border-radius:10px;padding:10px;vertical-align:top;cursor:default}
+.mx td.rowh{background:transparent;border:0;font-weight:600;color:var(--text);width:170px}
+.mx td .srcs{color:var(--subtle);font-size:11.5px;margin-top:6px}
+.mx td.c-none{border-style:dashed;border-color:#5A3A12;background:repeating-linear-gradient(135deg,#0E151E 0 10px,#131A22 10px 20px)}
+.ready{display:flex;gap:6px;flex-wrap:wrap}
+.pill{font-size:12px;border-radius:999px;padding:2px 10px;border:1px solid var(--line2)}
+.pill.ok{color:var(--good);border-color:#1D5A43}
+.pill.part{color:var(--warn);border-color:#5A4512}
+.pill.no{color:var(--crit);border-color:#5A1F22}
+.foot{display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap;padding:14px 24px;border-top:1px solid var(--line);color:var(--subtle);font-size:12px}
+.note{color:var(--subtle);font-size:12px;margin-top:8px}
+.flex{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:#0A0F15;border:1px solid var(--mag);border-radius:999px;padding:8px 16px;font-size:13px;display:none;z-index:60}
+kbd{font-family:inherit;font-size:11px;border:1px solid var(--line2);border-radius:4px;padding:0 5px;color:var(--muted)}
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="bar">
+    <div class="brand">Security data strategy <small>Northfield University · demo environment</small></div>
+    <div class="spacer"></div>
+    <span class="chip"><span class="dot"></span>Synthetic data</span>
+  </div>
+
+  <div class="head">
+    <div>
+      <h1>All data is security data. Not every event belongs in the SIEM.</h1>
+      <p>Start with the outcome, work back to the data, then choose the right treatment for each source.</p>
+    </div>
+    <div class="spacer"></div>
+    <div class="controls">
+      <div class="seg" role="group" aria-label="Time range">
+        <button data-range="1" aria-pressed="true">Per day</button>
+        <button data-range="30" aria-pressed="false">30 days</button>
+        <button data-range="365" aria-pressed="false">12 months</button>
+      </div>
+      <button class="btn" id="btnBase">Collect everything</button>
+      <button class="btn primary" id="btnPlan">Apply outcome-led plan</button>
+    </div>
+  </div>
+
+  <div class="tabs" role="tablist">
+    <button class="tab" role="tab" aria-selected="true" data-view="v1"><span class="n">1</span>Data treatment</button>
+    <button class="tab" role="tab" aria-selected="false" data-view="v2"><span class="n">2</span>Investigation: one account, one agent</button>
+    <button class="tab" role="tab" aria-selected="false" data-view="v3"><span class="n">3</span>Outcome coverage</button>
+  </div>
+
+  <main>
+    <!-- VIEW 1 -->
+    <section class="view on" id="v1">
+      <div class="grid g4">
+        <div class="panel kpi"><div class="lab">Volume in the search tier</div><div class="val" id="k1">–</div><div class="delta" id="k1d">&nbsp;</div></div>
+        <div class="panel kpi"><div class="lab">Share of search-tier volume that informed a decision</div><div class="val" id="k2">–</div><div class="delta" id="k2d">Detections + investigations, last 30 days</div></div>
+        <div class="panel kpi"><div class="lab">Detections still reading from the search tier</div><div class="val" id="k3">–</div><div class="delta" id="k3d">&nbsp;</div></div>
+        <div class="panel kpi"><div class="lab">Blind spots — data exists, SOC can't reach it</div><div class="val" id="k4">–</div><div class="delta" id="k4d">&nbsp;</div></div>
+      </div>
+
+      <div class="grid g2" style="margin-top:16px">
+        <div class="panel">
+          <h2>Volume vs decisions informed</h2>
+          <p class="sub">Each dot is a data source. Top-left earns its place; bottom-right is where you pay for noise. Click a dot to find it in the table.</p>
+          <div class="legend" id="lg1"></div>
+          <div id="scatter"></div>
+          <div class="note">Decisions informed = detections that read the source + investigations that touched it, last 30 days. Log scale on volume.</div>
+        </div>
+        <div class="panel">
+          <h2>Where the volume goes</h2>
+          <p class="sub">Same data, different treatment. Compare the “collect everything” baseline with your current choices.</p>
+          <div class="legend" id="lg2"></div>
+          <div id="stack"></div>
+          <div class="grid" style="grid-template-columns:1fr 1fr;gap:10px;margin-top:14px" id="treatDefs"></div>
+        </div>
+      </div>
+
+      <div class="panel" style="margin-top:16px">
+        <div class="flex" style="justify-content:space-between">
+          <div><h2>Data sources and treatment</h2><p class="sub">Change a treatment and watch every panel — including the investigation and the outcome matrix — react.</p></div>
+        </div>
+        <div class="scroll"><table class="tbl" id="srcTable"></table></div>
+      </div>
+    </section>
+
+    <!-- VIEW 2 -->
+    <section class="view" id="v2">
+      <div class="steps" id="steps"></div>
+      <div class="grid g21">
+        <div class="panel">
+          <h2 id="stepTitle">Evidence</h2>
+          <p class="sub" id="stepSub"></p>
+          <div class="evid" id="evid"></div>
+        </div>
+        <div class="grid" style="align-content:start">
+          <div class="panel">
+            <h2>What the SOC can now say</h2>
+            <p class="sub">Four questions to ask of anything that acts in your environment.</p>
+            <div class="qs" id="qs"></div>
+          </div>
+          <div class="panel">
+            <h2>How the pieces connect</h2>
+            <p class="sub">Relationships make the data useful: one person, one device, one agent, one dataset.</p>
+            <div class="graphwrap" id="graph"></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- VIEW 3 -->
+    <section class="view" id="v3">
+      <div class="panel">
+        <h2>Outcome coverage by domain</h2>
+        <p class="sub">Each cell shows the best treatment available for the sources that outcome depends on. Hover a cell for the sources.</p>
+        <div class="legend" id="lg3"></div>
+        <div style="overflow-x:auto"><table class="mx" id="matrix"></table></div>
+      </div>
+      <div class="grid g4" style="margin-top:16px" id="readiness"></div>
+    </section>
+  </main>
+
+  <div class="foot">
+    <span>Splunk · a Cisco company · Demo built on synthetic data — volumes and counts are illustrative, not benchmarks.</span>
+    <span>Treatments reflect current platform capabilities: indexed search, routing to Amazon S3 with Federated Search, and edge filtering and summarization with Edge Processor or Ingest Processor.</span>
+  </div>
+</div>
+<div id="tip" role="tooltip"></div>
+<div class="toast" id="toast"></div>
+
+<script>
+/* ---------------- data (synthetic) ---------------- */
+const TREAT = {
+  index:{label:'Index for search', short:'Searchable now', color:'#FF3D9A', cls:'s-index', rank:3,
+         def:'Indexed and searchable in seconds. For data that drives detections and first-hour triage.'},
+  s3:{label:'Route to S3, federated search', short:'Retrieved on demand', color:'#02C8FF', cls:'s-s3', rank:2,
+      def:'Routed at the pipeline to Amazon S3 and searched in place when an investigation needs it.'},
+  edge:{label:'Summarize at the edge', short:'Summary only', color:'#FF9000', cls:'s-edge', rank:1,
+        def:'Filtered or aggregated in the pipeline. Trends survive; per-event detail does not.'},
+  none:{label:'Not collected', short:'Blind spot', color:'#5E6875', cls:'s-none', rank:0,
+        def:'The data exists somewhere in the university. The SOC cannot reach or connect it.'}
+};
+const DOMAINS = ['Identity','Application','Data','Network & endpoint','AI agents'];
+const SRC = [
+ {id:'aad_signin', name:'Entra ID sign-ins', dom:'Identity', gb:18, det:42, inv:310, base:'index', plan:'index'},
+ {id:'aad_sp', name:'Service principal & app consent activity', dom:'AI agents', gb:3, det:9, inv:64, base:'index', plan:'index'},
+ {id:'agent', name:'AI agent & assistant activity logs', dom:'AI agents', gb:2, det:0, inv:0, base:'none', plan:'index', note:'Not onboarded today'},
+ {id:'vpn', name:'VPN & remote access', dom:'Identity', gb:12, det:11, inv:140, base:'index', plan:'index'},
+ {id:'edr', name:'EDR alerts & process telemetry', dom:'Network & endpoint', gb:45, det:28, inv:260, base:'index', plan:'index'},
+ {id:'portal', name:'Research portal application logs', dom:'Application', gb:9, det:4, inv:38, base:'index', plan:'index'},
+ {id:'sis', name:'Student information system audit', dom:'Application', gb:4, det:7, inv:51, base:'index', plan:'index'},
+ {id:'m365', name:'OneDrive & SharePoint access', dom:'Data', gb:22, det:5, inv:70, base:'index', plan:'index'},
+ {id:'share', name:'Research file-share audit', dom:'Data', gb:65, det:0, inv:44, base:'index', plan:'s3'},
+ {id:'fw_allow', name:'Firewall traffic — allowed', dom:'Network & endpoint', gb:210, det:0, inv:95, base:'index', plan:'s3'},
+ {id:'fw_deny', name:'Firewall traffic — denied', dom:'Network & endpoint', gb:160, det:0, inv:12, base:'index', plan:'edge'},
+ {id:'dns', name:'DNS query logs', dom:'Network & endpoint', gb:140, det:0, inv:120, base:'index', plan:'s3'},
+ {id:'proxy', name:'Web proxy', dom:'Network & endpoint', gb:95, det:0, inv:88, base:'index', plan:'s3'},
+ {id:'wifi', name:'Wi-Fi controller & DHCP', dom:'Network & endpoint', gb:55, det:0, inv:22, base:'index', plan:'s3'},
+ {id:'lb', name:'Load balancer & web access logs', dom:'Application', gb:120, det:0, inv:9, base:'index', plan:'edge'},
+ {id:'debug', name:'Verbose infrastructure & debug logs', dom:'Data', gb:180, det:0, inv:2, base:'index', plan:'edge'},
+];
+const byId = Object.fromEntries(SRC.map(s=>[s.id,s]));
+let state = Object.fromEntries(SRC.map(s=>[s.id,s.base]));
+let range = 1, selected = null, step = 0;
+
+/* ---------------- helpers ---------------- */
+const $ = s=>document.querySelector(s);
+const fmtGB = gb => { const v = gb*range; return v>=10000? (v/1000).toFixed(1)+' TB' : v>=1000? (v/1000).toFixed(2)+' TB' : Math.round(v)+' GB'; };
+const rangeLabel = ()=> range===1?'per day':range===30?'over 30 days':'over 12 months';
+const tip = $('#tip');
+function showTip(e,html){tip.innerHTML=html;tip.style.display='block';moveTip(e)}
+function moveTip(e){const w=tip.offsetWidth,h=tip.offsetHeight;let x=e.clientX+14,y=e.clientY+14;if(x+w>innerWidth-8)x=e.clientX-w-14;if(y+h>innerHeight-8)y=e.clientY-h-14;tip.style.left=x+'px';tip.style.top=y+'px'}
+function hideTip(){tip.style.display='none'}
+function toast(m){const t=$('#toast');t.textContent=m;t.style.display='block';clearTimeout(toast._t);toast._t=setTimeout(()=>t.style.display='none',2600)}
+function icon(t,c){ // shape encodes status too (never colour alone)
+  const s={index:`<circle cx="6" cy="6" r="5" fill="${c}"/>`,
+           s3:`<circle cx="6" cy="6" r="4.2" fill="none" stroke="${c}" stroke-width="1.8"/>`,
+           edge:`<path d="M6 1a5 5 0 0 1 0 10z" fill="${c}"/><circle cx="6" cy="6" r="4.2" fill="none" stroke="${c}" stroke-width="1.6"/>`,
+           none:`<path d="M2.5 2.5l7 7M9.5 2.5l-7 7" stroke="${c}" stroke-width="1.8" stroke-linecap="round"/>`}[t];
+  return `<svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true">${s}</svg>`;
+}
+function badge(t){const T=TREAT[t];return `<span class="status ${T.cls}">${icon(t,T.color)}${T.short}</span>`}
+function legendHTML(keys){return keys.map(k=>`<span>${icon(k,TREAT[k].color)}${TREAT[k].label}</span>`).join('')}
+const decisions = s => s.det + s.inv;
+
+/* ---------------- view 1 ---------------- */
+function computeKPIs(st){
+  let hot=0, hotUsed=0, detHot=0, detTotal=0, blind=0;
+  SRC.forEach(s=>{
+    const t=st[s.id];
+    detTotal+=s.det;
+    if(t==='index'){hot+=s.gb; if(decisions(s)/s.gb>=1.5) hotUsed+=s.gb; detHot+=s.det;}
+    if(t==='none') blind++;
+  });
+  return {hot, used: hot? hotUsed/hot : 0, detHot, detTotal, blind};
+}
+function renderKPIs(){
+  const cur=computeKPIs(state), base=computeKPIs(Object.fromEntries(SRC.map(s=>[s.id,s.base])));
+  $('#k1').innerHTML = fmtGB(cur.hot).replace(/ (GB|TB)/,'<small>$1</small>');
+  const pct = base.hot? Math.round((1-cur.hot/base.hot)*100):0;
+  $('#k1d').textContent = pct>0? `${pct}% less than collect-everything, ${rangeLabel()}` : pct<0? `${-pct}% more than collect-everything` : `Collect-everything baseline, ${rangeLabel()}`;
+  $('#k1d').className='delta'+(pct>0?' up':'');
+  $('#k2').innerHTML = Math.round(cur.used*100)+'<small>%</small>';
+  $('#k3').innerHTML = cur.detHot+'<small>of '+cur.detTotal+'</small>';
+  const lost = cur.detTotal-cur.detHot;
+  $('#k3d').textContent = lost? `${lost} detection${lost>1?'s':''} now reading data outside the search tier — rework or re-point them` : 'Every detection keeps its data in reach';
+  $('#k3d').className='delta'+(lost?' down':' up');
+  $('#k4').textContent = cur.blind;
+  const names = SRC.filter(s=>state[s.id]==='none').map(s=>s.name);
+  $('#k4d').textContent = names.length? names.join(', ') : 'No known gaps in reach';
+  $('#k4d').className='delta'+(names.length?' down':' up');
+}
+
+function renderScatter(){
+  const W=560,H=330,m={l:52,r:40,t:14,b:40}, iw=W-m.l-m.r, ih=H-m.t-m.b;
+  const xmin=Math.log10(1.5), xmax=Math.log10(300), ymax=400;
+  const X=gb=>m.l+(Math.log10(gb)-xmin)/(xmax-xmin)*iw, Y=d=>m.t+ih-(Math.min(d,ymax)/ymax)*ih;
+  let g=`<svg viewBox="0 0 ${W} ${H}" width="100%" role="img" aria-label="Scatter of data volume versus decisions informed per source">`;
+  // noise quadrant
+  g+=`<rect x="${X(40)}" y="${Y(60)}" width="${X(300)-X(40)}" height="${Y(0)-Y(60)}" fill="#FF9000" opacity=".07"/>`;
+  
+  [0,100,200,300,400].forEach(v=>{g+=`<line x1="${m.l}" x2="${W-m.r}" y1="${Y(v)}" y2="${Y(v)}" stroke="#223040" stroke-width="1"/><text x="${m.l-8}" y="${Y(v)+4}" text-anchor="end" fill="#8A929E" font-size="11">${v}</text>`});
+  [2,5,10,20,50,100,200].forEach(v=>{g+=`<text x="${X(v)}" y="${H-m.b+18}" text-anchor="middle" fill="#8A929E" font-size="11">${v}</text>`});
+  g+=`<text x="${m.l+iw/2}" y="${H-4}" text-anchor="middle" fill="#8A929E" font-size="11">GB per day (log scale)</text>`;
+  g+=`<text transform="translate(12 ${m.t+ih/2}) rotate(-90)" text-anchor="middle" fill="#8A929E" font-size="11">Decisions informed</text>`;
+  SRC.forEach(s=>{
+    const t=state[s.id], c=TREAT[t].color, x=X(s.gb), y=Y(decisions(s)), sel=selected===s.id;
+    const shape = t==='s3'? `<circle cx="${x}" cy="${y}" r="6" fill="#121A24" stroke="${c}" stroke-width="2.4"/>`
+      : t==='edge'? `<rect x="${x-6}" y="${y-6}" width="12" height="12" rx="2" fill="${c}" stroke="#121A24" stroke-width="2"/>`
+      : t==='none'? `<path d="M${x-5} ${y-5}l10 10M${x+5} ${y-5}l-10 10" stroke="${c}" stroke-width="2.4" stroke-linecap="round"/>`
+      : `<circle cx="${x}" cy="${y}" r="6.5" fill="${c}" stroke="#121A24" stroke-width="2"/>`;
+    g+=`<g class="pt" data-id="${s.id}" style="cursor:pointer">${sel?`<circle cx="${x}" cy="${y}" r="12" fill="none" stroke="#F2F5FA" stroke-width="1.5"/>`:''}${shape}<circle cx="${x}" cy="${y}" r="14" fill="transparent"/></g>`;
+  });
+  // direct labels on a few
+  [['fw_allow','Firewall allowed',1,22],['debug','Debug logs',1,-10],['aad_signin','Entra sign-ins',0,-10],['edr','EDR',0,-10]].forEach(([id,l,left,dy])=>{
+    const s=byId[id]; g+=`<text x="${X(s.gb)+(left?-10:10)}" y="${Y(decisions(s))+dy}" text-anchor="${left?'end':'start'}" fill="#BCC4CF" font-size="11">${l}</text>`;});
+  const ag=byId.agent; g+=`<text x="${X(ag.gb)+10}" y="${Y(0)-10}" fill="#BCC4CF" font-size="11">AI agent logs</text>`;
+  g+='</svg>';
+  $('#scatter').innerHTML=g;
+  $('#scatter').querySelectorAll('.pt').forEach(p=>{
+    const s=byId[p.dataset.id];
+    p.addEventListener('mousemove',e=>showTip(e,`<b>${s.name}</b>${fmtGB(s.gb)} ${rangeLabel()}<br>${s.det} detections · ${s.inv} investigations<br>${TREAT[state[s.id]].label}`));
+    p.addEventListener('mouseleave',hideTip);
+    p.addEventListener('click',()=>{selected=s.id;renderAll();const row=document.getElementById('row-'+s.id);row&&row.scrollIntoView({block:'center',behavior:'smooth'})});
+  });
+}
+
+function renderStack(){
+  const keys=['index','s3','edge'];
+  const sum=st=>{const o={index:0,s3:0,edge:0};SRC.forEach(s=>{if(o[st[s.id]]!==undefined)o[st[s.id]]+=s.gb});return o};
+  const rows=[['Collect everything',sum(Object.fromEntries(SRC.map(s=>[s.id,s.base])))],['Your choices',sum(state)]];
+  const total=SRC.reduce((a,s)=>a+s.gb,0);
+  const W=520,H=150,m={l:130,r:10,t:10}, iw=W-m.l-m.r, bh=34;
+  let g=`<svg viewBox="0 0 ${W} ${H}" width="100%" role="img" aria-label="Volume by treatment, baseline versus current">`;
+  rows.forEach(([lab,o],i)=>{
+    const y=m.t+i*62; let x=m.l;
+    g+=`<text x="0" y="${y+bh/2+4}" fill="#F2F5FA" font-size="12.5">${lab}</text>`;
+    keys.forEach(k=>{
+      const w=o[k]/total*iw; if(w<=0)return;
+      g+=`<rect class="seg" data-k="${k}" data-v="${o[k]}" data-r="${lab}" x="${x+1}" y="${y}" width="${Math.max(w-2,0)}" height="${bh}" rx="4" fill="${TREAT[k].color}" ${k==='s3'?'fill-opacity=".85"':''}/>`;
+      if(w>54) g+=`<text x="${x+8}" y="${y+bh/2+4}" fill="#0B1118" font-size="12" font-weight="600" pointer-events="none">${Math.round(o[k]/total*100)}%</text>`;
+      x+=w;
+    });
+    g+=`<text x="${m.l}" y="${y+bh+15}" fill="#8A929E" font-size="11">${fmtGB(o.index)} searchable now ${rangeLabel()}</text>`;
+  });
+  g+='</svg>';
+  $('#stack').innerHTML=g;
+  $('#stack').querySelectorAll('.seg').forEach(r=>{
+    r.addEventListener('mousemove',e=>showTip(e,`<b>${r.dataset.r}</b>${TREAT[r.dataset.k].label}: ${fmtGB(+r.dataset.v)} ${rangeLabel()}`));
+    r.addEventListener('mouseleave',hideTip);
+  });
+}
+
+function renderTable(){
+  const maxD=Math.max(...SRC.map(decisions));
+  let h=`<thead><tr><th>Data source</th><th>Domain</th><th class="num">Volume</th><th class="num">Detections</th><th class="num">Investigations</th><th>Decisions per GB</th><th>Treatment</th></tr></thead><tbody>`;
+  [...SRC].sort((a,b)=>b.gb-a.gb).forEach(s=>{
+    const t=state[s.id], dpg=s.gb? decisions(s)/s.gb:0;
+    const warn = t!=='index' && s.det>0 ? `<div class="warnrow">⚠ ${s.det} detection${s.det>1?'s':''} read this source</div>` : '';
+    const blind = t==='none' ? `<div class="warnrow">⚠ ${s.note||'Data exists but is out of the SOC’s reach'}</div>`:'';
+    h+=`<tr id="row-${s.id}" class="${selected===s.id?'sel':''}"><td>${s.name}${warn}${blind}</td><td><span class="dom">${s.dom}</span></td>
+      <td class="num">${fmtGB(s.gb)}</td><td class="num">${s.det}</td><td class="num">${s.inv}</td>
+      <td><div class="flex" style="gap:8px;flex-wrap:nowrap"><div class="bar-mini" style="width:70px"><i style="width:${Math.min(dpg/12,1)*100}%"></i></div><span style="font-variant-numeric:tabular-nums;color:#BCC4CF">${dpg.toFixed(1)}</span></div></td>
+      <td><select class="treat" data-id="${s.id}" aria-label="Treatment for ${s.name}">${Object.keys(TREAT).map(k=>`<option value="${k}" ${k===t?'selected':''}>${TREAT[k].label}</option>`).join('')}</select></td></tr>`;
+  });
+  h+='</tbody>';
+  $('#srcTable').innerHTML=h;
+  $('#srcTable').querySelectorAll('select').forEach(sel=>sel.addEventListener('change',()=>{state[sel.dataset.id]=sel.value;selected=sel.dataset.id;renderAll()}));
+}
+
+/* ---------------- view 2 ---------------- */
+const STEPS = [
+ {k:'Step 1', t:'Identity', title:'Who signed in?', sub:'An unusual sign-in to a researcher’s account from a new country, after a burst of MFA prompts.',
+  ev:[
+   {src:'aad_signin', found:'Sign-in for j.chen@northfield.example from a new country after 14 MFA prompts in 6 minutes. Session token issued.', q:'index=identity sourcetype="azure:monitor:aad" category=SignInLogs user="j.chen@northfield.example"\n| stats count values(location) values(src_ip) by result'},
+   {src:'vpn', found:'No VPN session for this user in the same window — the sign-in came from outside the campus network.', q:'index=network sourcetype=vpn user="j.chen" earliest=-24h'}]},
+ {k:'Step 2', t:'Application', title:'What did they reach?', sub:'The session is used to open the research portal and browse active grant projects.',
+  ev:[{src:'portal', found:'Research portal: 37 project pages viewed in 9 minutes, including two restricted grant projects.', q:'index=apps sourcetype=research:portal user="j.chen" | stats dc(project_id) by access_level'}]},
+ {k:'Step 3', t:'Data', title:'What did they touch?', sub:'Files leave the research share and a personal OneDrive folder.',
+  ev:[{src:'share', found:'2.3 GB read from \\\\research\\genomics-lab across 1,140 files — 40× this user’s normal daily volume.', q:'| sdselect * FROM federated:s3_research_share_audit\n  WHERE user="j.chen" AND action="read"\n| stats sum(bytes) dc(file_path) by share'},
+      {src:'m365', found:'A sharing link to a OneDrive folder was created with “anyone with the link” access.', q:'index=o365 Operation=AnonymousLinkCreated UserId="j.chen@northfield.example"'}]},
+ {k:'Step 4', t:'Network & endpoint', title:'How did it happen?', sub:'Endpoint and network context show how the session was established and where data went.',
+  ev:[{src:'edr', found:'The researcher’s laptop is clean — the activity came from an unmanaged device, not the endpoint.', q:'index=edr host="NF-LT-2231" earliest=-24h | stats count by severity'},
+      {src:'dns', found:'The unmanaged device resolved a file-transfer domain registered 11 days ago.', q:'| sdselect query, src_ip FROM federated:s3_dns WHERE src_ip="203.0.113.44"'},
+      {src:'wifi', found:'No campus Wi-Fi lease for that device — it was never on the network.', q:'| sdselect * FROM federated:s3_wifi_dhcp WHERE mac IN ($suspect_macs$)'}]},
+ {k:'Step 5', t:'AI agent', title:'Now add an AI agent', sub:'The same account had delegated access to an approved research assistant agent. Did the agent act on the attacker’s behalf?',
+  ev:[{src:'aad_sp', found:'The approved agent “Lab Assistant” holds a delegated token for j.chen with Files.Read.All — broader than its purpose needs.', q:'index=identity sourcetype="azure:monitor:aad" category=AuditLogs target="Lab Assistant"\n| table _time operation permission initiated_by'},
+      {src:'agent', found:'The agent summarized 212 grant documents and posted the output to an external endpoint 4 minutes after the risky sign-in.', q:'index=ai_agents agent="Lab Assistant" on_behalf_of="j.chen" | stats count by action, destination'},
+      {src:'proxy', found:'Outbound HTTPS from the agent’s host to the same new file-transfer domain.', q:'| sdselect * FROM federated:s3_proxy WHERE dest_domain="xfer-files.example"'}]},
+];
+const QUESTIONS = [
+ {k:'What acted?', a:[[0,'aad_signin','A compromised user session, from an unmanaged device.'],[4,'agent','…and an approved AI agent acting on that session’s behalf.']]},
+ {k:'What was it allowed to do?', a:[[1,'portal','Read access to restricted grant projects.'],[4,'aad_sp','The agent inherited Files.Read.All — broader than its purpose.']]},
+ {k:'What did it touch?', a:[[2,'share','2.3 GB of genomics research data and a public sharing link.']]},
+ {k:'What happened as a result?', a:[[3,'dns','Data headed to a new file-transfer domain.'],[4,'agent','Agent output posted externally — contain the token, revoke the link, notify the lab.']]},
+];
+function evStatusText(t){return {index:'Returned in seconds from the search tier.',s3:'Retrieved on demand from S3 with federated search.',edge:'Only aggregates were kept — the per-event detail this step needs is gone.',none:'Not collected. The SOC cannot answer this part of the question.'}[t]}
+function renderSteps(){
+  $('#steps').innerHTML=STEPS.map((s,i)=>`<button class="step ${i<step?'done':''}" aria-current="${i===step}" data-i="${i}"><div class="k">${s.k}</div><div class="t">${s.t}</div></button>`).join('');
+  $('#steps').querySelectorAll('.step').forEach(b=>b.addEventListener('click',()=>{step=+b.dataset.i;renderV2()}));
+}
+function renderEvidence(){
+  const S=STEPS[step];
+  $('#stepTitle').textContent=S.title; $('#stepSub').textContent=S.sub;
+  $('#evid').innerHTML=S.ev.map(e=>{
+    const src=byId[e.src], t=state[e.src], ok=t==='index'||t==='s3';
+    return `<div class="ev ${ok?'':'blind'}"><div class="top"><span class="src">${src.name}</span>${badge(t)}</div>
+      <div class="body">${ok? e.found : `<span style="color:#FFB866">${evStatusText(t)}</span>`}</div>
+      ${ok?`<div class="note" style="margin-top:4px">${evStatusText(t)}</div><code class="spl">${e.q.replace(/</g,'&lt;')}</code>`:''}</div>`;
+  }).join('') + `<div class="flex" style="justify-content:space-between;margin-top:4px">
+      <button class="btn" id="prev" ${step===0?'disabled style="opacity:.4"':''}>← Back</button>
+      <button class="btn primary" id="next">${step===STEPS.length-1?'Restart':'Next step →'}</button></div>`;
+  $('#prev').onclick=()=>{if(step>0){step--;renderV2()}};
+  $('#next').onclick=()=>{step=step===STEPS.length-1?0:step+1;renderV2()};
+}
+function renderQs(){
+  $('#qs').innerHTML=QUESTIONS.map(q=>{
+    const lines=q.a.filter(([s])=>s<=step).map(([,src,txt])=>{
+      const t=state[src]; return (t==='index'||t==='s3')? `<div>${txt}</div>` : `<div class="gap">⚠ Can’t tell — ${byId[src].name}: ${TREAT[t].short.toLowerCase()}.</div>`;});
+    return `<div class="q"><div class="k">${q.k}</div><div class="a ${lines.length?'':'pending'}">${lines.length?lines.join(''):'Not yet known'}</div></div>`;
+  }).join('');
+}
+function renderGraph(){
+  const N=[
+   {id:'user',l:'j.chen',s:'Researcher account',x:90,y:60,step:0,src:'aad_signin'},
+   {id:'dev',l:'Unmanaged device',s:'203.0.113.44',x:90,y:175,step:3,src:'wifi'},
+   {id:'app',l:'Research portal',s:'37 projects viewed',x:320,y:60,step:1,src:'portal'},
+   {id:'data',l:'Genomics share',s:'2.3 GB read',x:550,y:60,step:2,src:'share'},
+   {id:'agent',l:'Lab Assistant',s:'Approved AI agent',x:320,y:175,step:4,src:'agent'},
+   {id:'ext',l:'xfer-files.example',s:'New external domain',x:550,y:175,step:3,src:'dns'},
+  ];
+  const E=[['dev','user','signed in as',0],['user','app','opened',1],['app','data','read',2],['user','agent','delegated token',4],['agent','data','summarized',4],['agent','ext','posted to',4],['dev','ext','resolved',3]];
+  const P=Object.fromEntries(N.map(n=>[n.id,n]));
+  const vis=n=>n.step<=step, reach=n=>['index','s3'].includes(state[n.src]);
+  let g=`<svg viewBox="0 0 640 250" width="100%" role="img" aria-label="Entity relationship graph for the investigation">`;
+  g+=`<defs><marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="#6E7682"/></marker></defs>`;
+  E.forEach(([a,b,l,s])=>{
+    if(s>step||!vis(P[a])||!vis(P[b]))return;
+    const A=P[a],B=P[b],ok=reach(A)&&reach(B);
+    const dx=B.x-A.x,dy=B.y-A.y,len=Math.hypot(dx,dy),ux=dx/len,uy=dy/len;
+    const sx=A.x+ux*(Math.abs(ux)>.5?74:0), sy=A.y+uy*(Math.abs(uy)>.5?24:0);
+    const ex=B.x-ux*(Math.abs(ux)>.5?74:0), ey=B.y-uy*(Math.abs(uy)>.5?24:0);
+    const stroke=`stroke="${ok?'#6E7682':'#FF9000'}" stroke-width="1.6" fill="none" ${ok?'':'stroke-dasharray="4 4"'} marker-end="url(#ah)"`;
+    if(a==='dev'&&b==='ext'){ // route under the agent node
+      g+=`<path d="M${A.x} ${A.y+24} C ${A.x} 232, ${B.x} 232, ${B.x} ${B.y+24}" ${stroke}/>`;
+      g+=`<text x="${(A.x+B.x)/2}" y="228" text-anchor="middle" fill="#8A929E" font-size="10.5">resolved</text>`;
+      return;
+    }
+    g+=`<line x1="${sx}" y1="${sy}" x2="${ex}" y2="${ey}" ${stroke}/>`;
+    g+=`<text x="${(sx+ex)/2}" y="${(sy+ey)/2-5}" text-anchor="middle" fill="#8A929E" font-size="10.5">${l}</text>`;
+  });
+  N.forEach(n=>{
+    if(!vis(n))return;
+    const ok=reach(n), isAgent=n.id==='agent';
+    g+=`<g><rect x="${n.x-74}" y="${n.y-24}" width="148" height="48" rx="10" fill="${isAgent?'#1E1020':'#121A24'}" stroke="${!ok?'#FF9000':isAgent?'#FF007F':'#3A4552'}" stroke-width="${isAgent||!ok?1.6:1}" ${ok?'':'stroke-dasharray="4 3"'}/>
+      <text x="${n.x}" y="${n.y-4}" text-anchor="middle" fill="#F2F5FA" font-size="12.5" font-weight="600">${n.l}</text>
+      <text x="${n.x}" y="${n.y+13}" text-anchor="middle" fill="${ok?'#8A929E':'#FFB866'}" font-size="10.5">${ok?n.s:'Can’t see — '+TREAT[state[n.src]].short.toLowerCase()}</text></g>`;
+  });
+  g+='</svg>';
+  $('#graph').innerHTML=g;
+}
+function renderV2(){renderSteps();renderEvidence();renderQs();renderGraph()}
+
+/* ---------------- view 3 ---------------- */
+const OUTCOMES=[
+ {name:'Protect research data', cells:{'Identity':['aad_signin','vpn'],'Application':['portal'],'Data':['share','m365'],'Network & endpoint':['edr','dns','proxy'],'AI agents':['agent','aad_sp']}},
+ {name:'Protect student information', cells:{'Identity':['aad_signin'],'Application':['sis'],'Data':['m365'],'Network & endpoint':['edr','proxy'],'AI agents':['agent','aad_sp']}},
+ {name:'Keep critical services running', cells:{'Identity':['aad_signin','vpn'],'Application':['lb'],'Data':['debug'],'Network & endpoint':['fw_allow','fw_deny','dns'],'AI agents':['agent']}},
+];
+function best(ids){return ids.map(i=>state[i]).sort((a,b)=>TREAT[b].rank-TREAT[a].rank)[0]}
+function renderMatrix(){
+  let h=`<tr><th></th>${DOMAINS.map(d=>`<th>${d}</th>`).join('')}</tr>`;
+  OUTCOMES.forEach(o=>{
+    h+=`<tr><td class="rowh">${o.name}</td>`;
+    DOMAINS.forEach(d=>{
+      const ids=o.cells[d], b=best(ids);
+      h+=`<td class="c-${b}" data-ids="${ids.join(',')}">${badge(b)}<div class="srcs">${ids.map(i=>byId[i].name).join(' · ')}</div></td>`;
+    });
+    h+='</tr>';
+  });
+  $('#matrix').innerHTML=h;
+  $('#matrix').querySelectorAll('td[data-ids]').forEach(td=>{
+    td.addEventListener('mousemove',e=>showTip(e,td.dataset.ids.split(',').map(i=>`${icon(state[i],TREAT[state[i]].color)} ${byId[i].name}: ${TREAT[state[i]].label}`).join('<br>')));
+    td.addEventListener('mouseleave',hideTip);
+  });
+  // readiness
+  const caps=[['Detect','index',o=>['Identity','Application','Network & endpoint']],['Investigate','s3',()=>DOMAINS],['Explain','s3',()=>['AI agents','Data']],['Recover','s3',()=>['Data','Application']]];
+  $('#readiness').innerHTML=OUTCOMES.map(o=>{
+    const pills=caps.map(([cap,need,doms])=>{
+      const cells=doms(o).map(d=>TREAT[best(o.cells[d])].rank), needR=TREAT[need].rank;
+      const okN=cells.filter(r=>r>=needR).length, cls= okN===cells.length?'ok': okN>0?'part':'no';
+      return `<span class="pill ${cls}">${cls==='ok'?'✓':cls==='part'?'◐':'✕'} ${cap}${cls==='ok'?'':cls==='part'?' — partly':' — no'}</span>`;
+    }).join('');
+    return `<div class="panel"><h2>${o.name}</h2><p class="sub">Can the SOC detect, investigate, explain and recover?</p><div class="ready">${pills}</div></div>`;
+  }).join('') + `<div class="panel"><h2>Reading this</h2><p class="sub" style="margin:0">Detect needs identity, application and network data searchable now. Investigate, explain and recover need the data in reach — indexed or on demand. Summaries and blind spots break the chain.</p></div>`;
+}
+
+/* ---------------- wiring ---------------- */
+function renderAll(){renderKPIs();renderScatter();renderStack();renderTable();renderV2();renderMatrix()}
+$('#lg1').innerHTML=legendHTML(['index','s3','edge','none'])+`<span><i class="sw" style="background:#FF9000;opacity:.25;border:1px solid #5A3A12"></i>Shaded: high volume, few decisions</span>`;
+$('#lg2').innerHTML=legendHTML(['index','s3','edge']);
+$('#lg3').innerHTML=legendHTML(['index','s3','edge','none']);
+$('#treatDefs').innerHTML=['index','s3','edge','none'].map(k=>`<div style="font-size:12.5px;color:#BCC4CF"><div class="flex" style="gap:6px;color:#F2F5FA;font-weight:600">${icon(k,TREAT[k].color)}${TREAT[k].label}</div>${TREAT[k].def}</div>`).join('');
+document.querySelectorAll('.tab').forEach(t=>t.addEventListener('click',()=>{
+  document.querySelectorAll('.tab').forEach(x=>x.setAttribute('aria-selected',x===t));
+  document.querySelectorAll('.view').forEach(v=>v.classList.toggle('on',v.id===t.dataset.view));
+}));
+document.querySelectorAll('.seg button').forEach(b=>b.addEventListener('click',()=>{
+  range=+b.dataset.range;document.querySelectorAll('.seg button').forEach(x=>x.setAttribute('aria-pressed',x===b));renderAll();
+}));
+$('#btnPlan').onclick=()=>{SRC.forEach(s=>state[s.id]=s.plan);renderAll();toast('Outcome-led plan applied — agent logs onboarded, low-value volume moved out of the search tier')};
+$('#btnBase').onclick=()=>{SRC.forEach(s=>state[s.id]=s.base);renderAll();toast('Back to collect everything')};
+document.addEventListener('keydown',e=>{
+  if(e.target.tagName==='SELECT')return;
+  if(['1','2','3'].includes(e.key))document.querySelectorAll('.tab')[+e.key-1].click();
+  if(e.key==='ArrowRight'&&$('#v2').classList.contains('on')){step=Math.min(step+1,STEPS.length-1);renderV2()}
+  if(e.key==='ArrowLeft'&&$('#v2').classList.contains('on')){step=Math.max(step-1,0);renderV2()}
+});
+renderAll();
+</script>
+</body>
+</html>
